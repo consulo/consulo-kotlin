@@ -9,7 +9,7 @@ import org.jetbrains.kotlin.tools.projectWizard.plugins.buildSystem.BuildSystemT
 import org.jetbrains.kotlin.tools.projectWizard.wizard.KotlinNewProjectWizardUIBundle
 import org.jetbrains.kotlin.tools.projectWizard.wizard.NewProjectWizardModuleBuilder
 
-internal class IntelliJKotlinBuildSystemType : KotlinBuildSystemType {
+internal class IntelliJKotlinNewProjectWizard : BuildSystemKotlinNewProjectWizard {
 
     override val name = "IntelliJ"
 
@@ -18,7 +18,7 @@ internal class IntelliJKotlinBuildSystemType : KotlinBuildSystemType {
 
         override fun setupUI(builder: Panel) {
             with(builder) {
-                collapsibleGroup(KotlinNewProjectWizardUIBundle.message("additional.buildsystem.settings.kotlin.runtime")) {
+                collapsibleGroup(KotlinNewProjectWizardUIBundle.message("additional.buildsystem.settings.kotlin.advanced"), topGroupGap = true) {
                     row("${KotlinNewProjectWizardUIBundle.message("additional.buildsystem.settings.kotlin.runtime")}:") {
                         cell(wizardBuilder.wizard.jpsData.libraryOptionsPanel.simplePanel)
                     }
