@@ -1,6 +1,5 @@
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-
-package org.jetbrains.kotlin.idea.structureView
+package org.jetbrains.kotlin.idea.k2.codeinsight.structureView
 
 import com.intellij.ide.structureView.StructureViewTreeElement
 import com.intellij.ide.structureView.impl.common.PsiTreeElementBase
@@ -10,37 +9,45 @@ import com.intellij.openapi.ui.Queryable
 import com.intellij.psi.NavigatablePsiElement
 import com.intellij.psi.PsiElement
 import org.jetbrains.annotations.TestOnly
-import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
-import org.jetbrains.kotlin.descriptors.DeclarationDescriptorWithVisibility
-import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
-import org.jetbrains.kotlin.idea.caches.resolve.resolveToDescriptorIfAny
+import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.symbols.KtSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.markers.KtSymbolWithVisibility
+import org.jetbrains.kotlin.analysis.api.symbols.pointers.KtSymbolPointer
+import org.jetbrains.kotlin.descriptors.Visibilities
+import org.jetbrains.kotlin.idea.structureView.AbstractKotlinStructureViewElement
 import org.jetbrains.kotlin.idea.util.application.runReadAction
 import org.jetbrains.kotlin.psi.*
 import javax.swing.Icon
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
-class KotlinStructureViewElement(
-    val nElement: NavigatablePsiElement,
-    private val isInherited: Boolean = false
-) : PsiTreeElementBase<NavigatablePsiElement>(nElement), Queryable, AbstractKotlinStructureViewElement {
+class KotlinFirStructureViewElement(
+  val nElement: NavigatablePsiElement,
+  ktElement : KtElement,
+  private val isInherited: Boolean = false
+) : PsiTreeElementBase<NavigatablePsiElement>(nElement), AbstractKotlinStructureViewElement, Queryable {
 
     private var kotlinPresentation
             by AssignableLazyProperty {
-                KotlinStructureElementPresentation(isInherited, element, countDescriptor())
+                KotlinFirStructureElementPresentation(isInherited, element, ktElement, countDescriptor())
             }
 
     var visibility
             by AssignableLazyProperty {
-                Visibility(countDescriptor())
+                analyze(ktElement) {
+                    Visibility(countDescriptor()?.restoreSymbol())
+                }
             }
         private set
 
-    constructor(element: NavigatablePsiElement, descriptor: DeclarationDescriptor, isInherited: Boolean) : this(element, isInherited) {
+    constructor(element: NavigatablePsiElement, inheritElement: KtElement, descriptor: KtSymbolPointer<*>, isInherited: Boolean) : this(element, inheritElement, isInherited) {
         if (element !is KtElement) {
             // Avoid storing descriptor in fields
-            kotlinPresentation = KotlinStructureElementPresentation(isInherited, element, descriptor)
-            visibility = Visibility(descriptor)
+            kotlinPresentation = KotlinFirStructureElementPresentation(isInherited, element, inheritElement, descriptor)
+            analyze(inheritElement) {
+                visibility = Visibility(descriptor.restoreSymbol())
+            }
+
         }
     }
 
@@ -75,7 +82,7 @@ class KotlinStructureViewElement(
             else -> emptyList()
         }
 
-        return children.map { KotlinStructureViewElement(it, false) }
+        return children.map { KotlinFirStructureViewElement(it, it, false) }
     }
 
     private fun PsiElement.collectLocalDeclarations(): List<KtDeclaration> {
@@ -94,41 +101,39 @@ class KotlinStructureViewElement(
         return result
     }
 
-    private fun isPublic(descriptor: DeclarationDescriptor?) =
-        (descriptor as? DeclarationDescriptorWithVisibility)?.visibility == DescriptorVisibilities.PUBLIC
-
-    private fun countDescriptor(): DeclarationDescriptor? {
+    private fun countDescriptor(): KtSymbolPointer<*>? {
         val element = element
         return when {
-            element == null -> null
             !element.isValid -> null
             element !is KtDeclaration -> null
             element is KtAnonymousInitializer -> null
             else -> runReadAction {
-                if (!DumbService.isDumb(element.getProject())) {
-                    element.resolveToDescriptorIfAny()
-                } else null
+              if (!DumbService.isDumb(element.getProject())) {
+                analyze(element) {
+                  element.getSymbol().createPointer()
+                } 
+              }
+              else null
             }
         }
     }
 
-    class Visibility(descriptor: DeclarationDescriptor?) {
-        private val visibility = (descriptor as? DeclarationDescriptorWithVisibility)?.visibility
+    class Visibility(descriptor: KtSymbol?) {
+        private val visibility = (descriptor as? KtSymbolWithVisibility)?.visibility
 
         val isPublic: Boolean
-            get() = visibility == DescriptorVisibilities.PUBLIC
+            get() = visibility == Visibilities.Public
 
         val accessLevel: Int?
             get() = when {
-                visibility == DescriptorVisibilities.PUBLIC -> 1
-                visibility == DescriptorVisibilities.INTERNAL -> 2
-                visibility == DescriptorVisibilities.PROTECTED -> 3
-                visibility?.let { DescriptorVisibilities.isPrivate(it) } == true -> 4
+                visibility == Visibilities.Public -> 1
+                visibility == Visibilities.Internal -> 2
+                visibility == Visibilities.Protected -> 3
+                visibility?.let { Visibilities.isPrivate(it) } == true -> 4
                 else -> null
             }
     }
 }
-
 private class AssignableLazyProperty<in R, T : Any>(val init: () -> T) : ReadWriteProperty<R, T> {
     private var _value: T? = null
 
@@ -145,4 +150,3 @@ fun KtClassOrObject.getStructureDeclarations() =
     (primaryConstructor?.let { listOf(it) } ?: emptyList()) +
             primaryConstructorParameters.filter { it.hasValOrVar() } +
             declarations
-
