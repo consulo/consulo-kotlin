@@ -1,6 +1,6 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
-package org.jetbrains.kotlin.idea.base.projectStructure.forwardDeclarations
+package org.jetbrains.kotlin.idea.base.projectStructure.forwardDeclarations.impl
 
 import com.intellij.platform.workspace.jps.entities.LibraryEntity
 import com.intellij.platform.workspace.storage.EntitySource
@@ -24,10 +24,11 @@ import com.intellij.platform.workspace.storage.instrumentation.EntityStorageInst
 import com.intellij.platform.workspace.storage.instrumentation.MutableEntityStorageInstrumentation
 import com.intellij.platform.workspace.storage.metadata.model.EntityMetadata
 import com.intellij.platform.workspace.storage.url.VirtualFileUrl
+import org.jetbrains.kotlin.idea.base.projectStructure.forwardDeclarations.KotlinForwardDeclarationsWorkspaceEntity
 
 @GeneratedCodeApiVersion(3)
 @GeneratedCodeImplVersion(5)
-open class KotlinForwardDeclarationsWorkspaceEntityImpl(private val dataSource: KotlinForwardDeclarationsWorkspaceEntityData) : KotlinForwardDeclarationsWorkspaceEntity, WorkspaceEntityBase(
+internal class KotlinForwardDeclarationsWorkspaceEntityImpl(private val dataSource: KotlinForwardDeclarationsWorkspaceEntityData) : KotlinForwardDeclarationsWorkspaceEntity, WorkspaceEntityBase(
   dataSource) {
 
   private companion object {
@@ -61,9 +62,9 @@ open class KotlinForwardDeclarationsWorkspaceEntityImpl(private val dataSource: 
   }
 
 
-  class Builder(result: KotlinForwardDeclarationsWorkspaceEntityData?) : ModifiableWorkspaceEntityBase<KotlinForwardDeclarationsWorkspaceEntity, KotlinForwardDeclarationsWorkspaceEntityData>(
+  internal class Builder(result: KotlinForwardDeclarationsWorkspaceEntityData?) : ModifiableWorkspaceEntityBase<KotlinForwardDeclarationsWorkspaceEntity, KotlinForwardDeclarationsWorkspaceEntityData>(
     result), KotlinForwardDeclarationsWorkspaceEntity.Builder {
-    constructor() : this(KotlinForwardDeclarationsWorkspaceEntityData())
+    internal constructor() : this(KotlinForwardDeclarationsWorkspaceEntityData())
 
     override fun applyToBuilder(builder: MutableEntityStorage) {
       if (this.diff != null) {
@@ -201,7 +202,7 @@ open class KotlinForwardDeclarationsWorkspaceEntityImpl(private val dataSource: 
   }
 }
 
-class KotlinForwardDeclarationsWorkspaceEntityData : WorkspaceEntityData<KotlinForwardDeclarationsWorkspaceEntity>() {
+internal class KotlinForwardDeclarationsWorkspaceEntityData : WorkspaceEntityData<KotlinForwardDeclarationsWorkspaceEntity>() {
   lateinit var forwardDeclarationRoots: MutableSet<VirtualFileUrl>
 
   internal fun isForwardDeclarationRootsInitialized(): Boolean = ::forwardDeclarationRoots.isInitialized

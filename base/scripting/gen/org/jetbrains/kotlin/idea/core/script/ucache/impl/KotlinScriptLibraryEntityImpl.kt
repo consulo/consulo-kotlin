@@ -1,5 +1,5 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package org.jetbrains.kotlin.idea.core.script.ucache
+package org.jetbrains.kotlin.idea.core.script.ucache.impl
 
 import com.intellij.platform.workspace.storage.*
 import com.intellij.platform.workspace.storage.EntitySource
@@ -23,10 +23,14 @@ import com.intellij.platform.workspace.storage.instrumentation.EntityStorageInst
 import com.intellij.platform.workspace.storage.metadata.model.EntityMetadata
 import com.intellij.platform.workspace.storage.url.VirtualFileUrl
 import java.io.Serializable
+import org.jetbrains.kotlin.idea.core.script.ucache.KotlinScriptId
+import org.jetbrains.kotlin.idea.core.script.ucache.KotlinScriptLibraryEntity
+import org.jetbrains.kotlin.idea.core.script.ucache.KotlinScriptLibraryId
+import org.jetbrains.kotlin.idea.core.script.ucache.KotlinScriptLibraryRoot
 
 @GeneratedCodeApiVersion(3)
 @GeneratedCodeImplVersion(5)
-open class KotlinScriptLibraryEntityImpl(private val dataSource: KotlinScriptLibraryEntityData) : KotlinScriptLibraryEntity, WorkspaceEntityBase(
+internal class KotlinScriptLibraryEntityImpl(private val dataSource: KotlinScriptLibraryEntityData) : KotlinScriptLibraryEntity, WorkspaceEntityBase(
   dataSource) {
 
   private companion object {
@@ -73,9 +77,9 @@ open class KotlinScriptLibraryEntityImpl(private val dataSource: KotlinScriptLib
   }
 
 
-  class Builder(result: KotlinScriptLibraryEntityData?) : ModifiableWorkspaceEntityBase<KotlinScriptLibraryEntity, KotlinScriptLibraryEntityData>(
+    internal class Builder(result: KotlinScriptLibraryEntityData?) : ModifiableWorkspaceEntityBase<KotlinScriptLibraryEntity, KotlinScriptLibraryEntityData>(
     result), KotlinScriptLibraryEntity.Builder {
-    constructor() : this(KotlinScriptLibraryEntityData())
+        internal constructor() : this(KotlinScriptLibraryEntityData())
 
     override fun applyToBuilder(builder: MutableEntityStorage) {
       if (this.diff != null) {
@@ -216,7 +220,7 @@ open class KotlinScriptLibraryEntityImpl(private val dataSource: KotlinScriptLib
   }
 }
 
-class KotlinScriptLibraryEntityData : WorkspaceEntityData<KotlinScriptLibraryEntity>(), SoftLinkable {
+internal class KotlinScriptLibraryEntityData : WorkspaceEntityData<KotlinScriptLibraryEntity>(), SoftLinkable {
   lateinit var name: String
   lateinit var roots: MutableList<KotlinScriptLibraryRoot>
   var indexSourceRoots: Boolean = false

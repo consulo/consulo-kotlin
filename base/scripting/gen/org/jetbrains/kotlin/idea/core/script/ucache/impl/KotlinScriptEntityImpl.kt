@@ -1,5 +1,5 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package org.jetbrains.kotlin.idea.core.script.ucache
+package org.jetbrains.kotlin.idea.core.script.ucache.impl
 
 import com.intellij.platform.workspace.storage.*
 import com.intellij.platform.workspace.storage.EntitySource
@@ -20,10 +20,14 @@ import com.intellij.platform.workspace.storage.instrumentation.EntityStorageInst
 import com.intellij.platform.workspace.storage.instrumentation.EntityStorageInstrumentationApi
 import com.intellij.platform.workspace.storage.metadata.model.EntityMetadata
 import com.intellij.platform.workspace.storage.url.VirtualFileUrl
+import org.jetbrains.kotlin.idea.core.script.ucache.KotlinScriptEntity
+import org.jetbrains.kotlin.idea.core.script.ucache.KotlinScriptId
+import org.jetbrains.kotlin.idea.core.script.ucache.KotlinScriptLibraryId
 
 @GeneratedCodeApiVersion(3)
 @GeneratedCodeImplVersion(5)
-open class KotlinScriptEntityImpl(private val dataSource: KotlinScriptEntityData) : KotlinScriptEntity, WorkspaceEntityBase(dataSource) {
+internal class KotlinScriptEntityImpl(private val dataSource: KotlinScriptEntityData) : KotlinScriptEntity, WorkspaceEntityBase(
+  dataSource) {
 
   private companion object {
 
@@ -58,9 +62,9 @@ open class KotlinScriptEntityImpl(private val dataSource: KotlinScriptEntityData
   }
 
 
-  class Builder(result: KotlinScriptEntityData?) : ModifiableWorkspaceEntityBase<KotlinScriptEntity, KotlinScriptEntityData>(
+  internal class Builder(result: KotlinScriptEntityData?) : ModifiableWorkspaceEntityBase<KotlinScriptEntity, KotlinScriptEntityData>(
     result), KotlinScriptEntity.Builder {
-    constructor() : this(KotlinScriptEntityData())
+    internal constructor() : this(KotlinScriptEntityData())
 
     override fun applyToBuilder(builder: MutableEntityStorage) {
       if (this.diff != null) {
@@ -162,7 +166,7 @@ open class KotlinScriptEntityImpl(private val dataSource: KotlinScriptEntityData
   }
 }
 
-class KotlinScriptEntityData : WorkspaceEntityData<KotlinScriptEntity>(), SoftLinkable {
+internal class KotlinScriptEntityData : WorkspaceEntityData<KotlinScriptEntity>(), SoftLinkable {
   lateinit var path: String
   lateinit var dependencies: MutableSet<KotlinScriptLibraryId>
 

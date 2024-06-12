@@ -1,5 +1,5 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package org.jetbrains.kotlin.idea.workspaceModel
+package org.jetbrains.kotlin.idea.workspaceModel.impl
 
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.platform.workspace.jps.entities.ModuleEntity
@@ -32,10 +32,13 @@ import com.intellij.platform.workspace.storage.instrumentation.MutableEntityStor
 import com.intellij.platform.workspace.storage.metadata.model.EntityMetadata
 import com.intellij.util.descriptors.ConfigFileItem
 import org.jetbrains.kotlin.config.KotlinModuleKind
+import org.jetbrains.kotlin.idea.workspaceModel.CompilerSettingsData
+import org.jetbrains.kotlin.idea.workspaceModel.KotlinSettingsEntity
+import org.jetbrains.kotlin.idea.workspaceModel.KotlinSettingsId
 
 @GeneratedCodeApiVersion(3)
 @GeneratedCodeImplVersion(5)
-open class KotlinSettingsEntityImpl(private val dataSource: KotlinSettingsEntityData) : KotlinSettingsEntity, WorkspaceEntityBase(
+internal class KotlinSettingsEntityImpl(private val dataSource: KotlinSettingsEntityData) : KotlinSettingsEntity, WorkspaceEntityBase(
   dataSource) {
 
   private companion object {
@@ -192,9 +195,9 @@ open class KotlinSettingsEntityImpl(private val dataSource: KotlinSettingsEntity
   }
 
 
-  class Builder(result: KotlinSettingsEntityData?) : ModifiableWorkspaceEntityBase<KotlinSettingsEntity, KotlinSettingsEntityData>(
+  internal class Builder(result: KotlinSettingsEntityData?) : ModifiableWorkspaceEntityBase<KotlinSettingsEntity, KotlinSettingsEntityData>(
     result), KotlinSettingsEntity.Builder {
-    constructor() : this(KotlinSettingsEntityData())
+    internal constructor() : this(KotlinSettingsEntityData())
 
     override fun applyToBuilder(builder: MutableEntityStorage) {
       if (this.diff != null) {
@@ -685,7 +688,7 @@ open class KotlinSettingsEntityImpl(private val dataSource: KotlinSettingsEntity
   }
 }
 
-class KotlinSettingsEntityData : WorkspaceEntityData<KotlinSettingsEntity>(), SoftLinkable {
+internal class KotlinSettingsEntityData : WorkspaceEntityData<KotlinSettingsEntity>(), SoftLinkable {
   lateinit var name: String
   lateinit var moduleId: ModuleId
   lateinit var sourceRoots: MutableList<String>
