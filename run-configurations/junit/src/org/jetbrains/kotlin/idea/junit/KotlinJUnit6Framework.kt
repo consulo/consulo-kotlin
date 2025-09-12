@@ -1,7 +1,7 @@
-// Copyright 2000-2023 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.kotlin.idea.junit
 
-import com.intellij.execution.junit.JUnit5Framework
+import com.intellij.execution.junit.JUnit6Framework
 import com.intellij.execution.junit.JUnitUtil
 import com.intellij.ide.fileTemplates.FileTemplateDescriptor
 import com.intellij.java.analysis.OuterModelsModificationTrackerManager
@@ -25,7 +25,7 @@ import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtNamedDeclaration
 import org.jetbrains.kotlin.psi.KtNamedFunction
 
-class KotlinJUnit5Framework: JUnit5Framework(), KotlinPsiBasedTestFramework {
+class KotlinJUnit6Framework: JUnit6Framework(), KotlinPsiBasedTestFramework {
     private val psiBasedDelegate = object : AbstractKotlinPsiBasedTestFramework() {
 
         override val markerClassFqns: Collection<String> = markerClassFQNames
@@ -37,7 +37,7 @@ class KotlinJUnit5Framework: JUnit5Framework(), KotlinPsiBasedTestFramework {
             if (checkState != UNSURE) return checkState
             return CachedValuesManager.getCachedValue(declaration) {
                 CachedValueProvider.Result.create(
-                    checkJUnit5TestClass(declaration),
+                    checkJUnit6TestClass(declaration),
                     OuterModelsModificationTrackerManager.getTracker(declaration.project)
                 )
             }
@@ -50,7 +50,7 @@ class KotlinJUnit5Framework: JUnit5Framework(), KotlinPsiBasedTestFramework {
 
             return CachedValuesManager.getCachedValue(ktClassOrObject) {
                 CachedValueProvider.Result.create(
-                    checkJUnit5PotentialTestClass(ktClassOrObject) != NO,
+                    checkJUnit6PotentialTestClass(ktClassOrObject) != NO,
                     OuterModelsModificationTrackerManager.getTracker(ktClassOrObject.project)
                 )
             }
@@ -59,24 +59,24 @@ class KotlinJUnit5Framework: JUnit5Framework(), KotlinPsiBasedTestFramework {
         override fun isTestMethod(declaration: KtNamedFunction): Boolean {
             if (!super.isTestMethod(declaration)) return false
             if (declaration.annotationEntries.isEmpty()) return false
-            return isJUnit5TestMethod(declaration)
+            return isJUnit6TestMethod(declaration)
         }
 
-        private fun checkJUnit5TestClass(declaration: KtClassOrObject): ThreeState =
+        private fun checkJUnit6TestClass(declaration: KtClassOrObject): ThreeState =
             if (!isFrameworkAvailable(declaration)) {
                 NO
             } else {
-                checkIsJUnit5LikeTestClass(declaration, false)
+                checkIsJUnit6LikeTestClass(declaration, false)
             }
 
-        private fun checkJUnit5PotentialTestClass(declaration: KtClassOrObject): ThreeState =
+        private fun checkJUnit6PotentialTestClass(declaration: KtClassOrObject): ThreeState =
             if (!isFrameworkAvailable(declaration) && !isFrameworkAvailable(declaration, KotlinPsiBasedTestFramework.KOTLIN_TEST_TEST, false)) {
                 NO
             } else {
-                checkIsJUnit5LikeTestClass(declaration, true)
+                checkIsJUnit6LikeTestClass(declaration, true)
             }
 
-        private fun checkIsJUnit5LikeTestClass(declaration: KtClassOrObject, isPotential: Boolean): ThreeState =
+        private fun checkIsJUnit6LikeTestClass(declaration: KtClassOrObject, isPotential: Boolean): ThreeState =
             if (isPotential) {
                 if (isUnderTestSources(declaration)) UNSURE else NO
             } else if (!isFrameworkAvailable(declaration)) {
@@ -91,7 +91,7 @@ class KotlinJUnit5Framework: JUnit5Framework(), KotlinPsiBasedTestFramework {
                 UNSURE
             }
 
-        private fun isJUnit5TestMethod(method: KtNamedFunction): Boolean {
+        private fun isJUnit6TestMethod(method: KtNamedFunction): Boolean {
             return isAnnotated(method, METHOD_ANNOTATION_FQN)
         }
 
