@@ -1,32 +1,25 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+@file:JvmName("KotlinSettingsEntityModifications")
+
 package org.jetbrains.kotlin.idea.workspaceModel
 
-import com.intellij.openapi.util.NlsSafe
-import com.intellij.platform.workspace.jps.entities.ModifiableModuleEntity
-import com.intellij.platform.workspace.jps.entities.ModuleEntity
+import com.intellij.platform.workspace.jps.entities.ModuleEntityBuilder
 import com.intellij.platform.workspace.jps.entities.ModuleId
 import com.intellij.platform.workspace.jps.entities.ModuleSettingsFacetBridgeEntity
-import com.intellij.platform.workspace.storage.EntitySource
-import com.intellij.platform.workspace.storage.EntityType
-import com.intellij.platform.workspace.storage.GeneratedCodeApiVersion
-import com.intellij.platform.workspace.storage.ModifiableWorkspaceEntity
-import com.intellij.platform.workspace.storage.MutableEntityStorage
-import com.intellij.platform.workspace.storage.SymbolicEntityId
-import com.intellij.platform.workspace.storage.WorkspaceEntity
-import com.intellij.platform.workspace.storage.annotations.Parent
+import com.intellij.platform.workspace.storage.*
 import com.intellij.platform.workspace.storage.impl.containers.toMutableWorkspaceList
 import com.intellij.platform.workspace.storage.impl.containers.toMutableWorkspaceSet
 import com.intellij.util.descriptors.ConfigFileItem
 import org.jetbrains.kotlin.config.KotlinModuleKind
 
 @GeneratedCodeApiVersion(3)
-interface ModifiableKotlinSettingsEntity : ModifiableWorkspaceEntity<KotlinSettingsEntity>, ModuleSettingsFacetBridgeEntity.Builder<KotlinSettingsEntity> {
+interface KotlinSettingsEntityBuilder : WorkspaceEntityBuilder<KotlinSettingsEntity>, ModuleSettingsFacetBridgeEntity.Builder<KotlinSettingsEntity> {
   override var entitySource: EntitySource
   override var moduleId: ModuleId
   override var name: String
   var sourceRoots: MutableList<String>
   var configFileItems: MutableList<ConfigFileItem>
-  var module: ModifiableModuleEntity
+  var module: ModuleEntityBuilder
   var useProjectSettings: Boolean
   var implementedModuleNames: MutableList<String>
   var dependsOnModuleNames: MutableList<String>
@@ -47,7 +40,7 @@ interface ModifiableKotlinSettingsEntity : ModifiableWorkspaceEntity<KotlinSetti
   var flushNeeded: Boolean
 }
 
-internal object KotlinSettingsEntityType : EntityType<KotlinSettingsEntity, ModifiableKotlinSettingsEntity>() {
+internal object KotlinSettingsEntityType : EntityType<KotlinSettingsEntity, KotlinSettingsEntityBuilder>() {
   override val entityClass: Class<KotlinSettingsEntity> get() = KotlinSettingsEntity::class.java
   operator fun invoke(
     moduleId: ModuleId,
@@ -68,8 +61,8 @@ internal object KotlinSettingsEntityType : EntityType<KotlinSettingsEntity, Modi
     version: Int,
     flushNeeded: Boolean,
     entitySource: EntitySource,
-    init: (ModifiableKotlinSettingsEntity.() -> Unit)? = null,
-  ): ModifiableKotlinSettingsEntity {
+    init: (KotlinSettingsEntityBuilder.() -> Unit)? = null,
+  ): KotlinSettingsEntityBuilder {
     val builder = builder()
     builder.moduleId = moduleId
     builder.name = name
@@ -141,10 +134,10 @@ internal object KotlinSettingsEntityType : EntityType<KotlinSettingsEntity, Modi
 
 fun MutableEntityStorage.modifyKotlinSettingsEntity(
   entity: KotlinSettingsEntity,
-  modification: ModifiableKotlinSettingsEntity.() -> Unit,
-): KotlinSettingsEntity = modifyEntity(ModifiableKotlinSettingsEntity::class.java, entity, modification)
+  modification: KotlinSettingsEntityBuilder.() -> Unit,
+): KotlinSettingsEntity = modifyEntity(KotlinSettingsEntityBuilder::class.java, entity, modification)
 
-var ModifiableModuleEntity.kotlinSettings: List<ModifiableKotlinSettingsEntity>
+var ModuleEntityBuilder.kotlinSettings: List<KotlinSettingsEntityBuilder>
   by WorkspaceEntity.extensionBuilder(KotlinSettingsEntity::class.java)
 
 @JvmOverloads
@@ -168,8 +161,8 @@ fun KotlinSettingsEntity(
   version: Int,
   flushNeeded: Boolean,
   entitySource: EntitySource,
-  init: (ModifiableKotlinSettingsEntity.() -> Unit)? = null,
-): ModifiableKotlinSettingsEntity =
+  init: (KotlinSettingsEntityBuilder.() -> Unit)? = null,
+): KotlinSettingsEntityBuilder =
   KotlinSettingsEntityType(moduleId, name, sourceRoots, configFileItems, useProjectSettings, implementedModuleNames, dependsOnModuleNames,
                            additionalVisibleModuleNames, sourceSetNames, isTestModule, externalProjectId, isHmppEnabled,
                            pureKotlinSourceFolders, kind, externalSystemRunTasks, version, flushNeeded, entitySource, init)
