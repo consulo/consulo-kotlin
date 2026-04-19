@@ -1,0 +1,69 @@
+name: Sync upstream plugins/kotlin
+
+on:
+  schedule:
+    - cron: '0 4 * * *'        # daily 04:00 UTC
+  workflow_dispatch: {}         # manual trigger too
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false     # don't abort in-flight sync
+
+permissions:
+  contents: write               # needed to push upstream-sync branch
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      UPSTREAM_URL: https://github.com/JetBrains/intellij-community.git
+      UPSTREAM_BRANCH: master
+      SUBPATH: plugins/kotlin
+      SYNC_BRANCH: upstream-sync
+
+    steps:
+      - name: Checkout consulo-kotlin
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # full history so we can fast-forward
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore upstream cache
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/upstream
+          key: upstream-${{ env.UPSTREAM_BRANCH }}-${{ github.run_id }}
+          restore-keys: |
+            upstream-${{ env.UPSTREAM_BRANCH }}-
+
+      - name: Sync
+        run: |
+          set -euo pipefail
+          SCRATCH="$PWD/.cache/upstream"
+
+          # 1. Maintain blobless clone of the monorepo.
+          if [ ! -d "$SCRATCH/.git" ]; then
+              git clone --filter=blob:none "$UPSTREAM_URL" "$SCRATCH"
+          fi
+          git -C "$SCRATCH" fetch origin "$UPSTREAM_BRANCH"
+          git -C "$SCRATCH" checkout -B "$UPSTREAM_BRANCH" "origin/$UPSTREAM_BRANCH"
+
+          # 2. Deterministic subtree split — same upstream SHAs → same split SHAs,
+          #    so re-runs extend the branch instead of diverging.
+          git -C "$SCRATCH" subtree split --prefix="$SUBPATH" -b extracted-head
+
+          # 3. Bring the split branch in and push it.
+          git config user.name  'consulo-sync-bot'
+          git config user.email 'consulo-sync-bot@users.noreply.github.com'
+          git remote remove upstream 2>/dev/null || true
+          git remote add upstream "$SCRATCH"
+          git fetch upstream "extracted-head:refs/heads/${SYNC_BRANCH}"
+          git push origin "${SYNC_BRANCH}"
+
+      - name: Save upstream cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/upstream
+          key: upstream-${{ env.UPSTREAM_BRANCH }}-${{ github.run_id }}
