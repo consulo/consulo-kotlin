@@ -1,12 +1,12 @@
 // WITH_COROUTINES
-// PROBLEM: none
+// PROBLEM: 'catch' clause suppresses 'CancellationException' and breaks coroutine cancellation
 package test
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 
-// This is currently not reported because we disable the inspection anywhere inside a sequence,
-// even though in `runBlocking` a CE can be suppressed.
+// `runBlocking` starts its own suspend context that is disconnected from the sequence builder.
+// Here, we need to report any suppressions.
 fun numbers(): Sequence<Int> = sequence {
     val value = runBlocking {
         try {
