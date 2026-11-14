@@ -4,8 +4,10 @@ package org.jetbrains.kotlin.idea.k2.refactoring.move.processor.conflict
 import com.intellij.psi.PsiElement
 import com.intellij.refactoring.util.RefactoringUIUtil
 import com.intellij.util.containers.MultiMap
-import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.session.analyze
+import org.jetbrains.kotlin.analysis.api.symbols.containingSymbol
 import org.jetbrains.kotlin.analysis.api.types.KaTypeParameterType
+import org.jetbrains.kotlin.analysis.api.types.type
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.k2.refactoring.move.descriptor.K2MoveTargetDescriptor
 import org.jetbrains.kotlin.idea.k2.refactoring.move.descriptor.K2MoveTargetDescriptor.ClassBody
@@ -18,7 +20,10 @@ internal fun checkUsedTypeParameterFromParentClassConflict(
     declarationsToMove: Iterable<KtNamedDeclaration>,
     target: K2MoveTargetDescriptor.Declaration<*>?
 ): MultiMap<PsiElement, String> {
-    if (target !is ClassBody) return MultiMap.empty()
+    if (target !is ClassBody &&
+        target !is K2MoveTargetDescriptor.CompanionBlock &&
+        target !is K2MoveTargetDescriptor.CompanionExtension
+    ) return MultiMap.empty()
     val conflicts = MultiMap<PsiElement, String>()
 
     for (declarationToMove in declarationsToMove) {

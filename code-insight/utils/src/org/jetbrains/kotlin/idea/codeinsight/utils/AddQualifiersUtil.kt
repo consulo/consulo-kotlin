@@ -6,21 +6,20 @@ import com.intellij.psi.createSmartPointer
 import com.intellij.psi.util.descendantsOfType
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.prevLeaf
-import org.jetbrains.kotlin.analysis.api.KaContextParameterApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.components.containingDeclaration
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisFromWriteAction
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisFromWriteAction
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassLikeSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.containingDeclaration
 import org.jetbrains.kotlin.analysis.api.symbols.markers.KaNamedSymbol
 import org.jetbrains.kotlin.idea.base.util.quoteIfNeeded
-import org.jetbrains.kotlin.idea.references.mainReference
+import org.jetbrains.kotlin.idea.util.tryResolveSymbolsCallFirst
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.KtCallExpression
@@ -37,7 +36,6 @@ import org.jetbrains.kotlin.psi.createExpressionByPattern
 import org.jetbrains.kotlin.psi.psiUtil.getPrevSiblingIgnoringWhitespaceAndComments
 import org.jetbrains.kotlin.psi.psiUtil.quoteIfNeeded
 
-@OptIn(KaContextParameterApi::class)
 object AddQualifiersUtil {
     fun addQualifiersRecursively(root: KtElement): KtElement {
         if (root is KtNameReferenceExpression) return applyIfApplicable(root) ?: root
@@ -118,7 +116,7 @@ object AddQualifiersUtil {
         val fqName = allowAnalysisFromWriteAction {
             allowAnalysisOnEdt {
                 analyze(referenceExpression) {
-                    val symbol = referenceExpression.mainReference.resolveToSymbols().singleOrNull() as? KaNamedSymbol ?: return null
+                    val symbol = referenceExpression.tryResolveSymbolsCallFirst().singleOrNull() as? KaNamedSymbol ?: return null
                     val fqName = getFqName(symbol) ?: return null
                     if (!isApplicableTo(referenceExpression, symbol)) return null
                     fqName
@@ -146,7 +144,7 @@ object AddQualifiersUtil {
     private fun addQualifierToType(psiFactory: KtPsiFactory, userType: KtUserType, qualifier: String): KtElement {
         val type = userType.parent as? KtNullableType ?: userType
         val typeWithQualifier = psiFactory.createType("$qualifier.${type.text}")
-        return type.parent.replace(typeWithQualifier) as KtElement
+        return type.replace(typeWithQualifier) as KtElement
     }
 
     private fun replaceExpressionWithQualifier(

@@ -1,5 +1,5 @@
-
 // "Replace '&&' with 'if'" "true"
+// K2_ERROR: SYNTAX
 // WITH_STDLIB
 
 fun test(a: Any) {
@@ -8,4 +8,4 @@ fun test(a: Any) {
     }
 }
 
-// FUS_K2_QUICKFIX_NAME: org.jetbrains.kotlin.idea.quickfix.ReplaceAndWithWhenGuardFix
+// FUS_QUICKFIX_NAME: org.jetbrains.kotlin.idea.quickfix.ReplaceAndWithWhenGuardFix

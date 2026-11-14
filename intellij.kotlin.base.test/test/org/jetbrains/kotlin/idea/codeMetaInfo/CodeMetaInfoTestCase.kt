@@ -4,6 +4,7 @@ package org.jetbrains.kotlin.idea.codeMetaInfo
 import com.intellij.codeInsight.daemon.DaemonAnalyzerTestCase
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerImpl
+import com.intellij.codeInsight.daemon.impl.LineMarkersPass.getDisplayedLineMarkers
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.application.ApplicationManager
@@ -28,7 +29,6 @@ import com.intellij.util.LineSeparator
 import com.intellij.util.ThrowableRunnable
 import org.jetbrains.kotlin.codeMetaInfo.model.CodeMetaInfo
 import org.jetbrains.kotlin.codeMetaInfo.renderConfigurations.AbstractCodeMetaInfoRenderConfiguration
-import org.jetbrains.kotlin.codeMetaInfo.renderConfigurations.DiagnosticCodeMetaInfoRenderConfiguration
 import org.jetbrains.kotlin.daemon.common.OSKind
 import org.jetbrains.kotlin.idea.base.projectStructure.compositeAnalysis.KotlinMultiplatformAnalysisModeComponent
 import org.jetbrains.kotlin.idea.codeMetaInfo.models.FileLevelHighlightingCodeMetaInfo
@@ -61,12 +61,6 @@ open class CodeMetaInfoTestCase(
     protected val filterMetaInfo: (CodeMetaInfo) -> Boolean = { true },
     checkNoDiagnosticError: Boolean = false, // to remove on cleanup commit
 ) : DaemonAnalyzerTestCase() {
-
-    protected open fun getDiagnosticCodeMetaInfos(
-        configuration: DiagnosticCodeMetaInfoRenderConfiguration = DiagnosticCodeMetaInfoRenderConfiguration(),
-        parseDirective: Boolean = true
-    ): List<CodeMetaInfo> = emptyList()
-
     protected open fun highlightErrorDiagnostics() {
         throw AssertionError("Should not check k1 errors in k2 tests")
     }
@@ -76,7 +70,7 @@ open class CodeMetaInfoTestCase(
             return emptyList()
 
         CodeInsightTestFixtureImpl.instantiateAndRun(file, editor, intArrayOf(), false)
-        val lineMarkers = DaemonCodeAnalyzerImpl.getLineMarkers(getDocument(file), project)
+        val lineMarkers = getDisplayedLineMarkers(getDocument(file), project)
         return getCodeMetaInfo(lineMarkers, filterMetaInfo) { info ->
             listOf(LineMarkerCodeMetaInfo(configuration, info))
         }
@@ -158,10 +152,6 @@ open class CodeMetaInfoTestCase(
         fun task() {
             for (configuration in codeMetaInfoTypes) {
                 when (configuration) {
-                    is DiagnosticCodeMetaInfoRenderConfiguration -> {
-                        codeMetaInfoForCheck.addAll(getDiagnosticCodeMetaInfos(configuration))
-                    }
-
                     is HighlightingConfiguration -> {
                         codeMetaInfoForCheck.addAll(getHighlightingCodeMetaInfos(configuration))
                     }
@@ -189,12 +179,6 @@ open class CodeMetaInfoTestCase(
             }
         } else {
             task()
-        }
-
-        if (codeMetaInfoTypes.any { it is DiagnosticCodeMetaInfoRenderConfiguration } &&
-            !codeMetaInfoTypes.any { it is HighlightingConfiguration }
-        ) {
-            highlightErrorDiagnostics()
         }
 
         val parsedMetaInfo = if (expectedFile.exists()) {
@@ -269,7 +253,6 @@ abstract class AbstractCodeMetaInfoTest : AbstractMultiModuleTest() {
     open val checkNoDiagnosticError: Boolean get() = false
 
     open fun getConfigurations(): List<AbstractCodeMetaInfoRenderConfiguration> = listOf(
-        DiagnosticCodeMetaInfoRenderConfiguration(),
         LineMarkerConfiguration(),
         HighlightingConfiguration(),
         FileLevelHighlightingConfiguration(),

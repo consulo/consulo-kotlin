@@ -6,22 +6,24 @@ import com.intellij.codeInsight.completion.CompletionType
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.openapi.util.registry.Registry
+import com.intellij.psi.PsiElement
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.analyzeCopy
 import org.jetbrains.kotlin.analysis.api.components.KaCompletionExtensionCandidateChecker
-import org.jetbrains.kotlin.analysis.api.components.expectedType
-import org.jetbrains.kotlin.analysis.api.components.expressionType
-import org.jetbrains.kotlin.analysis.api.components.render
-import org.jetbrains.kotlin.analysis.api.components.typeCreator
-import org.jetbrains.kotlin.analysis.api.impl.base.components.KaBaseIllegalPsiException
+import org.jetbrains.kotlin.analysis.api.expressions.expectedType
+import org.jetbrains.kotlin.analysis.api.expressions.expressionType
+import org.jetbrains.kotlin.analysis.api.fir.components.KaFirIllegalPsiException
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaDanglingFileResolutionMode
+import org.jetbrains.kotlin.analysis.api.projectStructure.copyOrigin
+import org.jetbrains.kotlin.analysis.api.renderer.render
+import org.jetbrains.kotlin.analysis.api.session.analyze
+import org.jetbrains.kotlin.analysis.api.session.analyzeCopy
+import org.jetbrains.kotlin.analysis.api.session.useSiteSession
 import org.jetbrains.kotlin.analysis.api.types.KaType
 import org.jetbrains.kotlin.analysis.api.types.symbol
+import org.jetbrains.kotlin.analysis.api.types.typeCreation.typeCreator
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.KtSymbolFromIndexProvider
 import org.jetbrains.kotlin.idea.completion.impl.k2.K2AccumulatingLookupElementSink.AccumulatingSinkMessage
 import org.jetbrains.kotlin.idea.completion.impl.k2.ParallelCompletionRunner.Companion.MAX_CONCURRENT_COMPLETION_THREADS
@@ -48,10 +50,14 @@ import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtCollectionLiteralExpression
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
+import org.jetbrains.kotlin.psi.KtElement
+import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtThrowExpression
+import org.jetbrains.kotlin.psi.psiUtil.getOutermostParenthesizerOrThis
+import org.jetbrains.kotlin.psi.psiUtil.getQualifiedExpressionForSelectorOrThis
 import org.jetbrains.kotlin.renderer.render
 import org.jetbrains.kotlin.types.Variance
 import java.util.ArrayDeque
@@ -150,7 +156,7 @@ internal interface K2CompletionRunner {
                         positionContext = KotlinExpressionNameReferencePositionContext(nameExpression, explicitReceiver = receiverExpression)
                     )
 
-                    // TODO: Remove once KT-79109 KaBaseIllegalPsiException is thrown incorrectly when using CodeFragments in KtCompletionExtensionCandidateChecker.create
+                    // TODO: Remove once KT-79109 KaFirIllegalPsiException is thrown incorrectly when using CodeFragments in KtCompletionExtensionCandidateChecker.create
                     val commonData = createCommonSectionData(newCompletionContext) ?: return@analyze
 
                     val sink = K2DelegatingLookupElementSink(completionResultSet)
@@ -185,6 +191,13 @@ internal interface K2CompletionRunner {
     }
 }
 
+private fun KtElement.getParentForExpectedType(): PsiElement? {
+    if (this !is KtExpression) return parent
+    return getQualifiedExpressionForSelectorOrThis()
+        .getOutermostParenthesizerOrThis()
+        .parent
+}
+
 context(_: KaSession)
 private fun createWeighingContext(
     positionContext: KotlinRawPositionContext,
@@ -193,7 +206,7 @@ private fun createWeighingContext(
     return when (positionContext) {
         is KotlinNameReferencePositionContext -> {
             val nameExpression = positionContext.nameExpression
-            val nameExpressionParent = nameExpression.parent
+            val nameExpressionParent = nameExpression.getParentForExpectedType()
             val expectedType = when {
                 // during the sorting of completion suggestions expected type from position and actual types of suggestions are compared;
                 // see `org.jetbrains.kotlin.idea.completion.weighers.ExpectedTypeWeigher`;
@@ -202,10 +215,9 @@ private fun createWeighingContext(
                 // TODO: calculate actual types for callable references correctly and use information about expected type
                 positionContext is KotlinCallableReferencePositionContext -> null
                 nameExpression.expectedType != null -> nameExpression.expectedType
-                nameExpressionParent is KtBinaryExpression -> getEqualityExpectedType(nameExpression)
+                nameExpressionParent is KtBinaryExpression -> getEqualityExpectedType(nameExpression, nameExpressionParent)
                 nameExpressionParent is KtCollectionLiteralExpression -> getAnnotationLiteralExpectedType(nameExpressionParent)
                 nameExpressionParent is KtThrowExpression -> {
-                    @OptIn(KaExperimentalApi::class)
                     typeCreator.classType(StandardClassIds.Throwable)
                 }
                 else -> null
@@ -221,7 +233,6 @@ private fun createWeighingContext(
     }
 }
 
-@OptIn(KaExperimentalApi::class)
 context(_: KaSession)
 internal fun createExtensionChecker(
     positionContext: KotlinRawPositionContext,
@@ -235,6 +246,10 @@ internal fun createExtensionChecker(
     val castedReceiver = if (runtimeTypeWithErasedTypeParameters == null || runtimeTypeClassId == receiver?.expressionType?.symbol?.classId) {
         receiver
     } else if (receiver != null) {
+        // A local or an anonymous class has no `ClassId`, so it is rendered by its short name, and that name cannot be
+        // resolved in the dangling file of the cast below. The cast receiver would get an error type, which makes every
+        // extension look applicable (KTIJ-39555), so it is better not to check extensions of such a runtime type at all.
+        if (runtimeTypeClassId == null) return null
         // FIXME: check extensions applicable to the runtime type properly KTIJ-35532
         val codeFragment = "(${receiver.text} as $runtimeTypeWithErasedTypeParameters)"
         KtPsiFactory.contextual(receiver).createExpression(codeFragment)
@@ -243,7 +258,7 @@ internal fun createExtensionChecker(
     }
     // FIXME: KTIJ-34285
     @OptIn(KaImplementationDetail::class)
-    return KaBaseIllegalPsiException.allowIllegalPsiAccess {
+    return KaFirIllegalPsiException.allowIllegalPsiAccess {
         KtCompletionExtensionCandidateChecker.create(
             originalFile = originalFile,
             nameExpression = positionContext.nameExpression,
@@ -252,7 +267,8 @@ internal fun createExtensionChecker(
     }
 }
 
-private fun <P : KotlinRawPositionContext> KaSession.createCommonSectionData(
+context(session: KaSession)
+private fun <P : KotlinRawPositionContext> createCommonSectionData(
     completionContext: K2CompletionContext<P>,
 ): K2CompletionSectionCommonData<P>? {
     CompletionCommonSectionDataSetupEvent().timeEvent {
@@ -270,7 +286,7 @@ private fun <P : KotlinRawPositionContext> KaSession.createCommonSectionData(
             visibilityChecker = visibilityChecker,
             symbolFromIndexProvider = symbolFromIndexProvider,
             importStrategyDetector = importStrategyDetector,
-            session = this@createCommonSectionData,
+            session = useSiteSession,
         )
     }
 }
@@ -530,6 +546,10 @@ private class ParallelCompletionRunner : K2CompletionRunner {
         completionContext: K2CompletionContext<P>,
         sections: List<K2CompletionSection<P>>,
     ): K2CompletionRunnerResult {
+        if (completionContext.parameters.completionFile.copyOrigin == null) {
+            return SequentialCompletionRunner().runCompletion(completionContext, sections)
+        }
+
         // Each section gets its own sink which is then later collected by the main thread in the same order as the sections
         val sectionsWithSinks = sections.map { it to K2AccumulatingLookupElementSink() }
         // This is the queue of all remaining sections ordered by their priority.

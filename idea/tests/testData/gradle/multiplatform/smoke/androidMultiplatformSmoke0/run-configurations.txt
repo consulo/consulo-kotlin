@@ -21,44 +21,28 @@ project.jvmLibrary.test
 
 project.multiplatformAndroidApp
 
-project.multiplatformAndroidApp.androidTest
+project.multiplatformAndroidApp.androidHostTest
 
-project.multiplatformAndroidApp.main
+project.multiplatformAndroidApp.androidMain
     fqName: null
     name: MultiplatformAndroidApp_main
     type: Android App
 
 
-project.multiplatformAndroidApp.unitTest
+project.multiplatformAndroidApp.commonMain
+
+project.multiplatformAndroidApp.commonTest
     fqName: MultiplatformAndroidApp_commonTest
     name: MultiplatformAndroidApp_commonTest
     type: Gradle
-    tasks: [:multiplatformAndroidApp:cleanTestDebugUnitTest, :multiplatformAndroidApp:testDebugUnitTest, --tests, "MultiplatformAndroidApp_commonTest"]
-    scriptParameters:
+    tasks: [:multiplatformAndroidApp:cleanTestAndroidHostTest, :multiplatformAndroidApp:testAndroidHostTest, --tests, "MultiplatformAndroidApp_commonTest"]
     isDebugAllEnabled: false
     isRunAsTest: true
 
     fqName: MultiplatformAndroidApp_commonTest.sayHello
     name: MultiplatformAndroidApp_commonTest.sayHello
     type: Gradle
-    tasks: [:multiplatformAndroidApp:cleanTestDebugUnitTest, :multiplatformAndroidApp:testDebugUnitTest, --tests, "MultiplatformAndroidApp_commonTest.sayHello"]
-    scriptParameters:
-    isDebugAllEnabled: false
-    isRunAsTest: true
-
-    fqName: MultiplatformAndroidApp_test
-    name: MultiplatformAndroidApp_test
-    type: Gradle
-    tasks: [:multiplatformAndroidApp:cleanTestDebugUnitTest, :multiplatformAndroidApp:testDebugUnitTest, --tests, "MultiplatformAndroidApp_test"]
-    scriptParameters:
-    isDebugAllEnabled: false
-    isRunAsTest: true
-
-    fqName: MultiplatformAndroidApp_test.sayHello
-    name: MultiplatformAndroidApp_test.sayHello
-    type: Gradle
-    tasks: [:multiplatformAndroidApp:cleanTestDebugUnitTest, :multiplatformAndroidApp:testDebugUnitTest, --tests, "MultiplatformAndroidApp_test.sayHello"]
-    scriptParameters:
+    tasks: [:multiplatformAndroidApp:cleanTestAndroidHostTest, :multiplatformAndroidApp:testAndroidHostTest, --tests, "MultiplatformAndroidApp_commonTest.sayHello"]
     isDebugAllEnabled: false
     isRunAsTest: true
 
@@ -67,7 +51,9 @@ project.multiplatformAndroidJvmIosLibrary
 
 project.multiplatformAndroidJvmIosLibrary.androidAndJvmMain
 
-project.multiplatformAndroidJvmIosLibrary.androidTest
+project.multiplatformAndroidJvmIosLibrary.androidHostTest
+
+project.multiplatformAndroidJvmIosLibrary.androidMain
 
 project.multiplatformAndroidJvmIosLibrary.commonMain
 
@@ -81,15 +67,13 @@ project.multiplatformAndroidJvmIosLibrary.linuxX64Main
 
 project.multiplatformAndroidJvmIosLibrary.linuxX64Test
 
-project.multiplatformAndroidJvmIosLibrary.main
-
-project.multiplatformAndroidJvmIosLibrary.unitTest
-
 project.multiplatformAndroidJvmIosLibrary2
 
 project.multiplatformAndroidJvmIosLibrary2.androidAndJvmMain
 
-project.multiplatformAndroidJvmIosLibrary2.androidTest
+project.multiplatformAndroidJvmIosLibrary2.androidHostTest
+
+project.multiplatformAndroidJvmIosLibrary2.androidMain
 
 project.multiplatformAndroidJvmIosLibrary2.commonMain
 
@@ -97,16 +81,14 @@ project.multiplatformAndroidJvmIosLibrary2.commonTest
     fqName: MultiplatformAndroidJvmIosLibrary2_commonTest
     name: MultiplatformAndroidJvmIosLibrary2_commonTest
     type: Gradle
-    tasks: [:multiplatformAndroidJvmIosLibrary2:cleanTestDebugUnitTest, :multiplatformAndroidJvmIosLibrary2:testDebugUnitTest, --tests, "MultiplatformAndroidJvmIosLibrary2_commonTest"]
-    scriptParameters:
+    tasks: [:multiplatformAndroidJvmIosLibrary2:cleanTestAndroidHostTest, :multiplatformAndroidJvmIosLibrary2:testAndroidHostTest, --tests, "MultiplatformAndroidJvmIosLibrary2_commonTest"]
     isDebugAllEnabled: false
     isRunAsTest: true
 
     fqName: MultiplatformAndroidJvmIosLibrary2_commonTest.sayHello
     name: MultiplatformAndroidJvmIosLibrary2_commonTest.sayHello
     type: Gradle
-    tasks: [:multiplatformAndroidJvmIosLibrary2:cleanTestDebugUnitTest, :multiplatformAndroidJvmIosLibrary2:testDebugUnitTest, --tests, "MultiplatformAndroidJvmIosLibrary2_commonTest.sayHello"]
-    scriptParameters:
+    tasks: [:multiplatformAndroidJvmIosLibrary2:cleanTestAndroidHostTest, :multiplatformAndroidJvmIosLibrary2:testAndroidHostTest, --tests, "MultiplatformAndroidJvmIosLibrary2_commonTest.sayHello"]
     isDebugAllEnabled: false
     isRunAsTest: true
 
@@ -118,7 +100,6 @@ project.multiplatformAndroidJvmIosLibrary2.jvmTest
     name: MultiplatformAndroidJvmIosLibrary2_jvmTest
     type: Gradle
     tasks: [:multiplatformAndroidJvmIosLibrary2:cleanJvmTest, :multiplatformAndroidJvmIosLibrary2:jvmTest, --tests, "MultiplatformAndroidJvmIosLibrary2_jvmTest"]
-    scriptParameters:
     isDebugAllEnabled: false
     isRunAsTest: true
 
@@ -126,7 +107,6 @@ project.multiplatformAndroidJvmIosLibrary2.jvmTest
     name: MultiplatformAndroidJvmIosLibrary2_jvmTest.sayHello
     type: Gradle
     tasks: [:multiplatformAndroidJvmIosLibrary2:cleanJvmTest, :multiplatformAndroidJvmIosLibrary2:jvmTest, --tests, "MultiplatformAndroidJvmIosLibrary2_jvmTest.sayHello"]
-    scriptParameters:
     isDebugAllEnabled: false
     isRunAsTest: true
 
@@ -135,33 +115,15 @@ project.multiplatformAndroidJvmIosLibrary2.linuxX64Main
 
 project.multiplatformAndroidJvmIosLibrary2.linuxX64Test
 
-project.multiplatformAndroidJvmIosLibrary2.main
-
-project.multiplatformAndroidJvmIosLibrary2.unitTest
-    fqName: MultiplatformAndroidJvmIosLibrary2_test
-    name: MultiplatformAndroidJvmIosLibrary2_test
-    type: Gradle
-    tasks: [:multiplatformAndroidJvmIosLibrary2:cleanTestDebugUnitTest, :multiplatformAndroidJvmIosLibrary2:testDebugUnitTest, --tests, "MultiplatformAndroidJvmIosLibrary2_test"]
-    scriptParameters:
-    isDebugAllEnabled: false
-    isRunAsTest: true
-
-    fqName: MultiplatformAndroidJvmIosLibrary2_test.sayHello
-    name: MultiplatformAndroidJvmIosLibrary2_test.sayHello
-    type: Gradle
-    tasks: [:multiplatformAndroidJvmIosLibrary2:cleanTestDebugUnitTest, :multiplatformAndroidJvmIosLibrary2:testDebugUnitTest, --tests, "MultiplatformAndroidJvmIosLibrary2_test.sayHello"]
-    scriptParameters:
-    isDebugAllEnabled: false
-    isRunAsTest: true
-
-
 project.multiplatformAndroidLibrary
 
-project.multiplatformAndroidLibrary.androidTest
+project.multiplatformAndroidLibrary.androidHostTest
 
-project.multiplatformAndroidLibrary.main
+project.multiplatformAndroidLibrary.androidMain
 
-project.multiplatformAndroidLibrary.unitTest
+project.multiplatformAndroidLibrary.commonMain
+
+project.multiplatformAndroidLibrary.commonTest
 
 project.multiplatformJvmLibrary
 

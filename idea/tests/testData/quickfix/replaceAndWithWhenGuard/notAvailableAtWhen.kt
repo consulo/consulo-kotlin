@@ -1,5 +1,7 @@
 // "Replace '&&' with 'if'" "false"
 // WITH_STDLIB
+// K2_ERROR: SYNTAX
+// K2_AFTER_ERROR: SYNTAX
 
 fun test(a: Any) {
     when (a) {<caret>
@@ -7,4 +9,4 @@ fun test(a: Any) {
     }
 }
 
-// FUS_K2_QUICKFIX_NAME: org.jetbrains.kotlin.idea.quickfix.ReplaceAndWithWhenGuardFix
+// FUS_QUICKFIX_NAME: org.jetbrains.kotlin.idea.quickfix.ReplaceAndWithWhenGuardFix

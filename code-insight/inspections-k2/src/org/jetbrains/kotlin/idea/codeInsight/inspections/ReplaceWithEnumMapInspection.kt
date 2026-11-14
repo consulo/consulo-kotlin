@@ -8,10 +8,11 @@ import com.intellij.modcommand.ModPsiUpdater
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.resolution.successfulFunctionCallOrNull
-import org.jetbrains.kotlin.analysis.api.resolution.symbol
+import org.jetbrains.kotlin.analysis.api.expressions.expectedType
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSuccessfulSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.importableFqName
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.analysis.api.types.symbol
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.shortenReferences
@@ -71,8 +72,9 @@ internal class ReplaceWithEnumMapInspection :
         context: Context,
     ): @InspectionMessage String = KotlinBundle.message("replaceable.with.enummap")
 
-    override fun KaSession.prepareContext(element: KtCallExpression): Context? {
-        val symbol = element.resolveToCall()?.successfulFunctionCallOrNull()?.symbol
+    context(session: KaSession)
+    override fun prepareContext(element: KtCallExpression): Context? {
+        val symbol = element.resolveSuccessfulSymbol()
 
         val fqName = when (symbol) {
             is KaConstructorSymbol -> symbol.containingClassId?.asFqNameString()

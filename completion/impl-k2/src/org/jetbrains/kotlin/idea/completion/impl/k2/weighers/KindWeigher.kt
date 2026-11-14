@@ -2,24 +2,25 @@
 package org.jetbrains.kotlin.idea.completion.impl.k2.weighers
 
 import com.intellij.codeInsight.lookup.LookupElement
-import com.intellij.codeInsight.lookup.LookupElementWeigher
 import com.intellij.openapi.util.Key
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.symbols.KaEnumEntrySymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KaNamedClassSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KaSymbol
 import org.jetbrains.kotlin.idea.completion.KeywordLookupObject
+import org.jetbrains.kotlin.idea.completion.impl.k2.K2CompletionSectionContext
+import org.jetbrains.kotlin.idea.completion.impl.k2.contributors.helpers.KtSymbolWithOrigin
 import org.jetbrains.kotlin.idea.completion.impl.k2.contributors.keywords.ReturnKeywordHandler.isReturnAtHighlyLikelyPosition
 import org.jetbrains.kotlin.idea.completion.impl.k2.lookups.KotlinCallableLookupObject
 import org.jetbrains.kotlin.idea.completion.impl.k2.lookups.factories.AnonymousObjectLookupObject
-import org.jetbrains.kotlin.idea.completion.impl.k2.lookups.factories.FunctionCallLookupObject
+import org.jetbrains.kotlin.idea.completion.impl.k2.lookups.factories.ClassifierLookupObject
 import org.jetbrains.kotlin.idea.completion.impl.k2.lookups.factories.NamedArgumentLookupObject
 import org.jetbrains.kotlin.idea.completion.impl.k2.lookups.factories.OperatorNameLookupObject
 import org.jetbrains.kotlin.idea.completion.impl.k2.lookups.factories.PackagePartLookupObject
+import org.jetbrains.kotlin.idea.util.positionContext.KotlinExpressionNameReferencePositionContext
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.NotNullableUserDataProperty
 
-internal object KindWeigher {
+internal object KindWeigher: KotlinLookupElementWeigher("kotlin.kind"), KotlinSectionContextWeigher {
+
     private enum class Weight {
         RETURN_KEYWORD_AT_HIGHLY_LIKELY_POSITION,
         NULL_KEYWORD_AT_HIGHLY_LIKELY_POSITION,
@@ -34,11 +35,11 @@ internal object KindWeigher {
         SYMBOL_TO_SKIP,
     }
 
-    const val WEIGHER_ID = "kotlin.kind"
-
     internal var LookupElement.isConstructorCall: Boolean by NotNullableUserDataProperty(Key("KOTLIN_KIND_WEIGHER_IS_CONSTRUCTOR_CALL"), false)
 
     private var LookupElement.isEnumEntry: Boolean by NotNullableUserDataProperty(Key("KOTLIN_KIND_WEIGHER_IS_ENUM"), false)
+
+    private var LookupElement.shouldWeighObjectsAsCallables: Boolean by NotNullableUserDataProperty(Key("KOTLIN_WEIGH_OBJECTS_AS_CALLABLES"), false)
 
     private var LookupElement.isNullAtHighlyLikelyPosition: Boolean by NotNullableUserDataProperty(
         Key("KOTLIN_IS_NULL_AT_HIGHLY_LIKELY_POSITION"),
@@ -47,31 +48,37 @@ internal object KindWeigher {
 
     private var LookupElement.isSymbolToSkip: Boolean by NotNullableUserDataProperty(Key("KOTLIN_KIND_WEIGHER_IS_SYMBOL_TO_SKIP"), false)
 
-    context(_: KaSession)
-    fun addWeight(lookupElement: LookupElement, symbol: KaSymbol?, context: WeighingContext) {
+    context(_: KaSession, sectionContext: K2CompletionSectionContext<*>)
+    override fun addWeight(lookupElement: LookupElement, symbolWithOrigin: KtSymbolWithOrigin<*>?) {
+        val context = sectionContext.weighingContext
+        val symbol = symbolWithOrigin?.symbol
+
         lookupElement.isSymbolToSkip = symbol in context.symbolsToSkip
         lookupElement.isEnumEntry = symbol is KaEnumEntrySymbol
+
+        lookupElement.shouldWeighObjectsAsCallables = sectionContext.weighingContext.expectedType != null &&
+                sectionContext.positionContext is KotlinExpressionNameReferencePositionContext
 
         if (lookupElement.lookupString != KtTokens.NULL_KEYWORD.value || lookupElement.`object` !is KeywordLookupObject) return
         lookupElement.isNullAtHighlyLikelyPosition = context.isPositionSuitableForNull && context.expectedType == null
     }
 
-    object Weigher : LookupElementWeigher(WEIGHER_ID) {
-        override fun weigh(element: LookupElement): Comparable<Nothing> {
-            if (element.isSymbolToSkip) return Weight.SYMBOL_TO_SKIP
-            if (element.isEnumEntry) return Weight.ENUM_MEMBER
-            if (element.isReturnAtHighlyLikelyPosition) return Weight.RETURN_KEYWORD_AT_HIGHLY_LIKELY_POSITION
-            if (element.isNullAtHighlyLikelyPosition) return Weight.NULL_KEYWORD_AT_HIGHLY_LIKELY_POSITION
-            if (element.isConstructorCall) return Weight.DEFAULT
-            return when (element.`object`) {
-                is KeywordLookupObject -> Weight.KEYWORD
-                is PackagePartLookupObject -> Weight.PACKAGES
-                is KotlinCallableLookupObject -> Weight.CALLABLE
-                is NamedArgumentLookupObject -> Weight.NAMED_ARGUMENT
-                is OperatorNameLookupObject -> Weight.OPERATOR_NAME
-                is AnonymousObjectLookupObject -> Weight.ANONYMOUS_OBJECT
-                else -> Weight.DEFAULT
-            }
+    override fun weigh(element: LookupElement): Comparable<Nothing> {
+        if (element.isSymbolToSkip) return Weight.SYMBOL_TO_SKIP
+        if (element.isEnumEntry) return Weight.ENUM_MEMBER
+        if (element.isReturnAtHighlyLikelyPosition) return Weight.RETURN_KEYWORD_AT_HIGHLY_LIKELY_POSITION
+        if (element.isNullAtHighlyLikelyPosition) return Weight.NULL_KEYWORD_AT_HIGHLY_LIKELY_POSITION
+        if (element.isConstructorCall) return Weight.DEFAULT
+        val lookupObject = element.`object`
+        return when (lookupObject) {
+            is KeywordLookupObject -> Weight.KEYWORD
+            is PackagePartLookupObject -> Weight.PACKAGES
+            is KotlinCallableLookupObject -> Weight.CALLABLE
+            is ClassifierLookupObject if element.shouldWeighObjectsAsCallables && lookupObject.isObject -> Weight.CALLABLE
+            is NamedArgumentLookupObject -> Weight.NAMED_ARGUMENT
+            is OperatorNameLookupObject -> Weight.OPERATOR_NAME
+            is AnonymousObjectLookupObject -> Weight.ANONYMOUS_OBJECT
+            else -> Weight.DEFAULT
         }
     }
 }

@@ -13,10 +13,13 @@ import com.intellij.psi.PsiType
 import com.intellij.psi.PsiTypes
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.PsiTreeUtil
-import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.builtins.jvm.JavaToKotlinClassMap
 import org.jetbrains.kotlin.idea.KotlinLanguage
+import org.jetbrains.kotlin.idea.base.psi.appendTypeArgument
+import org.jetbrains.kotlin.idea.base.psi.appendValueArgument
+import org.jetbrains.kotlin.idea.base.psi.areParenthesesUseless
 import org.jetbrains.kotlin.idea.base.psi.getOrCreateBody
+import org.jetbrains.kotlin.idea.base.psi.setPropertyInitializer
 import org.jetbrains.kotlin.idea.references.KtSimpleNameReference
 import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.lexer.KtTokens
@@ -40,7 +43,6 @@ import org.jetbrains.kotlin.psi.KtPrefixExpression
 import org.jetbrains.kotlin.psi.KtPrimaryConstructor
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.KtPsiFactory
-import org.jetbrains.kotlin.psi.KtPsiUtil
 import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.KtReturnExpression
 import org.jetbrains.kotlin.psi.KtSafeQualifiedExpression
@@ -50,7 +52,6 @@ import org.jetbrains.kotlin.psi.KtStringTemplateEntry
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 import org.jetbrains.kotlin.psi.KtVariableDeclaration
 import org.jetbrains.kotlin.psi.buildExpression
-import org.jetbrains.kotlin.psi.psiUtil.addTypeArgument
 import org.jetbrains.kotlin.psi.psiUtil.getCallNameExpression
 import org.jetbrains.kotlin.psi.psiUtil.getNonStrictParentOfType
 import org.jetbrains.kotlin.psi.psiUtil.getPossiblyQualifiedCallExpression
@@ -200,7 +201,7 @@ abstract class KotlinUastBaseCodeGenerationPlugin : UastCodeGenerationPlugin {
             }
             else {
                 val property = uField.sourcePsi as? KtProperty ?: return null
-                property.initializer = KtPsiFactory(property.project).createExpression(uParameter.name)
+                property.setPropertyInitializer(KtPsiFactory(property.project).createExpression(uParameter.name))
                 return property.initializer.toUElementOfType()
             }
         }
@@ -329,7 +330,7 @@ abstract class KotlinUastElementFactory(project: Project) : UastElementFactory {
 
         val valueArgumentList = methodCall.valueArgumentList
         for (parameter in parameters) {
-            valueArgumentList?.addArgument(psiFactory.createArgument(parameter.sourcePsi as KtExpression))
+            valueArgumentList?.appendValueArgument(psiFactory.createArgument(parameter.sourcePsi as KtExpression))
         }
 
         if (context !is KtElement) return KotlinUFunctionCallExpression(methodCall, null)
@@ -346,7 +347,7 @@ abstract class KotlinUastElementFactory(project: Project) : UastElementFactory {
 
             for (typeParam in typeParams) {
                 val typeParameter = psiFactory.createTypeArgument(typeParam)
-                analyzableMethodCall.addTypeArgument(typeParameter)
+                analyzableMethodCall.appendTypeArgument(typeParameter)
             }
             return KotlinUFunctionCallExpression(analyzableMethodCall, null)
         }
@@ -522,7 +523,7 @@ abstract class KotlinUastElementFactory(project: Project) : UastElementFactory {
     ): UPolyadicExpression? {
         fun unwrapParentheses(exp: KtExpression?) {
             if (exp !is KtParenthesizedExpression) return
-            if (!KtPsiUtil.areParenthesesUseless(exp)) return
+            if (!areParenthesesUseless(exp)) return
             exp.expression?.let { exp.replace(it) }
         }
 

@@ -10,11 +10,11 @@ import com.intellij.modcommand.ModPsiUpdater
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.StringUtil
-import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.components.KaDiagnosticCheckerFilter
+import org.jetbrains.kotlin.analysis.api.diagnostics.diagnostics
 import org.jetbrains.kotlin.analysis.api.fir.diagnostics.KaFirDiagnostic
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.shortenReferences
+import org.jetbrains.kotlin.idea.base.psi.areParenthesesUseless
 import org.jetbrains.kotlin.idea.base.psi.replaced
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinApplicableInspectionBase
@@ -51,12 +51,11 @@ internal class DoubleBangInspection :
     override fun getApplicableRanges(element: KtPostfixExpression): List<TextRange> =
         ApplicabilityRange.single(element) { it.operationReference }
 
-    @OptIn(KaExperimentalApi::class)
-    override fun KaSession.prepareContext(element: KtPostfixExpression): String? {
-        if (element.directDiagnostics(KaDiagnosticCheckerFilter.ONLY_COMMON_CHECKERS).any {
-                it is KaFirDiagnostic.UnnecessaryNotNullAssertion
-            }
-        ) return null
+    context(session: KaSession)
+    override fun prepareContext(element: KtPostfixExpression): String? {
+        if (element.diagnostics().directOnly(true).any { it is KaFirDiagnostic.UnnecessaryNotNullAssertion }) {
+            return null
+        }
 
         val expression = element.baseExpression ?: return null
         val baseExpression = expression.deparenthesize(true)
@@ -99,7 +98,7 @@ internal class DoubleBangInspection :
             shortenReferences(binaryExpression.right as KtElement)
 
             val parenthesizedExpression = replacedExpression as? KtParenthesizedExpression ?: return
-            if (KtPsiUtil.areParenthesesUseless(parenthesizedExpression)) {
+            if (areParenthesesUseless(parenthesizedExpression)) {
                 val innerExpression = parenthesizedExpression.expression ?: return
                 parenthesizedExpression.replace(innerExpression)
             }

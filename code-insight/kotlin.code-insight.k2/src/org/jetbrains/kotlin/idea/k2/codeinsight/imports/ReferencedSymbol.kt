@@ -1,15 +1,8 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.kotlin.idea.k2.codeinsight.imports
 
-import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.components.containingDeclaration
-import org.jetbrains.kotlin.analysis.api.components.isFunctionType
-import org.jetbrains.kotlin.analysis.api.components.isSuspendFunctionType
-import org.jetbrains.kotlin.analysis.api.components.isVisibleInClass
-import org.jetbrains.kotlin.analysis.api.components.resolveToCall
 import org.jetbrains.kotlin.analysis.api.components.resolveToSymbols
-import org.jetbrains.kotlin.analysis.api.components.tryResolveCall
 import org.jetbrains.kotlin.analysis.api.expressions.contextSensitiveResolutionStatus
 import org.jetbrains.kotlin.analysis.api.resolution.KaContextSensitiveResolutionStatus
 import org.jetbrains.kotlin.analysis.api.resolution.KaExplicitReceiverValue
@@ -18,7 +11,9 @@ import org.jetbrains.kotlin.analysis.api.resolution.KaImplicitReceiverValue
 import org.jetbrains.kotlin.analysis.api.resolution.KaReceiverValue
 import org.jetbrains.kotlin.analysis.api.resolution.KaSmartCastedReceiverValue
 import org.jetbrains.kotlin.analysis.api.resolution.calls
-import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSuccessfulSymbols
+import org.jetbrains.kotlin.analysis.api.resolution.single
+import org.jetbrains.kotlin.analysis.api.resolution.tryResolveCall
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassLikeSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
@@ -32,21 +27,23 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolOrigin
 import org.jetbrains.kotlin.analysis.api.symbols.KaTypeAliasSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaTypeParameterSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.classSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.containingDeclaration
 import org.jetbrains.kotlin.analysis.api.symbols.isLocal
 import org.jetbrains.kotlin.analysis.api.symbols.name
+import org.jetbrains.kotlin.analysis.api.types.isFunctionType
+import org.jetbrains.kotlin.analysis.api.types.isSuspendFunctionType
 import org.jetbrains.kotlin.analysis.api.types.symbol
+import org.jetbrains.kotlin.analysis.api.visibility.isVisibleInClass
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.idea.base.projectStructure.languageVersionSettings
 import org.jetbrains.kotlin.idea.references.KDocReference
 import org.jetbrains.kotlin.idea.references.KtReference
-import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.kdoc.psi.impl.KDocName
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableReferenceExpression
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtElement
-import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtOperationReferenceExpression
 import org.jetbrains.kotlin.psi.KtSimpleNameExpression
@@ -107,7 +104,6 @@ internal class ReferencedSymbol(val reference: KtReference, val symbol: KaSymbol
     }
 }
 
-@OptIn(KaExperimentalApi::class)
 context(_: KaSession)
 private val KtReference.resolvableWithContextSensitiveResolve: Boolean
     get() {
@@ -158,7 +154,6 @@ private fun isAccessibleAsMemberCallable(
     if (element is KDocName) {
         val ownerClassSymbol = element.ownerClassSymbol()
 
-        @OptIn(KaExperimentalApi::class)
         return ownerClassSymbol != null && symbol.isVisibleInClass(ownerClassSymbol)
     }
 
@@ -190,7 +185,6 @@ private fun isStaticallyImportedReceiver(
     }
 }
 
-@OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
 context(_: KaSession)
 private fun resolveDispatchReceiver(element: KtElement, targetSymbol: KaCallableSymbol): KaReceiverValue? {
     val adjustedElement = element.callableReferenceExpressionForCallableReference()
@@ -273,7 +267,7 @@ private fun resolveExtensionReceiverForFunctionalTypeVariable(
         return null
     }
 
-    val parentCallInfo = parentCall.resolveToCall()?.singleCallOrNull<KaImplicitInvokeCall>() ?: return null
+    val parentCallInfo = parentCall.tryResolveCall()?.single as? KaImplicitInvokeCall? ?: return null
     return parentCallInfo.extensionReceiver as? KaExplicitReceiverValue
 }
 
@@ -282,8 +276,8 @@ private fun canBeResolvedViaImport(reference: KDocReference, target: KaSymbol): 
     val qualifier = reference.element.getQualifier() ?: return true
 
     return if (target is KaCallableSymbol && target.isExtension) {
-        val elementHasFunctionDescriptor = reference.element.mainReference.resolveToSymbols().any { it is KaCallableSymbol }
-        val qualifierHasClassDescriptor = qualifier.mainReference.resolveToSymbols().any { it is KaClassLikeSymbol }
+        val elementHasFunctionDescriptor = reference.element.resolveSuccessfulSymbols().any { it is KaCallableSymbol }
+        val qualifierHasClassDescriptor = qualifier.resolveSuccessfulSymbols().any { it is KaClassLikeSymbol }
         elementHasFunctionDescriptor && qualifierHasClassDescriptor
     } else {
         false

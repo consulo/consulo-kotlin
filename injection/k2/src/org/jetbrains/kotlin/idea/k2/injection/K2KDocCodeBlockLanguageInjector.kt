@@ -4,15 +4,18 @@ package org.jetbrains.kotlin.idea.k2.injection
 import com.intellij.lang.Language
 import com.intellij.lang.injection.MultiHostInjector
 import com.intellij.lang.injection.MultiHostRegistrar
+import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.TokenType
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.jetbrains.kotlin.kdoc.lexer.KDocTokens
 import org.jetbrains.kotlin.kdoc.psi.impl.KDocSection
+import org.jetbrains.kotlin.psi.KtPsiFactory
 import kotlin.math.min
 
 private const val tripleQuotes = "```"
@@ -41,7 +44,8 @@ internal class K2KDocCodeBlockLanguageInjector : MultiHostInjector, DumbAware {
             val elementType = e.elementType
             when (elementType) {
                 KDocTokens.CODE_SPAN_TEXT -> {
-                    injectTextRanges(registrar, KotlinLanguage.INSTANCE, listOf(e.textRangeInParent), context)
+                    val language = if (e.isKotlinCode()) KotlinLanguage.INSTANCE else PlainTextLanguage.INSTANCE
+                    injectTextRanges(registrar, language, listOf(e.textRangeInParent), context)
                 }
 
                 KDocTokens.TEXT -> {
@@ -93,7 +97,7 @@ internal class K2KDocCodeBlockLanguageInjector : MultiHostInjector, DumbAware {
         fencedBlock: Boolean
     ) {
         if (elements.isEmpty()) return
-        if (!elements.all { it.isWhiteSpace() }) {
+        if (elements.hasInjectableContent(fencedBlock)) {
             val language =
                 languageId.takeIf { it?.isEmpty() != true }?.lowercase().let(languages::get)
                     ?: KotlinLanguage.INSTANCE
@@ -103,7 +107,40 @@ internal class K2KDocCodeBlockLanguageInjector : MultiHostInjector, DumbAware {
         elements.clear()
     }
 
+    /**
+     * A code span has no language tag, so it holds Kotlin only if its text parses as a Kotlin block without syntax errors.
+     * For example, `package.json` and `^1.0.0` do not.
+     */
+    private fun PsiElement.isKotlinCode(): Boolean {
+        val text = text
+        if (text.isBlank()) return false
+        val fragment = KtPsiFactory(project, markGenerated = false).createBlockCodeFragment(text, context = null)
+        return !PsiTreeUtil.hasErrorElements(fragment)
+    }
+
     private fun PsiElement.isWhiteSpace() = this is PsiWhiteSpace || text.all { it.isWhitespace() }
+
+    private fun PsiElement.isWhiteSpaceOrKDocSyntax(): Boolean =
+        isWhiteSpace() ||
+                elementType == KDocTokens.LEADING_ASTERISK ||
+                isKDocFence()
+
+    private fun PsiElement.isKDocFence(): Boolean {
+        if (elementType != KDocTokens.TEXT) return false
+        val trim = text.trim()
+        return trim.startsWith(tripleQuotes) || trim.startsWith(tripleTildes)
+    }
+
+    private fun List<PsiElement>.hasInjectableContent(fencedBlock: Boolean): Boolean {
+        val indent = indent() ?: return false
+        if (hasCodeContent(indent)) return true
+        if (!fencedBlock) return false
+
+        return any { it.elementType == KDocTokens.CODE_BLOCK_TEXT && it.text.length > indent.coerceAtLeast(1) }
+    }
+
+    private fun List<PsiElement>.hasCodeContent(indent: Int): Boolean =
+        any { element -> !element.isWhiteSpaceOrKDocSyntax() && element.text.drop(indent).any { !it.isWhitespace() } }
 
     private fun List<PsiElement>.indent(): Int? {
         var indent: Int? = null
@@ -131,7 +168,7 @@ internal class K2KDocCodeBlockLanguageInjector : MultiHostInjector, DumbAware {
 
             if (next is PsiWhiteSpace && text.contains("\n")) return 0
 
-            for ((index, ch) in text.withIndex()) {
+            for ([index, ch] in text.withIndex()) {
                 if (!ch.isWhitespace()) return index
             }
 
@@ -140,11 +177,17 @@ internal class K2KDocCodeBlockLanguageInjector : MultiHostInjector, DumbAware {
         return 0
     }
 
+    private data class TextRangeData(
+        val range: TextRange,
+        val mergeWithNext: Boolean
+    )
+
     private fun MutableList<PsiElement>.toTextRanges(fencedBlock: Boolean): List<TextRange> =
-        buildList {
+        buildList<TextRangeData> {
             trim(fencedBlock)
 
             val indent = indent() ?: return@buildList
+            val mergeAdjacentRanges = hasCodeContent(indent)
 
             for (element in this@toTextRanges) {
                 when {
@@ -155,7 +198,7 @@ internal class K2KDocCodeBlockLanguageInjector : MultiHostInjector, DumbAware {
                         if (indexOfNewLine >= 0) {
                             val textRangeInParent = element.textRangeInParent
                             val startOffset = textRangeInParent.startOffset + indexOfNewLine
-                            add(TextRange(startOffset, startOffset + 1))
+                            add(TextRangeData(TextRange(startOffset, startOffset + 1), mergeWithNext = mergeAdjacentRanges))
                         }
                     }
                     element.elementType == KDocTokens.LEADING_ASTERISK -> {
@@ -165,10 +208,31 @@ internal class K2KDocCodeBlockLanguageInjector : MultiHostInjector, DumbAware {
                         val range = element.textRangeInParent
                         val startOffset = range.startOffset + indent
                         val endOffset = range.endOffset
-                        add(TextRange(min(startOffset, endOffset), endOffset))
+                        val textRange = TextRange(min(startOffset, endOffset), endOffset)
+                        add(TextRangeData(textRange, mergeWithNext = mergeAdjacentRanges))
                     }
                 }
             }
+        }.mergeAdjacentTextRanges()
+
+    private fun List<TextRangeData>.mergeAdjacentTextRanges(): List<TextRange> =
+        buildList {
+            var current: TextRangeData? = null
+
+            for (data in this@mergeAdjacentTextRanges) {
+                if (current == null) {
+                    current = data
+                    continue
+                }
+                if (current.mergeWithNext && current.range.endOffset == data.range.startOffset) {
+                    current = TextRangeData(TextRange(current.range.startOffset, data.range.endOffset), current.mergeWithNext)
+                } else {
+                    add(current.range)
+                    current = data
+                }
+            }
+
+            current?.let { add(it.range) }
         }
 
     private fun MutableList<PsiElement>.trim(fencedBlock: Boolean) {

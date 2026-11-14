@@ -28,7 +28,12 @@ import com.intellij.refactoring.util.CanonicalTypes
 import com.intellij.refactoring.util.CommonRefactoringUtil
 import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.util.VisibilityUtil
+import org.jetbrains.kotlin.analysis.api.javaInterop.asPsiMethods
+import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
+import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolVisibility
+import org.jetbrains.kotlin.analysis.api.symbols.symbol
 import org.jetbrains.kotlin.asJava.getRepresentativeLightMethod
 import org.jetbrains.kotlin.asJava.toLightMethods
 import org.jetbrains.kotlin.idea.base.test.InTextDirectivesUtils
@@ -40,7 +45,7 @@ import org.jetbrains.kotlin.idea.refactoring.changeSignature.KotlinValVar
 import org.jetbrains.kotlin.idea.stubindex.KotlinTopLevelFunctionFqnNameIndex
 import org.jetbrains.kotlin.idea.test.Diagnostic
 import org.jetbrains.kotlin.idea.test.DirectiveBasedActionUtils
-import org.jetbrains.kotlin.idea.test.IDEA_TEST_DATA_DIR
+import org.jetbrains.kotlin.idea.base.test.KotlinRoot
 import org.jetbrains.kotlin.idea.test.KotlinLightCodeInsightFixtureTestCase
 import org.jetbrains.kotlin.idea.test.KotlinTestUtils
 import org.jetbrains.kotlin.idea.test.KotlinWithJdkAndRuntimeLightProjectDescriptor
@@ -117,7 +122,7 @@ abstract class BaseKotlinChangeSignatureTest<C: KotlinModifiableChangeInfo<P>, P
     }
 
     override val testDataDirectory: File
-        get() = IDEA_TEST_DATA_DIR.resolve("refactoring/changeSignature")
+        get() = KotlinRoot.DIR.resolve("refactorings/kotlin.refactorings.tests.k2/testData/changeSignature")
 
     override fun getProjectDescriptor(): LightProjectDescriptor = KotlinWithJdkAndRuntimeLightProjectDescriptor.getInstance()
 
@@ -331,8 +336,10 @@ public @interface NotNull {
     protected open fun doTestConflict(configure: C.() -> Unit = {}) = runAndCheckConflicts {
         configureFiles()
 
-        doRefactoring(configure)
-        compareEditorsWithExpectedData()
+        withCustomCompilerOptions(file.text, project, module) {
+            doRefactoring(configure)
+            compareEditorsWithExpectedData()
+        }
     }
 
     protected fun doTestUnmodifiable(configure: C.() -> Unit = {}) {
@@ -912,6 +919,60 @@ public @interface NotNull {
 
     fun testReceiverToParameterImplicitReceivers() = doTest { receiverParameterInfo = null }//suggested names for receiver is different
 
+    fun testCompanionUsagesParameterToReceiver() = doTest { receiverParameterInfo = newParameters[0] }
+
+    fun testCompanionUsagesReceiverToParameter() = doTest {
+        receiverParameterInfo = null
+        newParameters[0].name = "text"
+    }
+
+    fun testCompanionBlockParameterToReceiver() = doTestConflict { receiverParameterInfo = newParameters[0] }
+
+    fun testCompanionBlockNoClash() = doTest { newName = "beta" }
+
+    fun testCompanionWithJavaUsage() = doTest { newParameters[1].name = "bar" }
+
+    fun testCompanionBlockOverloadClash() = doTestConflict { newParameters[0].setType("kotlin.Int") }
+
+    fun testBlockMemberNoClashWithCompanionExtension() = doTest { newName = "fromExtension" }
+
+    fun testBlockMemberClashWithCompanionExtension() = doTestConflict {
+        newName = "fromExtension"
+        newParameters[0].setType("kotlin.Int")
+    }
+
+    fun testOuterCompanionBlockShadowing() = doTest { newName = "beta" }
+
+    fun testEnumMemberClashWithEntry() = doTest { newName = "A" }
+
+    fun testMemberClashWithInheritedJavaStatic() = doTest { newName = "helper" }
+
+    fun testMemberClashWithNestedClass() = doTestConflict { newName = "Nested" }
+
+    fun testCompanionExtensionReceiverToParameter() = doTestConflict {
+        receiverParameterInfo = null
+        newParameters[0].name = "text"
+    }
+
+    fun testCompanionExtensionParameterToReceiver() = doTestConflict { receiverParameterInfo = newParameters[1] }
+    fun testCompanionExtensionParameterToReceiverNoUsages() = doTest { receiverParameterInfo = newParameters[1] }
+    fun testCompanionExtensionParameterToReceiverUsageOfThis() = doTestConflict { receiverParameterInfo = newParameters[1] }
+    fun testCompanionExtensionParameterToReceiverWithRenamedParameter() = doTest {
+        receiverParameterInfo = newParameters[1]
+        newParameters[2].name = "renamed"
+    }
+
+    fun testCompanionExtensionChangeReceiverType() = doTestConflict { receiverParameterInfo!!.setType("OtherHost") }
+    fun testCompanionExtensionChangeReceiverTypeUnused() = doTest { receiverParameterInfo!!.setType("OtherHost") }
+
+    fun testCompanionExtensionNullableReceiver() = doTestConflict { receiverParameterInfo!!.setType("Host?") }
+
+    fun testCompanionExtensionContextParameterToReceiver() = doTestConflict {
+        val contextParameter = newParameters[0]
+        contextParameter.isContextParameter = false
+        receiverParameterInfo = contextParameter
+    }
+
     fun testParameterToReceiverExplicitReceiver() = doTest { receiverParameterInfo = newParameters[0] }
 
     fun testParameterToReceiverImplicitReceivers() = doTest { receiverParameterInfo = newParameters[0] }
@@ -1001,7 +1062,9 @@ public @interface NotNull {
         newParameters[0].name = "a"
     }
 
-    fun testReceiverInSafeCall() = doTestConflict { receiverParameterInfo = null }
+    fun testReceiverInSafeCall() = doTest { receiverParameterInfo = null }
+
+    fun testReceiverInSafeCallWithImplicitLambdaParameter() = doTest { receiverParameterInfo = null }
 
 
     fun testConvertToExtensionAndRename() = doTest {
@@ -1155,6 +1218,18 @@ public @interface NotNull {
     fun testMakePrimaryConstructorPrivateNoParams() = doTest { setNewVisibility(KaSymbolVisibility.PRIVATE) }
 
     fun testMakePrimaryConstructorPublic() = doTest { setNewVisibility(KaSymbolVisibility.PUBLIC) }
+
+    fun testCompanionBlockChangeSignature() = doTest {
+        setNewVisibility(KaSymbolVisibility.PRIVATE)
+        newParameters[0].name = "count"
+        swapParameters(0, 1)
+    }
+
+    fun testCompanionExtensionChangeSignature() = doTest {
+        setNewVisibility(KaSymbolVisibility.PRIVATE)
+        newParameters[1].name = "count"
+        swapParameters(1, 2)
+    }
 
     fun testVisibilityFromJavaSuper() {
         withIgnoredConflicts<Throwable> {
@@ -1613,6 +1688,7 @@ public @interface NotNull {
         newParameters[0].setType(PsiTypes.intType())
     }
 
+    @OptIn(KaAllowAnalysisOnEdt::class)
     fun testJavaParameterPropagation() = doJavaTest {
         newParameters.add(ParameterInfoImpl(-1, "n", PsiTypes.intType(), "1"))
         newParameters.add(ParameterInfoImpl(-1, "s", stringPsiType, "\"abc\""))
@@ -1622,7 +1698,12 @@ public @interface NotNull {
         parameterPropagationTargets.add(methodBar)
 
         val functionTest = KotlinTopLevelFunctionFqnNameIndex.get("test", project, project.allScope()).first()
-        parameterPropagationTargets.add(functionTest.getRepresentativeLightMethod()!!)
+        // FIXME: KTIJ-40145
+        allowAnalysisOnEdt {
+            analyze(functionTest) {
+                parameterPropagationTargets.add(functionTest.symbol.asPsiMethods().first())
+            }
+        }
     }
 
 

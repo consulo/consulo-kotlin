@@ -4,8 +4,10 @@ package org.jetbrains.kotlin.idea.k2.refactoring.suggested
 import com.intellij.openapi.actionSystem.IdeActions
 import com.intellij.openapi.fileTypes.LanguageFileType
 import com.intellij.refactoring.suggested.BaseSuggestedRefactoringAvailabilityTest
+import com.intellij.refactoring.suggested.SuggestedRefactoringProviderImpl
 import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.idea.test.KotlinWithJdkAndRuntimeLightProjectDescriptor
+import org.jetbrains.kotlin.idea.test.withCustomCompilerOptions
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.resolve.ImportPath
@@ -434,6 +436,21 @@ class KotlinSuggestedRefactoringAvailabilityTest : BaseSuggestedRefactoringAvail
         }
     }
 
+    fun testAddOptionalParameterWithContextParameters() {
+        withCustomCompilerOptions("// COMPILER_ARGUMENTS: -Xcontext-parameters", project, module) {
+            doTest(
+                """
+                    context(c1: String, c2: Long)
+                    fun foo(p1: Int<caret>) {
+                    }
+                """.trimIndent(),
+                expectedAvailability = Availability.Disabled
+            ) {
+                type(", p2: Int = 2")
+            }
+        }
+    }
+
     fun testAddOptionalParameterWithOverrides() {
         doTest(
             """
@@ -603,6 +620,66 @@ class KotlinSuggestedRefactoringAvailabilityTest : BaseSuggestedRefactoringAvail
             expectedAvailability = Availability.Available(changeSignatureAvailableTooltip("foo", "actual declarations")),
         ) {
             type(": Int")
+        }
+    }
+
+    fun testRefineSignaturesOfStaleState() {
+        myFixture.configureByText(
+            fileType,
+            """
+                interface I {
+                    fun foo(p1: Int<caret>)
+                }
+            """.trimIndent()
+        )
+
+        val provider = SuggestedRefactoringProviderImpl.getInstance(project)
+        val amendStateInBackgroundSaved = provider._amendStateInBackgroundEnabled
+        try {
+            provider._amendStateInBackgroundEnabled = false
+
+            executeEditingActions { type(", p2: Int") }
+
+            val state = provider.state!!
+
+            // the signature is edited further while the state still holds the previously recorded signatures
+            deleteTextBeforeCaret("p1: Int, p2: Int")
+
+            val refined = state.refactoringSupport.availability.refineSignaturesWithResolve(state)
+
+            assertEquals(state.oldSignature.parameters.map { it.name }, refined.oldSignature.parameters.map { it.name })
+            assertEquals(state.newSignature.parameters.map { it.name }, refined.newSignature.parameters.map { it.name })
+        }
+        finally {
+            provider._amendStateInBackgroundEnabled = amendStateInBackgroundSaved
+        }
+    }
+
+    fun testDetectAvailableRefactoringOfStaleState() {
+        myFixture.configureByText(
+            fileType,
+            """
+                interface I {
+                    fun foo(p1<caret>: Int)
+                }
+            """.trimIndent()
+        )
+
+        val provider = SuggestedRefactoringProviderImpl.getInstance(project)
+        val amendStateInBackgroundSaved = provider._amendStateInBackgroundEnabled
+        try {
+            provider._amendStateInBackgroundEnabled = false
+
+            executeEditingActions { type("New") }
+
+            val state = provider.state!!
+
+            editor.caretModel.moveToOffset(editor.caretModel.offset + ": Int".length)
+            type(", p2: Int")
+
+            assertNull(state.refactoringSupport.availability.detectAvailableRefactoring(state))
+        } finally {
+            provider._amendStateInBackgroundEnabled = amendStateInBackgroundSaved
         }
     }
 

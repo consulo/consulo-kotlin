@@ -2,29 +2,20 @@
 
 package org.jetbrains.kotlin.j2k
 
-import com.intellij.openapi.application.edtWriteAction
-import com.intellij.openapi.application.readAction
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.roots.ModifiableRootModel
-import com.intellij.psi.PsiJavaFile
-import com.intellij.psi.PsiMethod
-import com.intellij.psi.impl.PsiImplUtil
-import com.intellij.psi.search.LocalSearchScope
-import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.testFramework.IdeaTestUtil
 import com.intellij.testFramework.fixtures.DefaultLightProjectDescriptor
-import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.components.KaDiagnosticCheckerFilter.ONLY_COMMON_CHECKERS
+import de.plushnikov.intellij.plugin.LombokTestUtil
 import org.jetbrains.kotlin.analysis.api.diagnostics.KaSeverity
+import org.jetbrains.kotlin.analysis.api.diagnostics.diagnostics
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.idea.base.test.IgnoreTests.DIRECTIVES.IGNORE_K2
 import org.jetbrains.kotlin.idea.test.KotlinWithJdkAndRuntimeLightProjectDescriptor
 import org.jetbrains.kotlin.idea.test.util.trimTrailingWhitespacesAndAddNewlineAtEOF
 import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.psi.KtParameter
-import org.jetbrains.kotlin.psi.psiUtil.findDescendantOfType
 import java.io.File
 
 val J2K_PROJECT_DESCRIPTOR: KotlinWithJdkAndRuntimeLightProjectDescriptor =
@@ -36,13 +27,17 @@ val J2K_PROJECT_DESCRIPTOR: KotlinWithJdkAndRuntimeLightProjectDescriptor =
         }
     }
 
+val J2K_LOMBOK_PROJECT_DESCRIPTOR: KotlinWithJdkAndRuntimeLightProjectDescriptor =
+    object : KotlinWithJdkAndRuntimeLightProjectDescriptor() {
+        override fun getSdk(): Sdk = IdeaTestUtil.getMockJdk21()
+
+        override fun addDefaultLibraries(model: ModifiableRootModel) {
+            DefaultLightProjectDescriptor.addJetBrainsAnnotationsWithTypeUse(model)
+            LombokTestUtil.addLombokDependency(model)
+        }
+    }
+
 private val ignoreDirectives: Set<String> = setOf(IGNORE_K2)
-
-internal val J2K_FULL_JDK_PROJECT_DESCRIPTOR: KotlinWithJdkAndRuntimeLightProjectDescriptor =
-    KotlinWithJdkAndRuntimeLightProjectDescriptor.getInstanceFullJdk()
-
-internal fun File.getFileTextWithoutDirectives(): String =
-    readText().getTextWithoutDirectives()
 
 internal fun String.getTextWithoutDirectives(): String =
     split("\n").filterNot { it.trim() in ignoreDirectives }.joinToString(separator = "\n")
@@ -89,12 +84,13 @@ internal fun getExpectedFile(testFile: File, isCopyPaste: Boolean): File {
 fun getK2FileTextWithErrors(file: KtFile): String {
     val errors: List<String> = allowAnalysisOnEdt {
         analyze(file) {
-            val diagnostics = file.collectDiagnostics(filter = ONLY_COMMON_CHECKERS).asSequence()
+            val diagnostics = file.diagnostics()
             diagnostics
                 // TODO KTIJ-29640: For some reason, there is a "redeclaration" error on every declaration for K2 tests
                 .filter { it.factoryName != "CLASSIFIER_REDECLARATION" && it.factoryName != "PACKAGE_CONFLICTS_WITH_CLASSIFIER" }
                 .filter { it.severity == KaSeverity.ERROR }
                 .map { it.defaultMessage.replace(oldChar = '\n', newChar = ' ') }
+                .sorted()
                 .toList()
         }
     }
@@ -102,46 +98,4 @@ fun getK2FileTextWithErrors(file: KtFile): String {
     if (errors.isEmpty()) return file.text
     val header = errors.joinToString(separator = "\n", postfix = "\n") { "// ERROR: $it" }
     return header + file.text
-}
-
-internal object J2kTestPreprocessorExtension : J2kPreprocessorExtension {
-    override suspend fun processFiles(
-        project: Project,
-        files: List<PsiJavaFile>,
-    ) {
-        for (file in files) {
-            val method = readAction {
-                file.classes.firstOrNull()?.findDescendantOfType<PsiMethod> {
-                    it.name != "main" && !it.isConstructor && !it.name.startsWith("get") && !it.name.startsWith("set")
-                }
-            } ?: continue
-
-            edtWriteAction {
-                PsiImplUtil.setName(checkNotNull(method.nameIdentifier), "prebar")
-            }
-        }
-    }
-}
-
-internal object J2kTestPostprocessorExtension : J2kPostprocessorExtension {
-    override suspend fun processFiles(
-        project: Project,
-        files: List<KtFile>,
-    ) {
-        for (file in files) {
-            val firstNamedParameter = readAction {
-                file.findDescendantOfType<KtParameter> { it.nameIdentifier != null }
-            } ?: continue
-
-            val references = ReferencesSearch.search(firstNamedParameter, LocalSearchScope(file)).findAll()
-            edtWriteAction {
-                PsiImplUtil.setName(checkNotNull(firstNamedParameter.nameIdentifier), "postbar")
-            }
-            for (reference in references) {
-                edtWriteAction {
-                    PsiImplUtil.setName(reference.element, "postbar")
-                }
-            }
-        }
-    }
 }

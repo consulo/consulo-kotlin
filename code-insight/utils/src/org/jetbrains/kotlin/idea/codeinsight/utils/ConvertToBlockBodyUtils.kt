@@ -4,15 +4,15 @@ package org.jetbrains.kotlin.idea.codeinsight.utils
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
-import org.jetbrains.kotlin.analysis.api.KaContextParameterApi
-import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.components.expressionType
-import org.jetbrains.kotlin.analysis.api.components.isMarkedNullable
-import org.jetbrains.kotlin.analysis.api.components.isNothingType
-import org.jetbrains.kotlin.analysis.api.components.isUnitType
-import org.jetbrains.kotlin.analysis.api.components.render
+import org.jetbrains.kotlin.analysis.api.components.returnType
+import org.jetbrains.kotlin.analysis.api.expressions.expressionType
+import org.jetbrains.kotlin.analysis.api.renderer.render
 import org.jetbrains.kotlin.analysis.api.types.KaErrorType
+import org.jetbrains.kotlin.analysis.api.types.KaStandardTypeClassIds
+import org.jetbrains.kotlin.analysis.api.types.approximateToDenotableSupertypeOrSelf
+import org.jetbrains.kotlin.analysis.api.types.classId
+import org.jetbrains.kotlin.analysis.api.types.isMarkedNullable
 import org.jetbrains.kotlin.psi.KtAnnotatedExpression
 import org.jetbrains.kotlin.psi.KtDeclarationWithBody
 import org.jetbrains.kotlin.psi.KtDeclarationWithReturnType
@@ -42,7 +42,6 @@ object ConvertToBlockBodyUtils {
     fun isConvertibleByPsi(element: KtDeclarationWithBody): Boolean =
         (element is KtNamedFunction || element is KtPropertyAccessor) && !element.hasBlockBody() && element.hasBody()
 
-    @OptIn(KaExperimentalApi::class, KaContextParameterApi::class)
     context(session: KaSession)
     fun createContext(
         declaration: KtDeclarationWithBody,
@@ -55,7 +54,7 @@ object ConvertToBlockBodyUtils {
         val body = declaration.bodyExpression ?: return null
 
         val bodyType = ((body as? KtReturnExpression)?.returnedExpression ?: body).expressionType ?: return null
-        val returnType = with(session) {
+        val returnType = context(session) {
             (if (declaration.hasDeclaredReturnType()) declaration.returnType else bodyType)
                 .approximateToDenotableSupertypeOrSelf(false)
         }
@@ -63,17 +62,19 @@ object ConvertToBlockBodyUtils {
             return null
         }
 
+        val returnTypeClassId = returnType.classId
+        val bodyTypeClassId = bodyType.classId
         return ConvertToBlockBodyContext(
-            returnTypeIsUnit = returnType.isUnitType,
-            returnTypeIsNothing = returnType.isNothingType && !returnType.isMarkedNullable,
+            returnTypeIsUnit = returnTypeClassId == KaStandardTypeClassIds.UNIT,
+            returnTypeIsNothing = returnTypeClassId == KaStandardTypeClassIds.NOTHING && !returnType.isMarkedNullable,
             returnTypeString = returnType.render(position = Variance.OUT_VARIANCE),
-            bodyTypeIsUnit = bodyType.isUnitType,
-            bodyTypeIsNothing = bodyType.isNothingType && !bodyType.isMarkedNullable,
+            bodyTypeIsUnit = bodyTypeClassId == KaStandardTypeClassIds.UNIT,
+            bodyTypeIsNothing = bodyTypeClassId == KaStandardTypeClassIds.NOTHING && !bodyType.isMarkedNullable,
             reformat = reformat
         )
     }
 
-    fun convert(element: KtDeclarationWithBody, context: ConvertToBlockBodyContext) {
+    fun convert(element: KtDeclarationWithBody, context: ConvertToBlockBodyContext, pullUpExpressionAnnotations: Boolean = true) {
         val body = element.bodyExpression ?: return
 
         element.setTypeReferenceIfNeeded(context)
@@ -81,7 +82,7 @@ object ConvertToBlockBodyUtils {
         val prevComments = body.comments(next = false)
         val nextComments = body.comments(next = true)
         val returnsValue = element.returnsValue(context)
-        val newBody = generateBody(body, prevComments, nextComments, context, returnsValue)
+        val newBody = generateBody(body, prevComments, nextComments, context, returnsValue, pullUpExpressionAnnotations)
 
         element.equalsToken?.delete()
         prevComments.filterIsInstance<PsiComment>().forEach { it.delete() }
@@ -165,6 +166,7 @@ object ConvertToBlockBodyUtils {
         nextComments: List<PsiElement>,
         context: ConvertToBlockBodyContext,
         returnsValue: Boolean,
+        pullUpExpressionAnnotations: Boolean
     ): KtExpression {
         val factory = KtPsiFactory(body.project)
         if (context.bodyTypeIsUnit && body is KtNameReferenceExpression) return factory.createEmptyBody()
@@ -176,20 +178,22 @@ object ConvertToBlockBodyUtils {
             when {
                 annotatedExpr != null -> {
                     val returnedExpr = annotatedExpr.baseExpression ?: body
-                    val block = factory.createSingleStatementBlock(factory.createExpressionByPattern("return $0", returnedExpr))
-                    val statement = block.firstStatement
-                    annotatedExpr.annotationEntries.forEach {
-                        block.addBefore(it, statement)
-                        block.addBefore(factory.createNewLine(), statement)
-                    }
-                    block
+                    val annotations = annotatedExpr.annotationEntries.joinToString("\n") { it.text }
+                    factory.createSingleStatementBlock(factory.createExpressionByPattern("$0\nreturn $1", annotations, returnedExpr))
                 }
 
-                firstChildAnnotatedExpr != null -> {
-                    val baseExpr = firstChildAnnotatedExpr.baseExpression!!
-                    val exprWithoutAnnotation = body.text.replace(firstChildAnnotatedExpr.text, baseExpr.text)
+                pullUpExpressionAnnotations && firstChildAnnotatedExpr != null -> {
+                    val expressionWithoutAnnotation = body.copy() as KtExpression
+                    val annotatedOperand = expressionWithoutAnnotation.firstChild as KtAnnotatedExpression
+                    annotatedOperand.replace(annotatedOperand.baseExpression!!)
                     val annotations = firstChildAnnotatedExpr.annotationEntries.joinToString("\n") { it.text }
-                    factory.createBlock("$annotations\nreturn $exprWithoutAnnotation")
+                    factory.createSingleStatementBlock(
+                        factory.createExpressionByPattern(
+                            "$0\nreturn $1",
+                            annotations,
+                            expressionWithoutAnnotation
+                        )
+                    )
                 }
 
                 else -> {

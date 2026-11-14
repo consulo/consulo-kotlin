@@ -8,12 +8,7 @@ import com.intellij.codeInsight.hints.declarative.PsiPointerInlayActionPayload
 import com.intellij.codeInsight.hints.declarative.StringInlayActionPayload
 import com.intellij.codeInsight.hints.declarative.impl.PresentationTreeBuilderImpl
 import com.intellij.psi.createSmartPointer
-import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.components.KaStandardTypeClassIds
-import org.jetbrains.kotlin.analysis.api.components.isMarkedNullable
-import org.jetbrains.kotlin.analysis.api.components.isNullable
-import org.jetbrains.kotlin.analysis.api.components.withNullability
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassLikeSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedClassSymbol
@@ -27,12 +22,16 @@ import org.jetbrains.kotlin.analysis.api.types.KaFlexibleType
 import org.jetbrains.kotlin.analysis.api.types.KaFunctionType
 import org.jetbrains.kotlin.analysis.api.types.KaIntersectionType
 import org.jetbrains.kotlin.analysis.api.types.KaResolvedClassTypeQualifier
+import org.jetbrains.kotlin.analysis.api.types.KaStandardTypeClassIds
 import org.jetbrains.kotlin.analysis.api.types.KaStarTypeProjection
 import org.jetbrains.kotlin.analysis.api.types.KaType
 import org.jetbrains.kotlin.analysis.api.types.KaTypeArgumentWithVariance
 import org.jetbrains.kotlin.analysis.api.types.KaTypeParameterType
 import org.jetbrains.kotlin.analysis.api.types.KaTypeProjection
 import org.jetbrains.kotlin.analysis.api.types.KaUsualClassType
+import org.jetbrains.kotlin.analysis.api.types.isMarkedNullable
+import org.jetbrains.kotlin.analysis.api.types.isNullable
+import org.jetbrains.kotlin.analysis.api.types.withNullability
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.approximateAnonymousObjectToSupertypeOrSelf
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.isAnnotatedWithTypeUseOnly
 import org.jetbrains.kotlin.idea.codeInsight.hints.KotlinFqnDeclarativeInlayActionHandler
@@ -48,7 +47,6 @@ private val suppressedAnnotatedTypePackages =
         "kotlin",
     ).mapTo(hashSetOf(), ::FqName)
 
-@OptIn(KaExperimentalApi::class)
 context(_: KaSession)
 internal fun PresentationTreeBuilder.printKtType(type: KaType) {
     // See org.jetbrains.kotlin.analysis.api.renderer.types.KaTypeRenderer.renderType
@@ -130,12 +128,12 @@ internal fun PresentationTreeBuilder.printKtType(type: KaType) {
                 text(KtTokens.SUSPEND_KEYWORD.value)
                 text(" ")
             }
-            val contextReceivers = type.contextReceivers
-            if (contextReceivers.isNotEmpty()) {
+            val contextParameterTypes = type.contextParameterTypes
+            if (contextParameterTypes.isNotEmpty()) {
                 text("context(")
-                contextReceivers.forEachIndexed { index, context ->
+                contextParameterTypes.forEachIndexed { index, contextType ->
                     if (index != 0) text(", ")
-                    printKtType(context.type)
+                    printKtType(contextType)
                 }
                 text(") ")
             }
@@ -307,13 +305,14 @@ private fun isSimilarTypes(
     .none { (lowerTypeArg, upperTypeArg) -> lowerTypeArg.type != upperTypeArg.type }
 
 private fun truncatedName(qualifiers: List<KaResolvedClassTypeQualifier>): String {
+    val lastQualifier = qualifiers.lastOrNull()
     val names = qualifiers
-        .mapNotNull {
-            val symbol = it.symbol
-            symbol.takeUnless { classifierSymbol ->
+        .mapNotNull { qualifier ->
+            val symbol = qualifier.symbol.takeUnless { classifierSymbol ->
                 (classifierSymbol as? KaNamedClassSymbol)?.classKind == KaClassKind.COMPANION_OBJECT &&
-                        classifierSymbol.name == SpecialNames.DEFAULT_NAME_FOR_COMPANION_OBJECT
-            }?.name
+                        classifierSymbol.name == SpecialNames.DEFAULT_NAME_FOR_COMPANION_OBJECT && qualifier != lastQualifier
+            }
+            symbol?.name
         }
 
     names.joinToString(".", transform = Name::asString)

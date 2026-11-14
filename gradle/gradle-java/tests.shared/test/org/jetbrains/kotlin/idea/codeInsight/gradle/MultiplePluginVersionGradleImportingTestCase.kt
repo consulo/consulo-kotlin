@@ -1,4 +1,4 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
 /**
  * This TestCase implements possibility to test import with different versions of gradle and different
@@ -6,6 +6,7 @@
  */
 package org.jetbrains.kotlin.idea.codeInsight.gradle
 
+import com.intellij.gradle.testFramework.util.VersionMatcher
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.util.Disposer
 import org.gradle.util.GradleVersion
@@ -19,7 +20,6 @@ import org.jetbrains.kotlin.gradle.multiplatformTests.testFeatures.checkers.work
 import org.jetbrains.kotlin.idea.codeInsight.gradle.KotlinGradlePluginVersions.V_1_7_21
 import org.jetbrains.kotlin.idea.codeInsight.gradle.KotlinGradlePluginVersions.V_1_8_22
 import org.jetbrains.kotlin.tooling.core.KotlinToolingVersion
-import org.jetbrains.plugins.gradle.tooling.util.VersionMatcher
 import org.junit.Rule
 import org.junit.runners.Parameterized
 
@@ -118,14 +118,15 @@ abstract class MultiplePluginVersionGradleImportingTestCase : KotlinGradleImport
                 addVersions("7.6", V_1_8_22)
             }
 
+            val kgpVersion = KotlinGradlePluginVersions.latestPinned
             addVersions(
-                "7.6.3", KotlinGradlePluginVersions.latest,
-                "${KotlinGradlePluginVersions.latest.major}.${KotlinGradlePluginVersions.latest.minor}"
+                "7.6.3", kgpVersion,
+                "${kgpVersion.major}.${kgpVersion.minor}"
             )
 
             addVersions(
-                "8.14.4", KotlinGradlePluginVersions.latest,
-                "${KotlinGradlePluginVersions.latest.major}.${KotlinGradlePluginVersions.latest.minor}"
+                "8.14.4", kgpVersion,
+                "${kgpVersion.major}.${kgpVersion.minor}"
             )
 
             return parameters

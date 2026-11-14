@@ -4,6 +4,7 @@ package org.jetbrains.kotlin.idea.gradle.statistics.v2.flow
 import com.intellij.internal.statistic.eventLog.events.EventField
 import com.intellij.internal.statistic.eventLog.events.EventFields
 import com.intellij.internal.statistic.eventLog.events.EventPair
+import org.jetbrains.kotlin.idea.gradle.statistics.anonymizedProjectRegexp
 
 /**
  * Base class for all Kotlin build tool Feature Usage Statistics (FUS) metrics.
@@ -184,6 +185,22 @@ class JoinedListValuesStringFusMetric(metric: String, enumRef: String = "kbt_${m
     )
 
 /**
+ * String FUS metric that concatenates all values.
+ * Dictionary `#kbt_$metric.ndjson` should be registered in the FUS backend.
+ * Use it instead of [JoinedListValuesStringFusMetric] when the number of
+ * allowed values is large (> 500).
+ *
+ * @param metric The name of the metric
+ */
+class JoinedListValuesStringFusMetricByDictionary(metric: String, dictionaryName: String = "kbt_${metric.lowercase()}") :
+    KotlinBuildToolFusMetric<List<String>>(
+        metric,
+        eventField = EventFields.StringListValidatedByDictionary(metric.lowercase(), "$dictionaryName.ndjson"),
+        validationStep = KotlinBuildToolListFlowValidationStep(),
+        aggregationStep = JoinListAggregationStep,
+    )
+
+/**
  * String FUS metric that uses override aggregation with regex validation.
  * The final value will be the last valid value in the list that matches the regex.
  * 
@@ -201,8 +218,8 @@ internal class OverrideRegexStringFusMetric(metric: String, regex: String) :
  */
 internal class PathFusMetric(metric: String) : KotlinBuildToolFusMetric<String>(
     metric,
-    EventFields.AnonymizedPath as EventField<String>,
-    validationStep = KotlinBuildToolStringFLowValidationStep,
+    EventFields.StringValidatedByInlineRegexp(metric.lowercase(), anonymizedProjectRegexp) as EventField<String>,
+    validationStep = KotlinBuildToolProjectPathValidationStep,
     aggregationStep = OverrideValueAggregationStep()
 )
 

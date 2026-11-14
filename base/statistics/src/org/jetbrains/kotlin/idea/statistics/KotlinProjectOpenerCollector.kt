@@ -5,14 +5,22 @@ import com.intellij.internal.statistic.beans.MetricEvent
 import com.intellij.internal.statistic.eventLog.EventLogGroup
 import com.intellij.internal.statistic.eventLog.events.EventFields
 import com.intellij.internal.statistic.service.fus.collectors.ProjectUsagesCollector
+import com.intellij.openapi.components.SerializablePersistentStateComponent
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.Service.Level
+import com.intellij.openapi.components.State
+import com.intellij.openapi.components.Storage
+import com.intellij.openapi.components.StoragePathMacros
 import com.intellij.openapi.components.impl.stores.IProjectStore
 import com.intellij.openapi.components.impl.stores.stateStore
+import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.jetbrains.kotlin.utils.KotlinExceptionWithAttachments
 import java.nio.file.Path
-import kotlin.io.path.deleteIfExists
 import kotlin.io.path.readText
 
 private const val RECEIPT_FILE_NAME: String = "receipt.json"
@@ -25,7 +33,8 @@ private const val RECEIPT_FILE_NAME: String = "receipt.json"
  * When creating new campaigns, a single framework name should be associated with the campaign name. This correspondence is kept
  * in some excel file, knowledge keeper Leonid Stashevsky.
  *
- * The receipt.json file will be deleted once it has been read.
+ * The collector reads the receipt.json file only once per project. It does not delete the file.
+ * [KotlinProjectOpenerState] records that the file was read and transformed to an event.
  */
 internal class KotlinProjectOpenerCollector : ProjectUsagesCollector() {
     private val GROUP = EventLogGroup("kotlin.project.opener", 1)
@@ -56,13 +65,14 @@ internal class KotlinProjectOpenerCollector : ProjectUsagesCollector() {
         UTM_SOURCE, UTM_MEDIUM, UTM_CAMPAIGN
     )
 
-    override fun requiresReadAccess(): Boolean = true
-
     override fun getGroup(): EventLogGroup = GROUP
 
-    override fun getMetrics(project: Project): Set<MetricEvent> {
+    override suspend fun collect(project: Project): Set<MetricEvent> {
+        val openerState = project.service<KotlinProjectOpenerState>()
+        if (openerState.isReceiptProcessed) return emptySet()
+
         val receiptFile = getReceiptFile(project) ?: return emptySet()
-        val wizardReceipt = readReceiptFile(receiptFile) ?: return emptySet()
+        val wizardReceipt = readReceiptFile(openerState, receiptFile) ?: return emptySet()
 
         return setOf(wizardReceipt.toMetricEvent())
     }
@@ -74,19 +84,26 @@ internal class KotlinProjectOpenerCollector : ProjectUsagesCollector() {
         return projectFileDir.resolve(RECEIPT_FILE_NAME)
     }
 
-    private fun readReceiptFile(receiptPath: Path): KotlinProjectOpenEvent? {
+    private fun readReceiptFile(openerState: KotlinProjectOpenerState, receiptPath: Path): KotlinProjectOpenEvent? {
         return runCatching {
-            readAndDeserializeJson(receiptPath)
+            readAndDeserializeJson(openerState, receiptPath)
         }.getOrNull()
     }
 
-    private fun readAndDeserializeJson(receiptPath: Path): KotlinProjectOpenEvent {
+    private fun readAndDeserializeJson(openerState: KotlinProjectOpenerState, receiptPath: Path): KotlinProjectOpenEvent {
         val text = receiptPath.readText()
 
-        val json = Json { ignoreUnknownKeys = true }
-        val event = json.decodeFromString<KotlinProjectOpenEvent>(text)
-
-        receiptPath.deleteIfExists()
+        val event = try {
+            KotlinProjectOpenerJson.decodeFromString<KotlinProjectOpenEvent>(text)
+        } catch (e: Exception) {
+            Logger.getInstance(this::class.java).error(
+                KotlinExceptionWithAttachments(e.message, e)
+                    .withAttachment("text.json", text)
+            )
+            throw e
+        } finally {
+            openerState.markReceiptProcessed()
+        }
 
         return event
     }
@@ -98,10 +115,34 @@ internal class KotlinProjectOpenerCollector : ProjectUsagesCollector() {
     }
 }
 
+private val KotlinProjectOpenerJson = Json { ignoreUnknownKeys = true }
+
+@Service(Level.PROJECT)
+@State(
+    name = "KotlinProjectOpener",
+    storages = [Storage(StoragePathMacros.WORKSPACE_FILE)],
+    reportStatistic = false,
+)
+internal class KotlinProjectOpenerState :
+    SerializablePersistentStateComponent<KotlinProjectOpenerState.State>(State()) {
+
+    @Serializable
+    data class State(
+        @JvmField val receiptProcessed: Boolean = false
+    )
+
+    val isReceiptProcessed: Boolean
+        get() = state.receiptProcessed
+
+    fun markReceiptProcessed() {
+        updateState { it.copy(receiptProcessed = true) }
+    }
+}
+
 @Serializable
 internal data class KotlinProjectOpenEvent(
     @SerialName("spec") val spec: Spec,
-    @SerialName("timestamp") val timestamp: String,
+    @SerialName("timestamp") val timestamp: String? = null,
     @SerialName("uid") val uid: String? = null
 ) {
     @Serializable

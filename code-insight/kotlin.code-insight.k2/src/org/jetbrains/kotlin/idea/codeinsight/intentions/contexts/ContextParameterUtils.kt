@@ -4,26 +4,41 @@ package org.jetbrains.kotlin.idea.codeinsight.intentions.contexts
 
 import com.intellij.refactoring.RefactoringBundle
 import com.intellij.usageView.UsageInfo
-import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.symbols.KaFunctionSymbol
+import org.jetbrains.kotlin.analysis.api.resolution.KaImplicitReceiverValue
+import org.jetbrains.kotlin.analysis.api.resolution.simple
+import org.jetbrains.kotlin.analysis.api.resolution.single
+import org.jetbrains.kotlin.analysis.api.resolution.symbol
+import org.jetbrains.kotlin.analysis.api.resolution.symbols
+import org.jetbrains.kotlin.analysis.api.resolution.tryResolveCall
+import org.jetbrains.kotlin.analysis.api.resolution.tryResolveSymbols
+import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaContextParameterSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.allOverriddenSymbols
+import org.jetbrains.kotlin.analysis.api.symbols.symbol
+import org.jetbrains.kotlin.analysis.api.types.KaType
 import org.jetbrains.kotlin.config.LanguageFeature
+import org.jetbrains.kotlin.idea.base.analysis.api.utils.unwrapSmartCasts
 import org.jetbrains.kotlin.idea.base.projectStructure.languageVersionSettings
 import org.jetbrains.kotlin.idea.k2.refactoring.changeSignature.KotlinChangeInfo
 import org.jetbrains.kotlin.idea.k2.refactoring.changeSignature.KotlinChangeSignatureProcessor
 import org.jetbrains.kotlin.idea.k2.refactoring.changeSignature.KotlinMethodDescriptor
 import org.jetbrains.kotlin.idea.k2.refactoring.changeSignature.KotlinParameterInfo
 import org.jetbrains.kotlin.idea.k2.refactoring.checkSuperMethods
-import org.jetbrains.kotlin.idea.references.mainReference
+import org.jetbrains.kotlin.idea.refactoring.canRefactorElement
+import org.jetbrains.kotlin.idea.util.resolveSuccessfulExpressionCall
+import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
-import org.jetbrains.kotlin.psi.KtConstructor
 import org.jetbrains.kotlin.psi.KtContextParameterList
+import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtParameter
 import org.jetbrains.kotlin.psi.KtParameterList
 import org.jetbrains.kotlin.psi.KtProperty
+import org.jetbrains.kotlin.psi.KtSimpleNameExpression
+import org.jetbrains.kotlin.psi.psiUtil.forEachDescendantOfType
 import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
 import org.jetbrains.kotlin.psi.psiUtil.parameterIndex
 import org.jetbrains.kotlin.utils.addToStdlib.lastIsInstanceOrNull
@@ -50,6 +65,22 @@ object ContextParameterUtils {
         val ownerFunction = valueParameterList.ownerFunction ?: return false
         val namedFunction = ownerFunction as? KtNamedFunction ?: return false
         return namedFunction.nameIdentifier != null
+    }
+
+    /**
+     * Checks that the whole override hierarchy of [declaration] can be modified by the refactoring.
+     * Returns `false` if the function overrides a declaration from a library (compiled, read-only)
+     * or a non-Kotlin declaration, because the Change Signature refactoring targets the root
+     * overridden declaration, which must be writable Kotlin source.
+     */
+    context(session: KaSession)
+    fun overridesOnlyModifiableDeclarations(declaration: KtCallableDeclaration): Boolean {
+        if (!declaration.hasModifier(KtTokens.OVERRIDE_KEYWORD)) return true
+        val symbol = declaration.symbol as? KaCallableSymbol ?: return false
+        return symbol.allOverriddenSymbols.all { overridden ->
+            val psi = overridden.psi
+            psi is KtCallableDeclaration && psi.canRefactorElement()
+        }
     }
 
     /**
@@ -109,6 +140,7 @@ object ContextParameterUtils {
      */
     fun createChangeInfo(ktCallable: KtCallableDeclaration): KotlinChangeInfo? {
         val callableWithOverridden = checkSuperMethods(ktCallable, emptyList(), RefactoringBundle.message("to.refactor"))
+        if (callableWithOverridden.any { it !is KtCallableDeclaration || !it.canRefactorElement() }) return null
         val rootOverriddenOrSelf = callableWithOverridden.lastIsInstanceOrNull<KtCallableDeclaration>() ?: return null
         val methodDescriptor = KotlinMethodDescriptor(rootOverriddenOrSelf)
         return KotlinChangeInfo(methodDescriptor)
@@ -123,9 +155,61 @@ object ContextParameterUtils {
     /**
      * Checks if the given call expression is a call to the `kotlin.context` function.
      */
-    @OptIn(KaExperimentalApi::class)
-    fun KaSession.isKotlinContextCall(call: KtCallExpression): Boolean {
-        val symbol = call.calleeExpression?.mainReference?.resolveToSymbol() as? KaFunctionSymbol ?: return false
+    context(session: KaSession)
+    fun isKotlinContextCall(call: KtCallExpression): Boolean {
+        val symbol = call.tryResolveCall()?.single?.simple?.symbol ?: return false
         return symbol.callableId?.asSingleFqName() == FqName("kotlin.context")
     }
+
+    /**
+     * Returns the subset of [contextParameters] that are actually consumed inside [body],
+     * either via a direct reference to a context parameter or as an implicit context argument
+     * of a resolved call.
+     */
+    context(session: KaSession)
+    fun consumedContextParameters(
+        body: KtExpression,
+        contextParameters: List<KaContextParameterSymbol>,
+    ): Map<KaContextParameterSymbol, ContextParameterUsages> {
+        val allParameters = contextParameters.toSet()
+        if (allParameters.isEmpty()) return emptyMap()
+
+        // Cheap pre-filter: a *direct* reference to a context parameter must use its name.
+        val parameterNames = allParameters.mapTo(mutableSetOf()) { it.name.asString() }
+
+        val consumed = mutableMapOf<KaContextParameterSymbol, ContextParameterUsages>()
+
+        body.forEachDescendantOfType<KtSimpleNameExpression> { node ->
+            if (consumed.size == allParameters.size) return@forEachDescendantOfType
+
+            // Only pay for tryResolveSymbols() when the name can possibly match a parameter.
+            // A candidate of red code counts as a use, so red code does not give a false report.
+            if (node.getReferencedName() in parameterNames) {
+                val direct = node.tryResolveSymbols()?.symbols?.singleOrNull()
+                if (direct is KaContextParameterSymbol && direct in allParameters) {
+                    val usages = consumed.getOrPut(direct) {
+                        ContextParameterUsages(mutableSetOf())
+                    }
+                    usages.signatureParameterTypes += direct.returnType
+                    return@forEachDescendantOfType
+                }
+            }
+
+            val simpleCall = node.resolveSuccessfulExpressionCall()?.simple
+                ?: return@forEachDescendantOfType
+
+            simpleCall.contextArguments.forEachIndexed { index, arg ->
+                val symbol = (arg.unwrapSmartCasts() as? KaImplicitReceiverValue)?.symbol
+                if (symbol is KaContextParameterSymbol && symbol in allParameters) {
+                    val usages = consumed.getOrPut(symbol) {
+                        ContextParameterUsages(mutableSetOf())
+                    }
+                    usages.signatureParameterTypes += simpleCall.signature.contextParameters[index].returnType
+                }
+            }
+        }
+        return consumed
+    }
+
+    data class ContextParameterUsages(val signatureParameterTypes: MutableSet<KaType>)
 }

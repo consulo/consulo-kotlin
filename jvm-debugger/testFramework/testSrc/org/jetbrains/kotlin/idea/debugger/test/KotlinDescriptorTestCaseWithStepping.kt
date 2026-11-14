@@ -5,6 +5,7 @@ package org.jetbrains.kotlin.idea.debugger.test
 import com.intellij.debugger.actions.MethodSmartStepTarget
 import com.intellij.debugger.actions.SmartStepTarget
 import com.intellij.debugger.engine.BasicStepMethodFilter
+import com.intellij.debugger.engine.ContextUtil
 import com.intellij.debugger.engine.DebugProcessImpl
 import com.intellij.debugger.engine.MethodFilter
 import com.intellij.debugger.engine.NamedMethodFilter
@@ -14,7 +15,6 @@ import com.intellij.debugger.engine.evaluation.EvaluationContextImpl
 import com.intellij.debugger.engine.events.SuspendContextCommandImpl
 import com.intellij.debugger.impl.DebuggerContextImpl
 import com.intellij.debugger.impl.JvmSteppingCommandProvider
-import com.intellij.debugger.impl.PositionUtil
 import com.intellij.debugger.ui.impl.watch.StackFrameDescriptorImpl
 import com.intellij.execution.configurations.JavaParameters
 import com.intellij.execution.process.ProcessOutputTypes
@@ -22,6 +22,7 @@ import com.intellij.jarRepository.JarRepositoryManager
 import com.intellij.jarRepository.RemoteRepositoryDescription
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.roots.OrderRootType
 import com.intellij.openapi.roots.libraries.ui.OrderRoot
@@ -127,7 +128,7 @@ abstract class KotlinDescriptorTestCaseWithStepping : KotlinDescriptorTestCase()
         super.onBreakpoint {
             try {
                 initContexts(it)
-                it.printContext()
+                it.printKotlinContext()
                 it.action()
             } catch (e: AssertionError) {
                 throw e
@@ -262,13 +263,15 @@ abstract class KotlinDescriptorTestCaseWithStepping : KotlinDescriptorTestCase()
         return isTestIgnored() || areLogErrorsIgnored(dataFile())
     }
 
-    private fun SuspendContextImpl.printContext() {
-        runReadAction {
-            if (this.frameProxy == null) {
-                return@runReadAction println("Context thread is null", ProcessOutputTypes.SYSTEM)
-            }
+    private fun SuspendContextImpl.printKotlinContext() {
+        if (frameProxy == null) {
+            println("Context thread is null", ProcessOutputTypes.SYSTEM)
+            return
+        }
 
-            println(PositionUtil.getSourcePosition(this)?.render() ?: "null", ProcessOutputTypes.SYSTEM)
+        val position = ContextUtil.getSourcePosition(this)
+        runReadActionBlocking {
+            println(position?.render() ?: "null", ProcessOutputTypes.SYSTEM)
             extraPrintContext(this)
         }
     }

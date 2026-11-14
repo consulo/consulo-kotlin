@@ -23,9 +23,49 @@ public class K2IdeK2CodeKotlinEvaluationExpressionTestGenerated extends Abstract
         KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
     }
 
+    @TestMetadata("anonymousObjectField.kt")
+    public void testAnonymousObjectField() throws Exception {
+        runTest("../testData/evaluationExpression/anonymousObjectField.kt");
+    }
+
+    @TestMetadata("anonymousObjectInferredType.kt")
+    public void testAnonymousObjectInferredType() throws Exception {
+        runTest("../testData/evaluationExpression/anonymousObjectInferredType.kt");
+    }
+
+    @TestMetadata("anonymousObjectWithoutSupertype.kt")
+    public void testAnonymousObjectWithoutSupertype() throws Exception {
+        runTest("../testData/evaluationExpression/anonymousObjectWithoutSupertype.kt");
+    }
+
+    @TestMetadata("atomicfuPrefill.kt")
+    public void testAtomicfuPrefill() throws Exception {
+        runTest("../testData/evaluationExpression/atomicfuPrefill.kt");
+    }
+
     @TestMetadata("castToInnerClass.kt")
     public void testCastToInnerClass() throws Exception {
         runTest("../testData/evaluationExpression/castToInnerClass.kt");
+    }
+
+    @TestMetadata("genericCastKeepsStarProjection.kt")
+    public void testGenericCastKeepsStarProjection() throws Exception {
+        runTest("../testData/evaluationExpression/genericCastKeepsStarProjection.kt");
+    }
+
+    @TestMetadata("genericCastKeepsStarProjections.kt")
+    public void testGenericCastKeepsStarProjections() throws Exception {
+        runTest("../testData/evaluationExpression/genericCastKeepsStarProjections.kt");
+    }
+
+    @TestMetadata("mapEntry.kt")
+    public void testMapEntry() throws Exception {
+        runTest("../testData/evaluationExpression/mapEntry.kt");
+    }
+
+    @TestMetadata("redundantCastOnCollectionElement.kt")
+    public void testRedundantCastOnCollectionElement() throws Exception {
+        runTest("../testData/evaluationExpression/redundantCastOnCollectionElement.kt");
     }
 
     @TestMetadata("redundantCastOnLocal.kt")
@@ -36,6 +76,11 @@ public class K2IdeK2CodeKotlinEvaluationExpressionTestGenerated extends Abstract
     @TestMetadata("redundantCastOnSuperClassField.kt")
     public void testRedundantCastOnSuperClassField() throws Exception {
         runTest("../testData/evaluationExpression/redundantCastOnSuperClassField.kt");
+    }
+
+    @TestMetadata("setElement.kt")
+    public void testSetElement() throws Exception {
+        runTest("../testData/evaluationExpression/setElement.kt");
     }
 
     @TestMetadata("strictSubtypeKeepsCast.kt")

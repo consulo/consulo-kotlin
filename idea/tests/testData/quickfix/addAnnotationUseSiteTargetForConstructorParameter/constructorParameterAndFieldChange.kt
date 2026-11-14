@@ -1,4 +1,5 @@
 // "Change use-site target to 'field'" "true"
+// LANGUAGE_VERSION: 2.3
 // ACTION "Add use-site target 'param'"
 // COMPILER_ARGUMENTS: -XXLanguage:+AnnotationDefaultTargetMigrationWarning
 
@@ -9,4 +10,4 @@ internal annotation class Anno
 
 class MyClass(<caret>@Anno val foo: String)
 
-// FUS_K2_QUICKFIX_NAME: org.jetbrains.kotlin.idea.k2.codeinsight.fixes.WrongAnnotationTargetFixFactories$ChangeConstructorParameterUseSiteTargetFix
+// FUS_QUICKFIX_NAME: org.jetbrains.kotlin.idea.k2.codeinsight.fixes.WrongAnnotationTargetFixFactories$ChangeConstructorParameterUseSiteTargetFix

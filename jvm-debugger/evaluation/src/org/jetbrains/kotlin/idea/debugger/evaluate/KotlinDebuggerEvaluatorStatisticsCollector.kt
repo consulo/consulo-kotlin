@@ -23,7 +23,7 @@ object KotlinDebuggerEvaluatorStatisticsCollector : CounterUsagesCollector() {
 
     override fun getGroup(): EventLogGroup = GROUP
 
-    private val GROUP = EventLogGroup("kotlin.debugger.evaluator", 11)
+    private val GROUP = EventLogGroup("kotlin.debugger.evaluator", 12)
 
     // fields
     private val compilerField = EventFields.Enum<CompilerType>("compiler")
@@ -112,7 +112,7 @@ fun extractExceptionCauseClass(e: Throwable): Class<out Throwable> {
     }
 }
 
-private class StandardExceptionNameRuleValidator : CustomValidationRule() {
+internal class StandardExceptionNameRuleValidator : CustomValidationRule() {
     override fun getRuleId(): String = "standard_exception_name"
 
     override fun doValidate(data: String, context: EventContext): ValidationResultType {

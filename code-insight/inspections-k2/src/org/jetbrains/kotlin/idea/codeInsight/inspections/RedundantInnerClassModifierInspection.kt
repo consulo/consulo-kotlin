@@ -1,18 +1,14 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.kotlin.idea.codeInsight.inspections
 
-import com.intellij.codeInsight.daemon.QuickFixBundle
-import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.codeInsight.options.JavaClassValidator
 import com.intellij.codeInspection.CleanupLocalInspectionTool
-import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.codeInspection.options.OptPane
-import com.intellij.openapi.application.readAction
-import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.modcommand.ModCommand
+import com.intellij.modcommand.ModCommandQuickFix
 import com.intellij.openapi.project.Project
-import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
@@ -21,23 +17,22 @@ import com.intellij.psi.util.parentsOfType
 import com.intellij.util.containers.OrderedSet
 import com.siyeh.InspectionGadgetsBundle
 import com.siyeh.ig.junit.JUnitCommonClassNames
-import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.components.isSubClassOf
-import org.jetbrains.kotlin.analysis.api.components.namedClassSymbol
-import org.jetbrains.kotlin.analysis.api.components.resolveToCall
-import org.jetbrains.kotlin.analysis.api.components.resolveToSymbol
-import org.jetbrains.kotlin.analysis.api.components.semanticallyEquals
-import org.jetbrains.kotlin.analysis.api.components.type
-import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
-import org.jetbrains.kotlin.analysis.api.resolution.successfulCallOrNull
+import org.jetbrains.kotlin.analysis.api.javaInterop.namedClassSymbol
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSuccessfulCall
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSuccessfulSymbol
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.isSubClassOf
 import org.jetbrains.kotlin.analysis.api.symbols.receiverType
 import org.jetbrains.kotlin.analysis.api.symbols.symbol
-import org.jetbrains.kotlin.idea.KotlinFileType
+import org.jetbrains.kotlin.analysis.api.types.KaSubtypingErrorTypePolicy
+import org.jetbrains.kotlin.analysis.api.types.semanticallyEquals
+import org.jetbrains.kotlin.analysis.api.types.type
+import org.jetbrains.kotlin.idea.base.analysis.api.utils.getImplicitReceivers
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.shortenReferences
+import org.jetbrains.kotlin.idea.base.psi.removeModifierKeyword
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.codeinsight.api.classic.inspections.AbstractKotlinInspection
 import org.jetbrains.kotlin.idea.k2.refactoring.getThisReceiverOwner
@@ -98,7 +93,8 @@ class RedundantInnerClassModifierInspection : AbstractKotlinInspection(), Cleanu
         }
     }
 
-    private fun KaSession.hasIgnorableAnnotations(klass: KtClass): Boolean {
+    context(session: KaSession)
+    private fun hasIgnorableAnnotations(klass: KtClass): Boolean {
         if (ignorableAnnotations.isEmpty()) return false
         val ignorableAnnotationFqNames = ignorableAnnotations.associate {
             val fqName = FqName(it)
@@ -113,8 +109,8 @@ class RedundantInnerClassModifierInspection : AbstractKotlinInspection(), Cleanu
         }
     }
 
-    @OptIn(KaExperimentalApi::class)
-    private fun KaSession.hasOuterClassMemberReference(targetClass: KtClass, outerClasses: Set<KtClass>): Boolean {
+    context(session: KaSession)
+    private fun hasOuterClassMemberReference(targetClass: KtClass, outerClasses: Set<KtClass>): Boolean {
         val outerClassSymbols by lazy {
             outerClasses.mapNotNull { it.symbol as? KaClassSymbol }
         }
@@ -127,7 +123,7 @@ class RedundantInnerClassModifierInspection : AbstractKotlinInspection(), Cleanu
                     outerClassSymbols,
                     hasSuperType
                 )
-                is KtThisExpression -> expression.resolveSymbol() in outerClassSymbols
+                is KtThisExpression -> expression.resolveSuccessfulSymbol() in outerClassSymbols
                 else -> false
             }
         }
@@ -140,6 +136,13 @@ class RedundantInnerClassModifierInspection : AbstractKotlinInspection(), Cleanu
         outerClassSymbols: List<KaClassSymbol>,
         hasSuperType: Boolean
     ): Boolean {
+        val resolvedCall = this.resolveSuccessfulCall()
+        if (resolvedCall != null && resolvedCall.getImplicitReceivers().any { receiver ->
+                outerClassSymbols.any { outerClass -> outerClass == receiver.symbol }
+            }) {
+            return true
+        }
+
         val resolvedElement = mainReference.resolve()?.let {
             (it as? KtConstructor<*>)?.containingClass() ?: it
         }
@@ -159,10 +162,10 @@ class RedundantInnerClassModifierInspection : AbstractKotlinInspection(), Cleanu
                     if (receiverTypeOfReference == null) {
                         return false
                     } else {
-                        val callableMemberCall = parentQualified.resolveToCall()?.successfulCallOrNull<KaCallableMemberCall<*, *>>()
-                        val dispatchReceiver = callableMemberCall?.partiallyAppliedSymbol?.dispatchReceiver
+                        val callableMemberCall = parentQualified.resolveSuccessfulCall()
+                        val dispatchReceiver = callableMemberCall?.dispatchReceiver
                         val receiverOwnerType = (dispatchReceiver?.getThisReceiverOwner() as? KaCallableSymbol)?.receiverType
-                        if (receiverOwnerType != null && receiverTypeOfReference.type.semanticallyEquals(receiverOwnerType)) {
+                        if (receiverOwnerType != null && receiverTypeOfReference.type.semanticallyEquals(receiverOwnerType, KaSubtypingErrorTypePolicy.STRICT)) {
                             return false
                         }
                     }
@@ -180,36 +183,25 @@ class RedundantInnerClassModifierInspection : AbstractKotlinInspection(), Cleanu
     private fun KtQualifiedExpression.hasThisReceiverOfOuterClass(outerClassSymbols: List<KaClassSymbol>): Boolean {
         return parent !is KtQualifiedExpression
                 && receiverExpression is KtThisExpression
-                && receiverExpression.mainReference?.resolveToSymbol() in outerClassSymbols
+                && (receiverExpression as KtThisExpression).resolveSuccessfulSymbol() in outerClassSymbols
     }
 
-    private class RemoveInnerModifierFix : LocalQuickFix {
+    private class RemoveInnerModifierFix : ModCommandQuickFix() {
         override fun getName() = familyName
 
         override fun getFamilyName() = KotlinBundle.message("remove.redundant.0.modifier", KtTokens.INNER_KEYWORD.value)
 
-        override fun generatePreview(project: Project, previewDescriptor: ProblemDescriptor): IntentionPreviewInfo {
-            val targetClass = previewDescriptor.psiElement.getStrictParentOfType<KtClass>() ?: return IntentionPreviewInfo.EMPTY
-            val stopOffset = targetClass.body?.lBrace?.startOffsetInParent ?: targetClass.textLength
-            val classSignature = targetClass.text.substring(0, stopOffset)
-            return IntentionPreviewInfo.CustomDiff(KotlinFileType.INSTANCE, classSignature, classSignature.replace("inner ", ""))
-        }
+        override fun perform(project: Project, descriptor: ProblemDescriptor): ModCommand {
+            val targetClass = descriptor.psiElement.getStrictParentOfType<KtClass>() ?: return ModCommand.nop()
+            val references = ReferencesSearch.search(targetClass, targetClass.useScope).findAll().mapNotNull { it.element }
 
-        override fun startInWriteAction(): Boolean {
-            return false
-        }
+            return ModCommand.psiUpdate(targetClass) { writableTargetClass, updater ->
+                val writableReferences = references.mapNotNull { updater.getWritable(it) }
+                writableTargetClass.removeModifierKeyword(KtTokens.INNER_KEYWORD)
 
-        override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
-            val targetClass = descriptor.psiElement.getStrictParentOfType<KtClass>() ?: return
-            val allToModify = runWithModalProgressBlocking(project, QuickFixBundle.message("searching.for.usages.progress.title")) {
-                readAction {
-                    ReferencesSearch.search(targetClass, targetClass.useScope).findAll().mapNotNull { it.element }
-                }
-            }
-            val files = (allToModify.mapNotNull { it.containingFile }.distinct() + targetClass.containingFile).toTypedArray()
-            WriteCommandAction.writeCommandAction(project, *files).run<Throwable> {
-                targetClass.removeModifier(KtTokens.INNER_KEYWORD)
-                updateCallSites(allToModify, targetClass).filterIsInstance<KtQualifiedExpression>().forEach { shortenReferences(it) }
+                updateCallSites(writableReferences, writableTargetClass)
+                    .filterIsInstance<KtQualifiedExpression>()
+                    .forEach { shortenReferences(it) }
             }
         }
 

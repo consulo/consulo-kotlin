@@ -2,13 +2,11 @@
 package org.jetbrains.kotlin.idea.navigation
 
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.ThrowableComputable
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.CachedValuesManager
+import com.intellij.util.indexing.DumbModeAccessType
 import org.jetbrains.annotations.ApiStatus
-import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
-import org.jetbrains.kotlin.analysis.api.KaPlatformInterface
-import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.components.KaDeprecationLevel
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisFromWriteAction
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisFromWriteAction
@@ -18,16 +16,15 @@ import org.jetbrains.kotlin.analysis.api.projectStructure.KaLibraryModule
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaLibrarySourceModule
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaModule
 import org.jetbrains.kotlin.analysis.api.projectStructure.allDirectDependencies
-import org.jetbrains.kotlin.analysis.api.renderer.types.KaExpandedTypeRenderingMode
-import org.jetbrains.kotlin.analysis.api.renderer.types.impl.KaTypeRendererForSource
-import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KaFunctionSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.receiverType
+import org.jetbrains.kotlin.analysis.api.session.analyze
+import org.jetbrains.kotlin.analysis.api.symbols.KaDeprecationLevel
+import org.jetbrains.kotlin.analysis.api.symbols.deprecation
+import org.jetbrains.kotlin.analysis.api.symbols.symbol
 import org.jetbrains.kotlin.idea.base.projectStructure.getKaModule
 import org.jetbrains.kotlin.idea.stubindex.KotlinFullClassNameIndex
+import org.jetbrains.kotlin.idea.stubindex.KotlinFullTypeAliasNameIndex
 import org.jetbrains.kotlin.idea.stubindex.KotlinTopLevelFunctionFqnNameIndex
 import org.jetbrains.kotlin.idea.stubindex.KotlinTopLevelPropertyFqnNameIndex
-import org.jetbrains.kotlin.idea.stubindex.KotlinTopLevelTypeAliasFqNameIndex
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.platform.TargetPlatform
@@ -37,7 +34,6 @@ import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtClassLikeDeclaration
 import org.jetbrains.kotlin.psi.KtClassOrObject
-import org.jetbrains.kotlin.psi.KtConstructor
 import org.jetbrains.kotlin.psi.KtDeclaration
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtEnumEntry
@@ -51,31 +47,44 @@ import org.jetbrains.kotlin.psi.KtTypeParameter
 import org.jetbrains.kotlin.psi.KtTypeParameterList
 import org.jetbrains.kotlin.psi.KtTypeParameterListOwner
 import org.jetbrains.kotlin.psi.psiUtil.containingClassOrObject
+import org.jetbrains.kotlin.psi.psiUtil.findPropertyByName
 import org.jetbrains.kotlin.psi.psiUtil.hasActualModifier
 import org.jetbrains.kotlin.psi.psiUtil.isExpectDeclaration
 import org.jetbrains.kotlin.psi.psiUtil.isExtensionDeclaration
-import org.jetbrains.kotlin.types.Variance
 
 @ApiStatus.Internal
 open class KotlinAnalysisApiBasedDeclarationNavigationPolicyImpl : KotlinDeclarationNavigationPolicy {
     override fun getNavigationElement(declaration: KtDeclaration): KtElement {
-        return CachedValuesManager.getProjectPsiDependentCache(declaration) { declaration ->
+        val ktFile = declaration.containingKtFile
+        if (!ktFile.isCompiled) return declaration
+
+        KotlinClsCustomNavigationPolicy.getNavigationElement(declaration)?.let {
+            return it
+        }
+
+        return CachedValuesManager.getProjectPsiDependentCache(declaration, ::calculateNavigationElement)
+    }
+
+    private fun calculateNavigationElement(declaration: KtDeclaration): KtElement =
+        DumbModeAccessType.RELIABLE_DATA_ONLY.ignoreDumbMode(ThrowableComputable {
             val ktFile = declaration.containingKtFile
-            if (!ktFile.isCompiled) return@getProjectPsiDependentCache declaration
             val project = ktFile.project
-            when (val module = ktFile.getKaModule(project, useSiteModule = null) ) {
-                is KaLibraryModule -> getCorrespondingDeclarationInLibrarySourceOrBinaryCounterpart(
-                    module.librarySources ?: return@getProjectPsiDependentCache declaration,
-                    declaration,
-                    module
-                )
+            when (val module = ktFile.getKaModule(project, useSiteModule = null)) {
+                is KaLibraryModule -> {
+                    val library = module.librarySources ?: return@ThrowableComputable declaration
+                    getCorrespondingDeclarationInLibrarySourceOrBinaryCounterpart(
+                        library,
+                        declaration,
+                        module
+                    )
+                }
 
                 else -> declaration
             }
-        }
-    }
+        })
 
     override fun getOriginalElement(declaration: KtDeclaration): KtElement {
+        if (!declaration.isValid) return declaration
         val ktFile = declaration.containingKtFile
         if (ktFile.isCompiled) return declaration
         val project = ktFile.project
@@ -118,7 +127,6 @@ open class KotlinAnalysisApiBasedDeclarationNavigationPolicyImpl : KotlinDeclara
         }
     }
 
-    @OptIn(KaExperimentalApi::class)
     private fun KtDeclaration.isDeprecated(allowWarning: Boolean): Boolean {
         val declaration = this
         @OptIn(KaAllowAnalysisFromWriteAction::class, KaAllowAnalysisOnEdt::class)
@@ -191,6 +199,14 @@ open class KotlinAnalysisApiBasedDeclarationNavigationPolicyImpl : KotlinDeclara
         when (declaration) {
             is KtParameter -> {
                 val owner = declaration.getOwningCallable() ?: return null
+                if (owner is KtPrimaryConstructor && declaration.hasValOrVar()) {
+                    val classOrObject = owner.containingClassOrObject ?: return null
+                    val correspondingClassOrObject = getCorrespondingClassLikeDeclaration(classOrObject, scope, module) as? KtClassOrObject
+                    val propertyByName = correspondingClassOrObject?.findPropertyByName(declarationName)
+                    if (propertyByName != null) {
+                        return propertyByName
+                    }
+                }
                 val correspondingOwner = getCorrespondingCallableDeclaration(owner, scope, module) as? KtCallableDeclaration ?: return null
                 return correspondingOwner.valueParameters.firstOrNull { it.name == declarationName }
             }
@@ -228,83 +244,9 @@ open class KotlinAnalysisApiBasedDeclarationNavigationPolicyImpl : KotlinDeclara
                         declarations
                     }
                 }
-                return chooseCallableCandidate(declaration, candidates)
+                return chooseCorrespondingCallable(declaration, candidates)
             }
         }
-    }
-
-    private fun chooseCallableCandidate(original: KtCallableDeclaration, candidates: List<KtDeclaration>): KtCallableDeclaration? {
-        return when (original) {
-            is KtConstructor<*> -> chooseCallableCandidate(original, candidates) { original, candidate ->
-                constructorsMatchesByPsi(original, candidate)
-            }
-            is KtNamedFunction -> chooseCallableCandidate(original, candidates) { original, candidate ->
-                functionsMatchesByPsi(original, candidate)
-            }
-            is KtProperty -> chooseCallableCandidate(original, candidates) { original, candidate ->
-                propertiesMatchesByPsi(original, candidate)
-            }
-            else -> null
-        }
-    }
-
-    private fun propertiesMatchesByPsi(firstProperty: KtProperty, secondProperty: KtProperty): Boolean {
-        if (firstProperty.name != secondProperty.name) return false
-        if (firstProperty.isExtensionDeclaration() != secondProperty.isExtensionDeclaration()) return false
-
-        if (!typeParameterMatches(firstProperty, secondProperty)) return false
-
-        return true
-    }
-
-    private fun functionsMatchesByPsi(first: KtNamedFunction, second: KtNamedFunction): Boolean {
-        if (first.name != second.name) return false
-        if (first.isExtensionDeclaration() != second.isExtensionDeclaration()) return false
-
-        if (!valueParameterMatches(first, second)) return false
-        if (!typeParameterMatches(first, second)) return false
-
-        return true
-    }
-
-
-    private fun constructorsMatchesByPsi(first: KtConstructor<*>, second: KtConstructor<*>): Boolean {
-        if (first is KtPrimaryConstructor != second is KtPrimaryConstructor) return false
-        if (!valueParameterMatches(first, second)) return false
-
-        return true
-    }
-
-    private fun valueParameterMatches(
-        firstValueParamOwner: KtCallableDeclaration,
-        secondValueParameterOwner: KtCallableDeclaration
-    ): Boolean {
-        val firstValueParameters = firstValueParamOwner.valueParameters
-        val secondValueParameters = secondValueParameterOwner.valueParameters
-
-        if (firstValueParameters.size != secondValueParameters.size) return false
-        for (i in firstValueParameters.indices) {
-            val first = firstValueParameters[i]
-            val second = secondValueParameters[i]
-            if (first.name != second.name) return false
-            if (first.isVarArg != second.isVarArg) return false
-        }
-        return true
-    }
-
-    private fun typeParameterMatches(
-        firstTypeParamOwner: KtTypeParameterListOwner,
-        secondTypeParamOwner: KtTypeParameterListOwner
-    ): Boolean {
-        val firstTypeParameters = firstTypeParamOwner.typeParameters
-        val secondTypeParameters = secondTypeParamOwner.typeParameters
-        if (firstTypeParameters.size != secondTypeParameters.size) return false
-        for (i in firstTypeParameters.indices) {
-            val first = firstTypeParameters[i]
-            val second = secondTypeParameters[i]
-            if (first.name != second.name) return false
-        }
-        return true
     }
 
     private fun KtParameter.getOwningCallable(): KtCallableDeclaration? {
@@ -317,46 +259,6 @@ open class KotlinAnalysisApiBasedDeclarationNavigationPolicyImpl : KotlinDeclara
         return parameterList.parent as? KtTypeParameterListOwner
     }
 
-    private fun compareCallableTypesByResolve(first: KtCallableDeclaration, second: KtCallableDeclaration): Boolean {
-        // symbols should be rendered from corresponding sessions
-        val firstRendered = renderTypesForComparison(first)
-        val secondRendered = renderTypesForComparison(second)
-        return firstRendered == secondRendered
-    }
-
-    // Maybe called from EDT by IJ Platform :(
-    @OptIn(KaAllowAnalysisOnEdt::class, KaExperimentalApi::class)
-    private fun renderTypesForComparison(declaration: KtCallableDeclaration) = allowAnalysisOnEdt {
-        @OptIn(KaAllowAnalysisFromWriteAction::class)
-        allowAnalysisFromWriteAction {
-            analyze(declaration) {
-                buildString {
-                    val symbol = declaration.symbol as KaCallableSymbol
-                    symbol.receiverType?.let { receiverType ->
-                        append(receiverType.render(renderer, position = Variance.INVARIANT))
-                        append('.')
-                    }
-                    if (symbol is KaFunctionSymbol) {
-                        symbol.valueParameters.joinTo(this) { it.returnType.render(renderer, position = Variance.INVARIANT) }
-                    }
-                }
-            }
-        }
-    }
-
-    private inline fun <reified C : KtCallableDeclaration> chooseCallableCandidate(
-        original: C,
-        candidates: List<KtDeclaration>,
-        crossinline matchesByPsi: (C, C) -> Boolean
-    ): C? {
-        val filteredCandidates = candidates.filterIsInstance<C>().filter { matchesByPsi(original, it) }
-        filteredCandidates.singleOrNull()?.let { return it }
-
-        return filteredCandidates.firstOrNull { compareCallableTypesByResolve(original, it) }
-            ?: filteredCandidates.firstOrNull()
-    }
-
-    @OptIn(KaPlatformInterface::class)
     private fun KaModule.getContentScopeWithCommonDependencies(): Scope {
         val root = this
         if (targetPlatform.isCommon()) return Scope(listOf(root), contentScope)
@@ -382,7 +284,7 @@ open class KotlinAnalysisApiBasedDeclarationNavigationPolicyImpl : KotlinDeclara
     }.asSequence()
 
     protected open fun getTypeAliasesByClassId(classId: ClassId, project: Project, scope: Scope): Sequence<KtTypeAlias> =
-        KotlinTopLevelTypeAliasFqNameIndex[classId.asFqNameString(), project, scope.globalSearchScope].asSequence()
+        KotlinFullTypeAliasNameIndex[classId.asFqNameString(), project, scope.globalSearchScope].asSequence()
 
     protected open fun getClassesByClassId(classId: ClassId, project: Project, scope: Scope): Sequence<KtClassOrObject> =
         KotlinFullClassNameIndex[classId.asFqNameString(), project, scope.globalSearchScope].asSequence()
@@ -391,11 +293,4 @@ open class KotlinAnalysisApiBasedDeclarationNavigationPolicyImpl : KotlinDeclara
         val modules: List<KaModule>,
         val globalSearchScope: GlobalSearchScope,
     )
-
-    companion object {
-        @KaExperimentalApi
-        private val renderer = KaTypeRendererForSource.WITH_QUALIFIED_NAMES.with {
-            expandedTypeRenderingMode = KaExpandedTypeRenderingMode.RENDER_EXPANDED_TYPE
-        }
-    }
 }

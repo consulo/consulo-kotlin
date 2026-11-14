@@ -53,6 +53,11 @@ public abstract class FindUsagesFirTestGenerated extends AbstractFindUsagesFirTe
                 runTest("../../idea/tests/testData/findUsages/kotlin/companionObject/namedWithInvoke.0.kt");
             }
 
+            @TestMetadata("namedWithSuperType.0.kt")
+            public void testNamedWithSuperType() throws Exception {
+                runTest("../../idea/tests/testData/findUsages/kotlin/companionObject/namedWithSuperType.0.kt");
+            }
+
             @TestMetadata("simple.0.kt")
             public void testSimple() throws Exception {
                 runTest("../../idea/tests/testData/findUsages/kotlin/companionObject/simple.0.kt");
@@ -995,6 +1000,11 @@ public abstract class FindUsagesFirTestGenerated extends AbstractFindUsagesFirTe
                 runTest("../../idea/tests/testData/findUsages/kotlin/findFunctionUsages/overrides.0.kt");
             }
 
+            @TestMetadata("privateInterfaceMemberUsedThroughNonPrivateSubclass.0.kt")
+            public void testPrivateInterfaceMemberUsedThroughNonPrivateSubclass() throws Exception {
+                runTest("../../idea/tests/testData/findUsages/kotlin/findFunctionUsages/privateInterfaceMemberUsedThroughNonPrivateSubclass.0.kt");
+            }
+
             @TestMetadata("privateKotlinClass.0.kt")
             public void testPrivateKotlinClass() throws Exception {
                 runTest("../../idea/tests/testData/findUsages/kotlin/findFunctionUsages/privateKotlinClass.0.kt");
@@ -1208,6 +1218,16 @@ public abstract class FindUsagesFirTestGenerated extends AbstractFindUsagesFirTe
             @TestMetadata("primaryConstructorByRef.0.kt")
             public void testPrimaryConstructorByRef() throws Exception {
                 runTest("../../idea/tests/testData/findUsages/kotlin/findPrimaryConstructorUsages/primaryConstructorByRef.0.kt");
+            }
+
+            @TestMetadata("primaryConstructorDataClass.0.kt")
+            public void testPrimaryConstructorDataClass() throws Exception {
+                runTest("../../idea/tests/testData/findUsages/kotlin/findPrimaryConstructorUsages/primaryConstructorDataClass.0.kt");
+            }
+
+            @TestMetadata("primaryConstructorDataClassJava.0.kt")
+            public void testPrimaryConstructorDataClassJava() throws Exception {
+                runTest("../../idea/tests/testData/findUsages/kotlin/findPrimaryConstructorUsages/primaryConstructorDataClassJava.0.kt");
             }
 
             @TestMetadata("primaryConstructorNoKeyword.0.kt")

@@ -8,6 +8,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.refactoring.safeDelete.SafeDeleteHandler
 import com.intellij.testFramework.PlatformTestUtil
+import org.jetbrains.kotlin.idea.base.test.KotlinRoot
 import org.jetbrains.kotlin.idea.base.util.getString
 import org.jetbrains.kotlin.idea.refactoring.AbstractMultifileRefactoringTest
 import org.jetbrains.kotlin.idea.refactoring.loadTestConfiguration
@@ -21,10 +22,14 @@ import java.io.File
 abstract class AbstractMultiModuleSafeDeleteTest : KotlinMultiFileTestCase() {
 
     object SafeDeleteAction : AbstractMultifileRefactoringTest.RefactoringAction {
+        /** Replaces the interactive safe delete when set: the headless suite runs the same data through the headless safe delete. */
+        var headlessRunner: ((PsiElement, JsonObject) -> Unit)? = null
+
         override fun runRefactoring(rootDir: VirtualFile, mainFile: PsiFile, elementsAtCaret: List<PsiElement>, config: JsonObject) {
             @Suppress("UNCHECKED_CAST")
             val elementClass = Class.forName(config.getString("elementClass")) as Class<PsiElement>
             val element = elementsAtCaret.single().getNonStrictParentOfType(elementClass)!!
+            headlessRunner?.let { return it(element, config) }
             val project = mainFile.project
             with(KotlinSafeDeleteSettings) {
                 project.ALLOW_LIFTING_ACTUAL_PARAMETER_TO_EXPECTED = config.get("liftParameterToExpected")?.asBoolean ?: true
@@ -47,8 +52,8 @@ abstract class AbstractMultiModuleSafeDeleteTest : KotlinMultiFileTestCase() {
     override fun fileNameMapper(file: VirtualFile): String =
         file.name.replace(".k2.kt", ".kt")
 
-    override fun getTestRoot(): String = "/refactoring/safeDeleteMultiModule/"
-    override fun getTestDataDirectory() = IDEA_TEST_DATA_DIR
+    override fun getTestRoot(): String = "/safeDeleteMultiModule/"
+    override fun getTestDataDirectory() = KotlinRoot.DIR.resolve("refactorings/kotlin.refactorings.tests.k2/testData")
 
     protected open fun getAlternativeConflictsFile(): String? = null
 

@@ -10,12 +10,12 @@ import com.intellij.debugger.actions.SmartStepTarget
 import com.intellij.debugger.engine.ContextUtil
 import com.intellij.debugger.engine.DebugProcessImpl
 import com.intellij.debugger.engine.DebuggerManagerThreadImpl
+import com.intellij.debugger.engine.DebuggerUtils.isAndroidVM
 import com.intellij.debugger.engine.MethodFilter
 import com.intellij.debugger.engine.SuspendContextImpl
 import com.intellij.debugger.engine.events.SuspendContextCommandImpl
 import com.intellij.debugger.engine.withDebugContext
 import com.intellij.debugger.impl.DebuggerSession
-import com.intellij.debugger.impl.DexDebugFacility
 import com.intellij.debugger.jdi.MethodBytecodeUtil
 import com.intellij.debugger.jdi.VirtualMachineProxyImpl
 import com.intellij.debugger.statistics.DebuggerStatistics
@@ -27,6 +27,9 @@ import com.intellij.openapi.util.registry.Registry
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.util.parents
 import com.intellij.util.Range
+import com.intellij.util.concurrency.ThreadingAssertions
+import com.intellij.util.concurrency.annotations.RequiresReadLock
+import com.intellij.util.concurrency.annotations.RequiresReadLockAbsence
 import com.intellij.util.containers.OrderedSet
 import com.sun.jdi.Location
 import kotlinx.coroutines.async
@@ -147,6 +150,7 @@ class KotlinSmartStepIntoHandler : JvmSmartStepIntoHandler() {
     }
 }
 
+@RequiresReadLock
 fun findSmartStepTargets(element: KtElement, lines: Range<Int>): List<SmartStepTarget> {
     val targets = OrderedSet<SmartStepTarget>()
     val visitor = SmartStepTargetVisitor(lines, targets)
@@ -163,10 +167,12 @@ private suspend fun calculateSmartStepTargetsToShow(targets: List<SmartStepTarge
     return targetsToShow
 }
 
+@RequiresReadLockAbsence
 suspend fun List<KotlinMethodSmartStepTarget>.filterAlreadyExecuted(
     context: SmartStepIntoContext,
     specificLocation: Location? = null
 ): List<KotlinMethodSmartStepTarget> {
+    ThreadingAssertions.assertNoReadAccess()
     DebuggerManagerThreadImpl.assertIsManagerThread()
     val debugProcess = context.debugProcess
     if (isEmpty()) {
@@ -174,7 +180,7 @@ suspend fun List<KotlinMethodSmartStepTarget>.filterAlreadyExecuted(
         return this
     }
     val vm = VirtualMachineProxyImpl.getCurrent().virtualMachine
-    if (DexDebugFacility.isDex(vm)) {
+    if (isAndroidVM(vm)) {
         return DexBytecodeInspector.EP.extensionList.firstOrNull()?.filterAlreadyExecutedTargets(this, context)
             ?: this
     }

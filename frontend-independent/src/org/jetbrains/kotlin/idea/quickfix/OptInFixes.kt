@@ -1,4 +1,4 @@
-// Copyright 2000-2023 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
 package org.jetbrains.kotlin.idea.quickfix
 
@@ -7,12 +7,15 @@ import com.intellij.modcommand.ActionContext
 import com.intellij.modcommand.ModPsiUpdater
 import com.intellij.modcommand.Presentation
 import org.jetbrains.kotlin.idea.base.codeInsight.ShortenReferencesFacility
+import org.jetbrains.kotlin.idea.base.psi.appendValueArgument
+import org.jetbrains.kotlin.idea.base.psi.getOrCreatePrimaryConstructor
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.intentions.KotlinPsiUpdateModCommandAction
 import org.jetbrains.kotlin.idea.quickfix.AddAnnotationFix.Kind
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.KtAnnotationEntry
+import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtDeclaration
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtObjectDeclaration
@@ -25,8 +28,8 @@ class OptInFixes {
      * A specialized subclass of [AddAnnotationFix] that adds @OptIn(...) annotations to declarations,
      * containing classes, or constructors.
      *
-     * This class reuses the parent's [invoke] method but overrides [getActionPresentation] to provide
-     * more descriptive opt-in-specific messages.
+     * This class overrides [getActionPresentation] to provide more descriptive opt-in-specific messages.
+     * For a class with the [Kind.Constructor] kind, it annotates the primary constructor and creates it when the class has none.
      *
      * @param element a declaration to annotate
      * @param optInClassId fully qualified opt-in class id
@@ -47,6 +50,10 @@ class OptInFixes {
             getOptInAnnotationFixPresentation(element, kind, argumentClassFqName).withPriority(priority)
 
         override fun getFamilyName(): String = KotlinBundle.message("fix.opt_in.annotation.family")
+
+        override fun invoke(context: ActionContext, element: KtElement, updater: ModPsiUpdater) {
+            super.invoke(context, element.annotationTarget(kind), updater)
+        }
     }
 
     class ModifyOptInAnnotationFix(
@@ -64,7 +71,7 @@ class OptInFixes {
         override fun invoke(context: ActionContext, element: KtAnnotationEntry, updater: ModPsiUpdater) {
             val annotationInnerText = argumentClassFqName.asClassLiteral()
             val psiFactory = KtPsiFactory(element.project)
-            element.valueArgumentList?.addArgument(psiFactory.createArgument(annotationInnerText))
+            element.valueArgumentList?.appendValueArgument(psiFactory.createArgument(annotationInnerText))
                 ?: element.addAfter(psiFactory.createCallArguments("($annotationInnerText)"), element.lastChild)
             ShortenReferencesFacility.getInstance().shorten(element)
         }
@@ -74,8 +81,8 @@ class OptInFixes {
      * A specialized subclass of [AddAnnotationFix] that adds propagating opted-in annotations
      * to declarations, containing classes, or constructors.
      *
-     * This class reuses the parent's [invoke] method but overrides [getActionPresentation] to provide
-     * more descriptive opt-in-specific messages.
+     * This class overrides [getActionPresentation] to provide more descriptive opt-in-specific messages.
+     * For a class with the [Kind.Constructor] kind, it annotates the primary constructor and creates it when the class has none.
      *
      * @param element a declaration to annotate
      * @param annotationClassId fully qualified annotation class id
@@ -113,11 +120,22 @@ class OptInFixes {
             return Presentation.of(actionName).withPriority(priority)
         }
 
-        override fun getFamilyName(): String = KotlinBundle.message("fix.opt_in.annotation.family")
+        override fun getFamilyName(): String = KotlinBundle.message("fix.opt_in.propagate.family")
+
+        override fun invoke(context: ActionContext, element: KtElement, updater: ModPsiUpdater) {
+            super.invoke(context, element.annotationTarget(kind), updater)
+        }
     }
 }
 
 private fun FqName.asClassLiteral(): String = "${render()}::class"
+
+/**
+ * Returns the primary constructor of a class with the [Kind.Constructor] kind, and creates it when the class has none.
+ * Returns the element itself for all other cases.
+ */
+private fun KtElement.annotationTarget(kind: Kind): KtElement =
+    if (this is KtClass && kind is Kind.Constructor) getOrCreatePrimaryConstructor() else this
 
 private fun getOptInAnnotationFixPresentation(
     element: KtElement,

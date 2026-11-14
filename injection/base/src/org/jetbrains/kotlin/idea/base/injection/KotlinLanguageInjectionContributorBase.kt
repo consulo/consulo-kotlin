@@ -24,12 +24,10 @@ import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiReference
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
-import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiTreeUtil
-import com.intellij.util.asSafely
 import org.intellij.plugins.intelliLang.Configuration
 import org.intellij.plugins.intelliLang.inject.LanguageInjectionSupport
 import org.intellij.plugins.intelliLang.inject.TemporaryPlacesRegistry
@@ -40,14 +38,15 @@ import org.intellij.plugins.intelliLang.inject.java.InjectionCache
 import org.intellij.plugins.intelliLang.inject.java.JavaLanguageInjectionSupport
 import org.intellij.plugins.intelliLang.util.AnnotationUtilEx
 import org.jetbrains.annotations.ApiStatus
-import org.jetbrains.kotlin.KtNodeTypes
-import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisFromWriteAction
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisFromWriteAction
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
-import org.jetbrains.kotlin.analysis.api.resolution.singleFunctionCallOrNull
+import org.jetbrains.kotlin.analysis.api.resolution.function
+import org.jetbrains.kotlin.analysis.api.resolution.single
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
+import org.jetbrains.kotlin.analysis.api.resolution.tryResolveCall
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.builtins.StandardNames
 import org.jetbrains.kotlin.idea.base.projectStructure.RootKindFilter
 import org.jetbrains.kotlin.idea.base.projectStructure.matches
@@ -60,13 +59,12 @@ import org.jetbrains.kotlin.lexer.KtSingleValueToken
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
-import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.psi.KtArrayAccessExpression
 import org.jetbrains.kotlin.psi.KtBinaryExpression
+import org.jetbrains.kotlin.psi.KtBlockExpression
 import org.jetbrains.kotlin.psi.KtCallElement
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
-import org.jetbrains.kotlin.psi.KtCollectionLiteralExpression
 import org.jetbrains.kotlin.psi.KtConstantExpression
 import org.jetbrains.kotlin.psi.KtConstructorCalleeExpression
 import org.jetbrains.kotlin.psi.KtContainerNode
@@ -77,7 +75,6 @@ import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtFunction
 import org.jetbrains.kotlin.psi.KtIfExpression
-import org.jetbrains.kotlin.psi.KtLiteralStringTemplateEntry
 import org.jetbrains.kotlin.psi.KtOperationReferenceExpression
 import org.jetbrains.kotlin.psi.KtParameter
 import org.jetbrains.kotlin.psi.KtParenthesizedExpression
@@ -103,7 +100,7 @@ abstract class KotlinLanguageInjectionContributorBase : LanguageInjectionContrib
     // Abstract variables and functions are front-end dependent (K1 or K2).
     abstract val kotlinSupport: KotlinLanguageInjectionSupportBase?
 
-    abstract fun KtCallExpression.hasCallableId(packageName: FqName, callableName: Name): Boolean
+    abstract fun KtCallExpression.trimIndentHandler(): IndentHandler?
 
     abstract fun resolveReference(reference: PsiReference): PsiElement?
 
@@ -114,11 +111,6 @@ abstract class KotlinLanguageInjectionContributorBase : LanguageInjectionContrib
     abstract fun injectionInfoByExtensionReceiverParameter(callableDeclaration: KtCallableDeclaration): InjectionInfo?
 
     private val absentKotlinInjection: BaseInjection = BaseInjection("ABSENT_KOTLIN_BASE_INJECTION")
-
-    companion object {
-        private val trimIndentName = Name.identifier("trimIndent")
-        private val trimMarginName = Name.identifier("trimMargin")
-    }
 
     private data class KotlinCachedInjection(val modificationCount: Long, val baseInjection: BaseInjection)
 
@@ -212,18 +204,10 @@ abstract class KotlinLanguageInjectionContributorBase : LanguageInjectionContrib
     private fun unwrapTrims(ktHost: KtElement): KtElement {
         if (!Registry.`is`("kotlin.injection.handle.trimindent", true)) return ktHost
         val dotQualifiedExpression = ktHost.parent as? KtDotQualifiedExpression ?: return ktHost
-        val callExpression = dotQualifiedExpression.selectorExpression.asSafely<KtCallExpression>() ?: return ktHost
-        if (callExpression.hasCallableId(StandardClassIds.BASE_TEXT_PACKAGE, trimIndentName)) {
-            ktHost.indentHandler = TrimIndentHandler()
-            return dotQualifiedExpression
-        }
-        if (callExpression.hasCallableId(StandardClassIds.BASE_TEXT_PACKAGE, trimMarginName)) {
-            val marginChar = callExpression.valueArguments.getOrNull(0)?.getArgumentExpression().asSafely<KtStringTemplateExpression>()
-                ?.entries?.singleOrNull()?.asSafely<KtLiteralStringTemplateEntry>()?.text ?: "|"
-            ktHost.indentHandler = TrimIndentHandler(marginChar)
-            return dotQualifiedExpression
-        }
-        return ktHost
+        val callExpression = dotQualifiedExpression.selectorExpression as? KtCallExpression ?: return ktHost
+        val indentHandler = callExpression.trimIndentHandler() ?: return ktHost
+        ktHost.indentHandler = indentHandler
+        return dotQualifiedExpression
     }
 
     private fun findInjectionInfo(place: KtElement, containingFile: PsiFile, configuration: Configuration, originalHost: Boolean = true): InjectionInfo? {
@@ -242,7 +226,7 @@ abstract class KotlinLanguageInjectionContributorBase : LanguageInjectionContrib
     private val stringMutationOperators: List<KtSingleValueToken> = listOf(KtTokens.EQ, KtTokens.PLUSEQ)
 
     private fun injectWithMutation(host: KtElement, configuration: Configuration): InjectionInfo? {
-        val parent = (host.parent as? KtBinaryExpression)?.takeIf { it.safeOperationToken() in stringMutationOperators } ?: return null
+        val parent = (host.parent as? KtBinaryExpression)?.takeIf { it.operationTokenOrNull in stringMutationOperators } ?: return null
         if (parent.right != host) return null
 
         if (isAnalyzeOff(configuration)) return null
@@ -270,7 +254,7 @@ abstract class KotlinLanguageInjectionContributorBase : LanguageInjectionContrib
 
         tailrec fun findReturnExpression(expression: PsiElement?): KtReturnExpression? = when (expression) {
             is KtReturnExpression -> expression
-            is KtBinaryExpression -> findReturnExpression(expression.takeIf { it.safeOperationToken() == KtTokens.ELVIS }?.parent)
+            is KtBinaryExpression -> findReturnExpression(expression.takeIf { it.operationTokenOrNull == KtTokens.ELVIS }?.parent)
             is KtContainerNodeForControlStructureBody, is KtIfExpression -> findReturnExpression(expression.parent)
             else -> null
         }
@@ -338,7 +322,8 @@ abstract class KotlinLanguageInjectionContributorBase : LanguageInjectionContrib
     protected open fun getTargetProperty(ktProperty: KtProperty, containingFile: PsiFile): KtProperty = ktProperty
 
     private tailrec fun injectWithCall(host: KtElement, configuration: Configuration): InjectionInfo? {
-        val argument = getArgument(host) ?: return null
+        val deparenthesized = (host.deparenthesized() as? KtParenthesizedExpression)?.parent as? KtElement ?: host
+        val argument = getArgument(deparenthesized) ?: return null
         val callExpression = PsiTreeUtil.getParentOfType(argument, KtCallElement::class.java) ?: return null
 
         if (getCallableShortName(callExpression) == "arrayOf") {
@@ -357,7 +342,16 @@ abstract class KotlinLanguageInjectionContributorBase : LanguageInjectionContrib
 
         for (reference in callee.references) {
             ProgressManager.checkCanceled()
-            when (val resolvedTo = resolveReference(reference)) {
+            val resolveReference = resolveReference(reference)
+            when (val resolvedTo = resolveReference) {
+                is PsiClass -> {
+                    val constructors = resolvedTo.constructors
+                    for (constructor in constructors) {
+                        injectionForJavaMethod(argument, constructor, configuration)
+                            ?.let { return it }
+                    }
+                }
+
                 is PsiMethod ->
                     injectionForJavaMethod(argument, resolvedTo, configuration)
                         ?.let { return it }
@@ -474,11 +468,13 @@ abstract class KotlinLanguageInjectionContributorBase : LanguageInjectionContrib
         return callee as? KtSimpleNameExpression
     }
 
-    private fun getArgument(host: KtElement): KtValueArgument? = when (val parent = host.parent) {
-        is KtValueArgument -> parent
-        is KtCollectionLiteralExpression, is KtCallElement -> parent.parent as? KtValueArgument
-        else -> null
-    }
+    private fun getArgument(host: KtElement): KtValueArgument? =
+        PsiTreeUtil.getParentOfType(
+            /* element = */ host,
+            /* aClass = */ KtValueArgument::class.java,
+            /* strict = */ false,
+            /* ...stopAt = */ KtBlockExpression::class.java
+        )
 
     private tailrec fun injectInAnnotationCall(host: KtElement, configuration: Configuration): InjectionInfo? {
         val argument = getArgument(host) ?: return null
@@ -706,13 +702,14 @@ abstract class KotlinLanguageInjectionContributorBase : LanguageInjectionContrib
 }
 
 internal fun isSupportedElement(context: KtElement): Boolean {
+    val isValidHost = context is KtStringTemplateExpression && context.isValidHost
+    val isPlus = context is KtBinaryExpression && context.operationTokenOrNull == KtTokens.PLUS
+    val isInBinaryExpression = context.parent?.parent is KtBinaryExpression
+    if (!isValidHost && !isPlus && !isInBinaryExpression) return false
     if (context.parent?.isStandardConcatenationExpression() != false) return false // we will handle the top concatenation only, will not handle KtFile-s
-    if (context is KtStringTemplateExpression && context.isValidHost) return true
+    if (isValidHost) return true
     if (context.isStandardConcatenationExpression()) return true
-    if (context.parent.parent is KtBinaryExpression) {
-        return true
-    }
-    return false
+    return isInBinaryExpression
 }
 
 internal var KtElement.indentHandler: IndentHandler? by UserDataProperty(
@@ -738,25 +735,19 @@ private fun KtExpression?.isSimpleConcatenationSubexpression(): Boolean =
             (this as? KtBinaryExpression)?.isSimpleStandardConcatenationExpression() == true
 
 private fun KtBinaryExpression.isSimpleStandardConcatenationExpression(): Boolean =
-    this.safeOperationToken() == KtTokens.PLUS &&
+    this.operationTokenOrNull == KtTokens.PLUS &&
             left.isSimpleConcatenationSubexpression() && right.isSimpleConcatenationSubexpression()
-
-private fun KtBinaryExpression.safeOperationToken(): IElementType? {
-    // this.operationToken can throw NPE
-    val operationReference = node.findChildByType(KtNodeTypes.OPERATION_REFERENCE)?.psi as? KtOperationReferenceExpression
-    return operationReference?.getReferencedNameElementType()
-}
 
 @OptIn(KaAllowAnalysisOnEdt::class, KaAllowAnalysisFromWriteAction::class)
 private fun PsiElement.isStandardConcatenationExpression(): Boolean {
-    if (this !is KtBinaryExpression || this.safeOperationToken() != KtTokens.PLUS) return false
+    if (this !is KtBinaryExpression || this.operationTokenOrNull != KtTokens.PLUS) return false
     if (isSimpleStandardConcatenationExpression()) return true
 
     val referenceExpression = this.operationReference
     val packageFqName = allowAnalysisOnEdt {
         allowAnalysisFromWriteAction {
             analyze(referenceExpression) {
-                val singleFunctionCallOrNull = referenceExpression.resolveToCall()?.singleFunctionCallOrNull()
+                val singleFunctionCallOrNull = referenceExpression.tryResolveCall()?.single?.function
                 singleFunctionCallOrNull?.symbol?.callableId?.packageName
             }
         }

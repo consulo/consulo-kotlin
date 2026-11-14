@@ -2,28 +2,35 @@
 package org.jetbrains.kotlin.idea.fir
 
 import com.intellij.platform.testFramework.core.FileComparisonFailedError
-import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
-import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.components.KaDiagnosticCheckerFilter
+import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.analysis.api.diagnostics.KaSeverity
+import org.jetbrains.kotlin.analysis.api.diagnostics.diagnostics
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.idea.base.test.InTextDirectivesUtils
 import org.jetbrains.kotlin.idea.test.DirectiveBasedActionUtils.AFTER_ERROR_DIRECTIVE
+import org.jetbrains.kotlin.idea.test.DirectiveBasedActionUtils.AFTER_WARNING_DIRECTIVE
 import org.jetbrains.kotlin.idea.test.DirectiveBasedActionUtils.DISABLE_ERRORS_DIRECTIVE
+import org.jetbrains.kotlin.idea.test.DirectiveBasedActionUtils.ENABLE_WARNINGS_DIRECTIVE
 import org.jetbrains.kotlin.idea.test.DirectiveBasedActionUtils.ERROR_DIRECTIVE
+import org.jetbrains.kotlin.idea.test.DirectiveBasedActionUtils.WARNING_DIRECTIVE
 import org.jetbrains.kotlin.psi.KtFile
 import java.io.File
 
 object K2DirectiveBasedActionUtils {
     const val DISABLE_K2_ERRORS_DIRECTIVE: String = "// DISABLE_K2_ERRORS"
-    const val DISABLE_K2_WARNINGS_DIRECTIVE: String = "// DISABLE_K2_WARNINGS"
 
     const val K2_ERROR_DIRECTIVE: String = "// K2_ERROR:"
     const val K2_AFTER_ERROR_DIRECTIVE: String = "// K2_AFTER_ERROR:"
 
+    const val SYNTAX_ERROR_NAME: String = "SYNTAX"
+
     private fun isErrorChecksSuppressed(fileText: String): Boolean =
         InTextDirectivesUtils.findLinesWithPrefixesRemoved(fileText, DISABLE_ERRORS_DIRECTIVE, DISABLE_K2_ERRORS_DIRECTIVE).isNotEmpty()
+
+    private fun isWarningChecksEnabled(fileText: String): Boolean =
+        InTextDirectivesUtils.findLinesWithPrefixesRemoved(fileText, ENABLE_WARNINGS_DIRECTIVE).isNotEmpty()
 
     fun checkForUnexpectedErrors(
         mainFile: File,
@@ -36,10 +43,25 @@ object K2DirectiveBasedActionUtils {
         checkForUnexpected(mainFile, ktFile, fileText, "errors", KaSeverity.ERROR, *directives)
     }
 
+    /**
+     * warnings check is disabled by default
+     */
+    fun checkForWarningsBefore(mainFile: File, ktFile: KtFile, fileText: String) {
+        if (!isWarningChecksEnabled(fileText)) return
+
+        checkForUnexpected(mainFile, ktFile, fileText, "warnings", KaSeverity.WARNING, WARNING_DIRECTIVE)
+    }
+
     fun checkForErrorsBefore(mainFile: File, ktFile: KtFile, fileText: String) {
         if (isErrorChecksSuppressed(fileText)) return
 
         checkForUnexpected(mainFile, ktFile, fileText, "errors", KaSeverity.ERROR, K2_ERROR_DIRECTIVE, ERROR_DIRECTIVE)
+    }
+
+    fun checkForWarningsAfter(mainFile: File, ktFile: KtFile, fileText: String) {
+        if (!isWarningChecksEnabled(fileText)) return
+
+        checkForUnexpected(mainFile, ktFile, fileText, "warnings", KaSeverity.WARNING, AFTER_WARNING_DIRECTIVE)
     }
 
     fun checkForErrorsAfter(mainFile: File, ktFile: KtFile, fileText: String) {
@@ -68,19 +90,31 @@ object K2DirectiveBasedActionUtils {
             .sorted()
             .map { "$directive $it" }
 
-        val actual =
+        val diagnosticNames =
             allowAnalysisOnEdt {
                 analyze(file) {
                     val diagnostics =
                         // filter level has to be consistent with
                         // [org.jetbrains.kotlin.idea.highlighting.visitor.KotlinDiagnosticHighlightVisitor#analyzeFile]
-                        file.collectDiagnostics(KaDiagnosticCheckerFilter.ONLY_COMMON_CHECKERS)
-                    diagnostics
-                        .filter { it.severity == severity }
-                        .map { "$directive ${it.defaultMessage.replace("\n", "<br>")}" }
-                        .sorted()
+                        file.diagnostics()
+                    buildList {
+                        val names = diagnostics
+                            .filter { it.severity == severity }
+                            .map { it.factoryName }
+                        addAll(names)
+                        // We don't want to report FIR SYNTAX errors twice, but some syntax errors are not reported by FIR
+                        if (severity == KaSeverity.ERROR
+                            && SYNTAX_ERROR_NAME !in names
+                            && PsiTreeUtil.hasErrorElements(file)
+                        ) {
+                            add(SYNTAX_ERROR_NAME)
+                        }
+                    }
                 }
             }
+        val actual = diagnosticNames
+            .map { "$directive $it" }
+            .sorted()
 
         if (actual == expected) return
 

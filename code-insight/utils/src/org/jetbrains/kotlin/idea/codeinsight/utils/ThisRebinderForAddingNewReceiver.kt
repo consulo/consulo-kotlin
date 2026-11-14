@@ -6,12 +6,10 @@ import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.createSmartPointer
 import com.intellij.psi.util.isAncestor
 import org.jetbrains.annotations.ApiStatus
-import org.jetbrains.kotlin.analysis.api.KaContextParameterApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.components.resolveToSymbol
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSuccessfulSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaReceiverParameterSymbol
 import org.jetbrains.kotlin.idea.base.psi.replaced
-import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtExpression
@@ -28,7 +26,6 @@ import org.jetbrains.kotlin.psi.psiUtil.forEachDescendantOfType
  */
 @ApiStatus.Internal
 object ThisRebinderForAddingNewReceiver {
-    @OptIn(KaContextParameterApi::class)
     context(_: KaSession)
     fun createContext(element: KtElement): Context {
         val nonDotCalls = mutableListOf<KtExpression>()
@@ -61,7 +58,7 @@ object ThisRebinderForAddingNewReceiver {
             Context.CallToAddImplicitReceiver(expression.createSmartPointer(), label)
         }
         val thisExpressionsToAddLabels = unlabelledThisExpressions.mapNotNull { thisExpression ->
-            val target = thisExpression.instanceReference.mainReference.resolveToSymbol() ?: return@mapNotNull null
+            val target = thisExpression.resolveSuccessfulSymbol() ?: return@mapNotNull null
             val info = when (target) {
                 is KaReceiverParameterSymbol -> getLabelToBeReferencedByThis(target.owningCallableSymbol)
                 else -> getLabelToBeReferencedByThis(target)
@@ -91,6 +88,7 @@ object ThisRebinderForAddingNewReceiver {
             )
             val selector = qualified.selectorExpression
                 ?: error("Expected selector to be present for the qualified expression created by KtPsiFactory")
+            replacements[psi] = qualified
             replacements[selector] = qualified
         }
 

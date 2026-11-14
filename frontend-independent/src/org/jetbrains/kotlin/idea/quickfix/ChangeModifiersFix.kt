@@ -5,6 +5,7 @@ import com.intellij.codeInspection.util.IntentionFamilyName
 import com.intellij.modcommand.ActionContext
 import com.intellij.modcommand.ModPsiUpdater
 import com.intellij.modcommand.Presentation
+import org.jetbrains.kotlin.idea.base.psi.addModifierKeyword
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.intentions.KotlinPsiUpdateModCommandAction
 import org.jetbrains.kotlin.idea.quickfix.AddModifierFix.Companion.modalityModifiers
@@ -67,7 +68,7 @@ class ChangeModifiersFix(
             else -> return null
         }
 
-        return Presentation.of(actionName).withFixAllOption(this)
+        return Presentation.of(actionName)
     }
 
     override fun getFamilyName(): @IntentionFamilyName String =
@@ -78,7 +79,7 @@ class ChangeModifiersFix(
         }
 
     override fun invoke(context: ActionContext, element: KtModifierListOwner, updater: ModPsiUpdater) {
-        addModifier?.let(element::addModifier)
+        addModifier?.let { element.addModifierKeyword(it) }
         removeModifier?.let {
             RemoveModifierFixBase.removeModifier(element, it)
         }

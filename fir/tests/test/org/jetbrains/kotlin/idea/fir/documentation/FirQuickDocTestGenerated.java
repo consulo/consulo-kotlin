@@ -235,6 +235,31 @@ public abstract class FirQuickDocTestGenerated extends AbstractFirQuickDocTest {
             runTest("../../idea/tests/testData/editor/quickDoc/JvmFieldAnnotation.kt");
         }
 
+        @TestMetadata("KDocLinkToJavaSyntheticProperty.kt")
+        public void testKDocLinkToJavaSyntheticProperty() throws Exception {
+            runTest("../../idea/tests/testData/editor/quickDoc/KDocLinkToJavaSyntheticProperty.kt");
+        }
+
+        @TestMetadata("KDocLinkToOverloads1.kt")
+        public void testKDocLinkToOverloads1() throws Exception {
+            runTest("../../idea/tests/testData/editor/quickDoc/KDocLinkToOverloads1.kt");
+        }
+
+        @TestMetadata("KDocLinkToOverloads2.kt")
+        public void testKDocLinkToOverloads2() throws Exception {
+            runTest("../../idea/tests/testData/editor/quickDoc/KDocLinkToOverloads2.kt");
+        }
+
+        @TestMetadata("KDocLinkToOverloads3.kt")
+        public void testKDocLinkToOverloads3() throws Exception {
+            runTest("../../idea/tests/testData/editor/quickDoc/KDocLinkToOverloads3.kt");
+        }
+
+        @TestMetadata("KDocLinkToPackage.kt")
+        public void testKDocLinkToPackage() throws Exception {
+            runTest("../../idea/tests/testData/editor/quickDoc/KDocLinkToPackage.kt");
+        }
+
         @TestMetadata("KotlinClassUsedFromJava.java")
         public void testKotlinClassUsedFromJava() throws Exception {
             runTest("../../idea/tests/testData/editor/quickDoc/KotlinClassUsedFromJava.java");
@@ -258,6 +283,11 @@ public abstract class FirQuickDocTestGenerated extends AbstractFirQuickDocTest {
         @TestMetadata("LateinitName.kt")
         public void testLateinitName() throws Exception {
             runTest("../../idea/tests/testData/editor/quickDoc/LateinitName.kt");
+        }
+
+        @TestMetadata("LocalKDocLink.kt")
+        public void testLocalKDocLink() throws Exception {
+            runTest("../../idea/tests/testData/editor/quickDoc/LocalKDocLink.kt");
         }
 
         @TestMetadata("MethodFromStdLib.kt")
@@ -355,6 +385,16 @@ public abstract class FirQuickDocTestGenerated extends AbstractFirQuickDocTest {
             runTest("../../idea/tests/testData/editor/quickDoc/OnFunctionDeclarationWithGFMTable.kt");
         }
 
+        @TestMetadata("OnFunctionDeclarationWithHtmlBlock.kt")
+        public void testOnFunctionDeclarationWithHtmlBlock() throws Exception {
+            runTest("../../idea/tests/testData/editor/quickDoc/OnFunctionDeclarationWithHtmlBlock.kt");
+        }
+
+        @TestMetadata("OnFunctionDeclarationWithInlineHtml.kt")
+        public void testOnFunctionDeclarationWithInlineHtml() throws Exception {
+            runTest("../../idea/tests/testData/editor/quickDoc/OnFunctionDeclarationWithInlineHtml.kt");
+        }
+
         @TestMetadata("OnFunctionDeclarationWithPackage.kt")
         public void testOnFunctionDeclarationWithPackage() throws Exception {
             runTest("../../idea/tests/testData/editor/quickDoc/OnFunctionDeclarationWithPackage.kt");
@@ -448,6 +488,11 @@ public abstract class FirQuickDocTestGenerated extends AbstractFirQuickDocTest {
         @TestMetadata("QualifiedNameDocLink.kt")
         public void testQualifiedNameDocLink() throws Exception {
             runTest("../../idea/tests/testData/editor/quickDoc/QualifiedNameDocLink.kt");
+        }
+
+        @TestMetadata("RegularKDocLink.kt")
+        public void testRegularKDocLink() throws Exception {
+            runTest("../../idea/tests/testData/editor/quickDoc/RegularKDocLink.kt");
         }
 
         @TestMetadata("renderAnnotatedExtensionFunctionType.kt")
@@ -2134,14 +2179,34 @@ public abstract class FirQuickDocTestGenerated extends AbstractFirQuickDocTest {
                 runTest("../../idea/tests/testData/editor/quickDoc/misc/typeAliases/TypeAliasF.kt");
             }
 
+            @TestMetadata("TypeAliasForChainOfTypeAliases.kt")
+            public void testTypeAliasForChainOfTypeAliases() throws Exception {
+                runTest("../../idea/tests/testData/editor/quickDoc/misc/typeAliases/TypeAliasForChainOfTypeAliases.kt");
+            }
+
+            @TestMetadata("TypeAliasForChainOfTypeAliasesWithKDoc.kt")
+            public void testTypeAliasForChainOfTypeAliasesWithKDoc() throws Exception {
+                runTest("../../idea/tests/testData/editor/quickDoc/misc/typeAliases/TypeAliasForChainOfTypeAliasesWithKDoc.kt");
+            }
+
+            @TestMetadata("TypeAliasForClassWithKDoc.kt")
+            public void testTypeAliasForClassWithKDoc() throws Exception {
+                runTest("../../idea/tests/testData/editor/quickDoc/misc/typeAliases/TypeAliasForClassWithKDoc.kt");
+            }
+
+            @TestMetadata("TypeAliasForLambda.kt")
+            public void testTypeAliasForLambda() throws Exception {
+                runTest("../../idea/tests/testData/editor/quickDoc/misc/typeAliases/TypeAliasForLambda.kt");
+            }
+
             @TestMetadata("TypeAliasG.kt")
             public void testTypeAliasG() throws Exception {
                 runTest("../../idea/tests/testData/editor/quickDoc/misc/typeAliases/TypeAliasG.kt");
             }
 
-            @TestMetadata("TypeAliasH.kt")
-            public void testTypeAliasH() throws Exception {
-                runTest("../../idea/tests/testData/editor/quickDoc/misc/typeAliases/TypeAliasH.kt");
+            @TestMetadata("TypeAliasWithKDocForClassWithKDoc.kt")
+            public void testTypeAliasWithKDocForClassWithKDoc() throws Exception {
+                runTest("../../idea/tests/testData/editor/quickDoc/misc/typeAliases/TypeAliasWithKDocForClassWithKDoc.kt");
             }
         }
     }

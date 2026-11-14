@@ -19,37 +19,29 @@ import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.components.KaExtensionApplicabilityResult
 import org.jetbrains.kotlin.analysis.api.components.KaScopeKind
 import org.jetbrains.kotlin.analysis.api.components.KaScopeWithKindImpl
-import org.jetbrains.kotlin.analysis.api.components.asCompositeScope
-import org.jetbrains.kotlin.analysis.api.components.asSignature
-import org.jetbrains.kotlin.analysis.api.components.callableSymbol
-import org.jetbrains.kotlin.analysis.api.components.canBeAnalysed
-import org.jetbrains.kotlin.analysis.api.components.containingSymbol
-import org.jetbrains.kotlin.analysis.api.components.declarationScope
-import org.jetbrains.kotlin.analysis.api.components.defaultType
-import org.jetbrains.kotlin.analysis.api.components.expressionType
-import org.jetbrains.kotlin.analysis.api.components.fakeOverrideOriginal
-import org.jetbrains.kotlin.analysis.api.components.isDenotable
-import org.jetbrains.kotlin.analysis.api.components.isStringType
-import org.jetbrains.kotlin.analysis.api.components.isSubtypeOf
-import org.jetbrains.kotlin.analysis.api.components.lowerBoundIfFlexible
-import org.jetbrains.kotlin.analysis.api.components.memberScope
-import org.jetbrains.kotlin.analysis.api.components.packageScope
-import org.jetbrains.kotlin.analysis.api.components.render
-import org.jetbrains.kotlin.analysis.api.components.resolveToSymbols
 import org.jetbrains.kotlin.analysis.api.components.returnType
-import org.jetbrains.kotlin.analysis.api.components.scope
-import org.jetbrains.kotlin.analysis.api.components.semanticallyEquals
-import org.jetbrains.kotlin.analysis.api.components.smartCastInfo
-import org.jetbrains.kotlin.analysis.api.components.staticMemberScope
-import org.jetbrains.kotlin.analysis.api.components.substitute
-import org.jetbrains.kotlin.analysis.api.components.withNullability
+import org.jetbrains.kotlin.analysis.api.dataflow.smartCastInfo
+import org.jetbrains.kotlin.analysis.api.expressions.expressionType
+import org.jetbrains.kotlin.analysis.api.javaInterop.callableSymbol
 import org.jetbrains.kotlin.analysis.api.lifetime.KaLifetimeOwner
 import org.jetbrains.kotlin.analysis.api.lifetime.KaLifetimeToken
 import org.jetbrains.kotlin.analysis.api.lifetime.withValidityAssertion
+import org.jetbrains.kotlin.analysis.api.renderer.render
+import org.jetbrains.kotlin.analysis.api.resolution.symbols
+import org.jetbrains.kotlin.analysis.api.resolution.tryResolveSymbols
 import org.jetbrains.kotlin.analysis.api.scopes.KaScope
+import org.jetbrains.kotlin.analysis.api.scopes.asCompositeScope
+import org.jetbrains.kotlin.analysis.api.scopes.declarationScope
+import org.jetbrains.kotlin.analysis.api.scopes.memberScope
+import org.jetbrains.kotlin.analysis.api.scopes.packageScope
+import org.jetbrains.kotlin.analysis.api.scopes.scope
+import org.jetbrains.kotlin.analysis.api.scopes.staticMemberScope
+import org.jetbrains.kotlin.analysis.api.session.canBeAnalysed
 import org.jetbrains.kotlin.analysis.api.signatures.KaCallableSignature
 import org.jetbrains.kotlin.analysis.api.signatures.KaFunctionSignature
 import org.jetbrains.kotlin.analysis.api.signatures.KaVariableSignature
+import org.jetbrains.kotlin.analysis.api.signatures.asSignature
+import org.jetbrains.kotlin.analysis.api.signatures.substitute
 import org.jetbrains.kotlin.analysis.api.symbols.KaBackingFieldSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
@@ -63,20 +55,33 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaLocalVariableSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaPackageSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaPropertySymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolLocation
 import org.jetbrains.kotlin.analysis.api.symbols.KaSyntheticJavaPropertySymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.containingSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.fakeOverrideOriginal
 import org.jetbrains.kotlin.analysis.api.symbols.receiverType
 import org.jetbrains.kotlin.analysis.api.symbols.symbol
 import org.jetbrains.kotlin.analysis.api.types.KaErrorType
 import org.jetbrains.kotlin.analysis.api.types.KaIntersectionType
+import org.jetbrains.kotlin.analysis.api.types.KaStandardTypeClassIds
 import org.jetbrains.kotlin.analysis.api.types.KaType
+import org.jetbrains.kotlin.analysis.api.types.classId
+import org.jetbrains.kotlin.analysis.api.types.defaultType
+import org.jetbrains.kotlin.analysis.api.types.isDenotable
+import org.jetbrains.kotlin.analysis.api.types.isSubtypeOf
+import org.jetbrains.kotlin.analysis.api.types.lowerBoundIfFlexible
+import org.jetbrains.kotlin.analysis.api.types.semanticallyEquals
 import org.jetbrains.kotlin.analysis.api.types.symbol
+import org.jetbrains.kotlin.analysis.api.types.withNullability
+import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.collectReceiverTypesForExplicitReceiverExpression
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.isIgnoredExpectDeclaration
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.isJavaSourceOrLibrary
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.isPossiblySubTypeOf
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.resolveToExpandedSymbol
+import org.jetbrains.kotlin.idea.base.projectStructure.languageVersionSettings
 import org.jetbrains.kotlin.idea.base.psi.isInsideAnnotationEntryArgumentList
 import org.jetbrains.kotlin.idea.codeinsight.utils.canBeUsedAsExtension
 import org.jetbrains.kotlin.idea.codeinsight.utils.isEnum
@@ -105,7 +110,6 @@ import org.jetbrains.kotlin.idea.completion.impl.k2.lookups.factories.FunctionIn
 import org.jetbrains.kotlin.idea.completion.impl.k2.weighers.CallableWeigher.callableWeight
 import org.jetbrains.kotlin.idea.completion.reference
 import org.jetbrains.kotlin.idea.core.NotPropertiesService
-import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.idea.util.positionContext.KDocLinkNamePositionContext
 import org.jetbrains.kotlin.idea.util.positionContext.KotlinCallableReferencePositionContext
 import org.jetbrains.kotlin.idea.util.positionContext.KotlinExpressionNameReferencePositionContext
@@ -124,13 +128,13 @@ import org.jetbrains.kotlin.psi.KtDeclaration
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtEnumEntry
-import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtParameter
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.psiUtil.nextSiblingOfSameType
 import org.jetbrains.kotlin.psi.psiUtil.parentsWithSelf
 import org.jetbrains.kotlin.resolve.ArrayFqNames
+import org.jetbrains.kotlin.resolve.constants.evaluate.canEvalOp
 import org.jetbrains.kotlin.types.Variance
 import org.jetbrains.kotlin.utils.addToStdlib.plusIfNotNull
 import kotlin.reflect.KClass
@@ -231,6 +235,7 @@ internal abstract class K2AbstractCallableCompletionContributor<P : KotlinNameRe
         shadowedCallablesFilter: ShadowedCallablesFilter
     ): Sequence<LookupElement> =
         filterIfInsideAnnotationEntryArgument(context.positionContext.position, context.weighingContext.expectedType)
+            .filter { hasRequiredContextArguments(it.signature) }
             .mapNotNull(shadowIfNecessary(context, shadowedCallablesFilter))
             .filter { isRepresentativeOrNonVariadicCallable(it.signature) }
             .filterNot(isUninitializedCallable(context))
@@ -258,11 +263,38 @@ internal abstract class K2AbstractCallableCompletionContributor<P : KotlinNameRe
                     builder.adaptToExplicitReceiver(
                         receiver = receiver,
                         typeText =
-                            @OptIn(KaExperimentalApi::class)
                             typeWithStarProjections.render(position = Variance.INVARIANT),
                     )
                 }
             }
+
+    private val K2CompletionSectionContext<P>.availableContextArgumentsCache: MutableMap<KaType, Boolean> by LazyCompletionSessionProperty {
+        mutableMapOf()
+    }
+
+    /**
+     * Checks whether the context parameters required by the [signature] are available in the [context].
+     * Could lead to some erroneous results due to using [isPossiblySubTypeOf] for performance reason
+     * and to avoid missing some results with free type variables.
+     */
+    context(_: KaSession, context: K2CompletionSectionContext<P>)
+    protected open fun hasRequiredContextArguments(signature: KaCallableSignature<*>): Boolean {
+        val parameters = signature.contextParameters
+        if (parameters.isEmpty()) return true
+
+        val implicitValues = context.weighingContext.scopeContext.implicitValues
+        val availableContextArguments = context.availableContextArgumentsCache
+
+        for (parameter in parameters) {
+            val requiredType = parameter.returnType
+            val hasArgument = availableContextArguments.getOrPut(requiredType) {
+                implicitValues.any { it.type.isPossiblySubTypeOf(requiredType) }
+            }
+            if (!hasArgument) return false
+        }
+
+        return true
+    }
 
     context(_: KaSession, context: K2CompletionSectionContext<P>)
     fun completeFromLocalScope(
@@ -278,7 +310,6 @@ internal abstract class K2AbstractCallableCompletionContributor<P : KotlinNameRe
             .forEach { addElement(it) }
     }
 
-    @OptIn(KaExperimentalApi::class)
     context(_: KaSession, context: K2CompletionSectionContext<P>)
     private fun createAndFilterMetadataForMemberCallables(
         callables: Sequence<KaCallableSymbol>,
@@ -427,13 +458,11 @@ internal abstract class K2AbstractCallableCompletionContributor<P : KotlinNameRe
         }
     }
 
-    @OptIn(KtExperimentalApi::class)
     protected val KaNamedClassSymbol.hasImportantStaticMemberScope: Boolean
         get() = classKind == KaClassKind.ENUM_CLASS ||
                 origin.isJavaSourceOrLibrary() ||
                 (psi as? KtClassOrObject)?.companionBlocks?.isNotEmpty() == true
 
-    @OptIn(KtExperimentalApi::class)
     private val KaNamedClassSymbol.canBeUsedAsReceiver: Boolean
         get() = classKind.isObject || companionObject != null || (psi as? KtClassOrObject)?.companionBlocks?.isNotEmpty() == true
 
@@ -446,7 +475,7 @@ internal abstract class K2AbstractCallableCompletionContributor<P : KotlinNameRe
         .filterNot { it.isExtension }
         .filter { context.visibilityChecker.isVisible(it, context.positionContext) }
         .filter { filter(it) }
-        .map { @OptIn(KaExperimentalApi::class) (it.asSignature()) }
+        .map { (it.asSignature()) }
         .map { signature ->
             CallableWithMetadataForCompletion(
                 _signature = signature,
@@ -661,7 +690,6 @@ internal abstract class K2AbstractCallableCompletionContributor<P : KotlinNameRe
      * If [candidate] is applicable returns substituted signature and insertion options, otherwise, null.
      * When the extensionChecker from the [context] is null, no check is carried and applicability result is null.
      */
-    @OptIn(KaExperimentalApi::class)
     context(_: KaSession)
     protected open fun checkApplicabilityAndSubstitute(
         context: K2CompletionSectionContext<P>,
@@ -718,7 +746,6 @@ internal abstract class K2AbstractCallableCompletionContributor<P : KotlinNameRe
      *
      * @see NotPropertiesService
      */
-    @OptIn(KaExperimentalApi::class)
     context(_: KaSession)
     private fun KaCallableSignature<*>.getJavaGetterSignatureIfNotProperty(): KaCallableSignature<*>? {
         if (this !is KaVariableSignature<*>) return null
@@ -845,10 +872,14 @@ internal abstract class K2AbstractCallableCompletionContributor<P : KotlinNameRe
     ): Sequence<CallableWithMetadataForCompletion> {
         if (!position.isInsideAnnotationEntryArgumentList()) return this
 
+        val isIntrinsicConstEvaluationEnabled =
+            position.languageVersionSettings.supportsFeature(LanguageFeature.IntrinsicConstEvaluation)
+
         return filter { callableWithMetadata ->
             val symbol = callableWithMetadata.signature.symbol
 
             if (symbol.hasConstEvaluationAnnotation()) return@filter true
+            if (isIntrinsicConstEvaluationEnabled && symbol.isCompileTimeBuiltin()) return@filter true
 
             when (symbol) {
                 is KaJavaFieldSymbol -> symbol.isStatic && symbol.isVal && symbol.hasPrimitiveOrStringReturnType()
@@ -867,11 +898,39 @@ internal abstract class K2AbstractCallableCompletionContributor<P : KotlinNameRe
 
     context(_: KaSession)
     private fun KaJavaFieldSymbol.hasPrimitiveOrStringReturnType(): Boolean =
-        (psi as? PsiField)?.type is PsiPrimitiveType || returnType.isStringType
+        (psi as? PsiField)?.type is PsiPrimitiveType || returnType.classId == KaStandardTypeClassIds.STRING
 
     context(_: KaSession)
     private fun KaCallableSymbol.hasConstEvaluationAnnotation(): Boolean =
         annotations.any { it.classId == StandardClassIds.Annotations.IntrinsicConstEvaluation }
+
+    /**
+     * Checks whether the symbol can be used for compile-time constants.
+     */
+    context(_: KaSession)
+    private fun KaCallableSymbol.isCompileTimeBuiltin(): Boolean {
+        val callableId = when (this) {
+            is KaNamedFunctionSymbol -> callableId
+            is KaPropertySymbol -> fakeOverrideOriginal.callableId
+            else -> null
+        } ?: return false
+
+        val valueParameters = (this as? KaNamedFunctionSymbol)?.valueParameters.orEmpty()
+        if (valueParameters.size > 1) return false
+        val firstParameter = valueParameters.firstOrNull()
+
+        // Only overloads of the supported functions that take at most one compile-time type can be used.
+        val firstParameterCompileTimeType = firstParameter?.let {
+            // A parameter that is not a compile time type cannot be used compile-time constants.
+            COMPILE_TIME_TYPES[it.returnType.classId] ?: return false
+        }
+        val receiverClassId = (containingSymbol as? KaClassSymbol)?.classId ?: receiverType?.classId
+        val receiverCompileTimeType = COMPILE_TIME_TYPES[receiverClassId]
+
+        // This function is the Kotlin compiler's internal way of checking whether the callable can be
+        // used in a compile-time constant.
+        return canEvalOp(callableId, receiverCompileTimeType, firstParameterCompileTimeType)
+    }
 
     context(_: KaSession)
     protected fun KaNamedClassSymbol.staticScope(withCompanionScope: Boolean = true): KaScope = buildList {
@@ -1145,19 +1204,21 @@ internal class K2CallableCompletionContributor : K2AbstractCallableCompletionCon
             showReceiver = true,
             forRuntimeType = false
         )
-        return (fromLocalScope + fromIndex).flatMap { callableWithMetadata ->
-            val signature = callableWithMetadata.signature
+        return (fromLocalScope + fromIndex)
+            .filter { hasRequiredContextArguments(it.signature) }
+            .flatMap { callableWithMetadata ->
+                val signature = callableWithMetadata.signature
 
-            createCallableLookupElements(
-                signature = signature,
-                options = callableWithMetadata.options,
-                scopeKind = callableWithMetadata.scopeKind,
-                presentableText = callableWithMetadata.getItemText(),
-                withTrailingLambda = true,
-            ).map {
-                it.withChainedInsertHandler(WithImportInsertionHandler(listOf(nameToImport)))
+                createCallableLookupElements(
+                    signature = signature,
+                    options = callableWithMetadata.options,
+                    scopeKind = callableWithMetadata.scopeKind,
+                    presentableText = callableWithMetadata.getItemText(),
+                    withTrailingLambda = true,
+                ).map {
+                    it.withChainedInsertHandler(WithImportInsertionHandler(listOf(nameToImport)))
+                }
             }
-        }
     }
 }
 
@@ -1266,7 +1327,6 @@ internal class K2KDocCallableCompletionContributor : K2AbstractCallableCompletio
         applicabilityResult: KaExtensionApplicabilityResult.ApplicableAsFunctionalVariableCall,
     ): CallableInsertionStrategy = throw RuntimeException("Should not be used directly")
 
-    @OptIn(KaExperimentalApi::class)
     context(_: KaSession)
     override fun checkApplicabilityAndSubstitute(
         context: K2CompletionSectionContext<KDocLinkNamePositionContext>,
@@ -1278,6 +1338,9 @@ internal class K2KDocCallableCompletionContributor : K2AbstractCallableCompletio
         return createApplicableExtension(signature, importStrategy)
     }
 
+    context(_: KaSession, context: K2CompletionSectionContext<KDocLinkNamePositionContext>)
+    override fun hasRequiredContextArguments(signature: KaCallableSignature<*>): Boolean = true
+
     // No dot completion from index necessary for KDocs
     context(_: KaSession, context: K2CompletionSectionContext<KDocLinkNamePositionContext>)
     override fun collectDotCompletionFromIndex(
@@ -1286,7 +1349,6 @@ internal class K2KDocCallableCompletionContributor : K2AbstractCallableCompletio
         forRuntimeType: Boolean
     ): Sequence<CallableWithMetadataForCompletion> = emptySequence()
 
-    @OptIn(KaExperimentalApi::class)
     context(_: KaSession, context: K2CompletionSectionContext<KDocLinkNamePositionContext>)
     override fun collectDotCompletionFromLocalScope(
         explicitReceiver: KtElement,
@@ -1295,7 +1357,7 @@ internal class K2KDocCallableCompletionContributor : K2AbstractCallableCompletio
     ): Sequence<CallableWithMetadataForCompletion> = sequence {
         if (explicitReceiver !is KDocName) return@sequence
 
-        val resolvedSymbols = explicitReceiver.mainReference.resolveToSymbols()
+        val resolvedSymbols = explicitReceiver.tryResolveSymbols()?.symbols.orEmpty()
         val scopesWithKinds = resolvedSymbols.flatMap { parentSymbol ->
             when (parentSymbol) {
                 is KaPackageSymbol -> sequenceOfNotNull(parentSymbol.staticScope)

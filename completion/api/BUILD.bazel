@@ -1,13 +1,25 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
 load("//build:compiler-options.bzl", "create_kotlinc_options")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
+
+### auto-generated section `dev intellij.kotlin.completion.api` start
+content_module_jar(module = ":api")
+### auto-generated section `dev intellij.kotlin.completion.api` end
 
 ### auto-generated section `build intellij.kotlin.completion.api` start
-
 create_kotlinc_options(
     name = "custom_api",
     opt_in = [
-        "org.jetbrains.kotlin.analysis.api.permissions.KaAllowProhibitedAnalyzeFromWriteAction",
+        "org.jetbrains.kotlin.psi.KtExperimentalApi",
+        "org.jetbrains.kotlin.psi.KtNonPublicApi",
+        "org.jetbrains.kotlin.psi.KtIdeApi",
+        "org.jetbrains.kotlin.analysis.api.KaExperimentalApi",
         "org.jetbrains.kotlin.analysis.api.KaIdeApi",
+        "org.jetbrains.kotlin.analysis.api.KaPlatformInterface",
+        "org.jetbrains.kotlin.analysis.api.fir.diagnostics.KaUnstableDiagnosticApi",
+        "org.jetbrains.kotlin.analysis.api.KaNonPublicApi",
+        "org.jetbrains.kotlin.analysis.api.KaContextParameterApi",
+        "org.jetbrains.kotlin.analysis.api.permissions.KaAllowProhibitedAnalyzeFromWriteAction",
     ],
     x_context_parameters = True,
 )
@@ -24,7 +36,12 @@ jvm_library(
     ),
     kotlinc_opts = ":custom_api",
     module_name = "intellij.kotlin.completion.api",
+    resource_strip_prefix = "resources",
+    resources = glob(
+        ["resources/**/*"],
+    ),
     visibility = ["//visibility:public"],
+    runtime_deps = ["//libraries/kotlinx/serialization/json"],
     deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
@@ -33,37 +50,11 @@ jvm_library(
         "//platform/core-impl",
         "//platform/projectModel-impl",
         "//libraries/kotlinx/serialization/core",
-        "//libraries/kotlinx/serialization/json",
-        "@lib//:kotlinc-kotlin-compiler-common",
-        "@lib//:jetbrains-annotations",
+        "//libraries/kotlinc/kotlin-compiler-common:libraries-kotlinc-kotlin-compiler-common",
+        "//libraries/jetbrains/annotations",
         "//platform/util",
         "//platform/lang-impl",
         "//plugins/kotlin/base/kotlin.base.serialization",
-    ],
-)
-
-jvm_library(
-    name = "api_test_lib",
-    testonly = True,
-    srcs = glob(
-        [],
-        allow_empty = True,
-    ),
-    kotlinc_opts = ":custom_api",
-    module_name = "intellij.kotlin.completion.api",
-    visibility = ["//visibility:public"],
-    runtime_deps = [
-        # do not sort,
-        ":api",
-        "//platform/core-api:core_test_lib",
-        "//platform/analysis-api:analysis_test_lib",
-        "//platform/core-impl:core-impl_test_lib",
-        "//platform/projectModel-impl:projectModel-impl_test_lib",
-        "//libraries/kotlinx/serialization/core:core_test_lib",
-        "//libraries/kotlinx/serialization/json:json_test_lib",
-        "//platform/util:util_test_lib",
-        "//platform/lang-impl:lang-impl_test_lib",
-        "//plugins/kotlin/base/kotlin.base.serialization:kotlin.base.serialization_test_lib",
     ],
 )
 ### auto-generated section `build intellij.kotlin.completion.api` end
@@ -72,6 +63,7 @@ jvm_library(
 exports_files(
     [
         "intellij.kotlin.completion.api.iml",
+        "resources/intellij.kotlin.completion.api.xml",
     ],
     visibility = ["//visibility:public"],
 )

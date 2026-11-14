@@ -20,11 +20,11 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors
 import com.intellij.openapi.editor.HighlighterColors
 import com.intellij.openapi.editor.colors.CodeInsightColors
-import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.util.PsiTreeUtil
@@ -35,6 +35,8 @@ import org.intellij.markdown.ast.ASTNode
 import org.intellij.markdown.flavours.gfm.GFMElementTypes
 import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
 import org.intellij.markdown.flavours.gfm.GFMTokenTypes
+import org.intellij.markdown.html.HtmlGenerator
+import org.intellij.markdown.parser.LinkMap
 import org.intellij.markdown.parser.MarkdownParser
 import org.jetbrains.annotations.Nls
 import org.jetbrains.kotlin.idea.KotlinLanguage
@@ -153,12 +155,12 @@ object KDocRenderer {
             ?.let { textAttributesKeyForKtElement(it)?.attributesKey }
             ?.let { getTargetLinkElementAttributes(it) }
             ?: TextAttributes().apply {
-                foregroundColor = EditorColorsManager.getInstance().globalScheme.getColor(DefaultLanguageHighlighterColors.DOC_COMMENT_LINK)
+                foregroundColor = QuickDocHighlightingHelper.getColorScheme().getColor(DefaultLanguageHighlighterColors.DOC_COMMENT_LINK)
             }
     }
 
     private fun getTargetLinkElementAttributes(key: TextAttributesKey): TextAttributes {
-        return tuneAttributesForLink(EditorColorsManager.getInstance().globalScheme.getAttributes(key))
+        return tuneAttributesForLink(QuickDocHighlightingHelper.getAttributes(key))
     }
 
     private fun highlightQualifiedName(qualifiedName: String, lastSegmentAttributes: TextAttributes): String {
@@ -345,8 +347,10 @@ object KDocRenderer {
         val markdownTree = MarkdownParser(GFMFlavourDescriptor()).buildMarkdownTreeFromString(comment.getContent())
         val markdownNode = MarkdownNode(markdownTree, null, comment)
 
-        // Avoid wrapping the entire converted contents in a <p> tag if it's just a single paragraph
+        // Avoid wrapping the entire converted contents in a <p> tag if it's just a single paragraph.
+        // An HTML block keeps its line breaks, so it is not joined into a single line.
         val maybeSingleParagraph = markdownNode.children.singleOrNull { it.type != MarkdownTokenTypes.EOL }
+            ?.takeIf { it.type != MarkdownElementTypes.HTML_BLOCK }
 
         val firstParagraphOmitted = when {
             maybeSingleParagraph != null && !allowSingleParagraph -> {
@@ -387,6 +391,7 @@ object KDocRenderer {
         }
 
         val sb = StringBuilder()
+        val baseUrl = comment.containingFile.originalFile.virtualFile?.url?.let(VfsUtilCore::convertToURL)
         visit { node, processChildren ->
             fun wrapChildren(tag: String, newline: Boolean = false) {
                 sb.append("<$tag>")
@@ -445,7 +450,8 @@ object KDocRenderer {
                     )
                 }
 
-                MarkdownTokenTypes.FENCE_LANG, MarkdownTokenTypes.CODE_LINE, MarkdownTokenTypes.CODE_FENCE_CONTENT -> {
+                MarkdownTokenTypes.FENCE_LANG, MarkdownTokenTypes.CODE_LINE, MarkdownTokenTypes.CODE_FENCE_CONTENT,
+                MarkdownElementTypes.LINK_DEFINITION -> {
                     // skip
                 }
 
@@ -480,6 +486,14 @@ object KDocRenderer {
                     }
                 }
 
+                MarkdownElementTypes.IMAGE -> {
+                    val content = comment.getContent()
+                    val root = generateSequence(node) { it.parent }.last().node
+                    val providers = GFMFlavourDescriptor().createHtmlGeneratingProviders(LinkMap.buildLinkMap(root, content), null)
+                    val image = HtmlGenerator(content, node.node, providers).generateHtml()
+                    sb.append(KDocHtmlSanitizer.sanitize(image, baseUrl))
+                }
+
                 MarkdownElementTypes.INLINE_LINK -> {
                     val label = node.child(MarkdownElementTypes.LINK_TEXT)?.toHtml()
                     val destination = node.child(MarkdownElementTypes.LINK_DESTINATION)?.text
@@ -508,6 +522,11 @@ object KDocRenderer {
 
                 MarkdownTokenTypes.EOL -> {
                     sb.append(" ")
+                }
+
+                MarkdownTokenTypes.HTML_TAG,
+                MarkdownElementTypes.HTML_BLOCK -> {
+                    sb.append(KDocHtmlSanitizer.sanitize(nodeText, baseUrl))
                 }
 
                 MarkdownTokenTypes.GT -> sb.append("&gt;")
@@ -607,7 +626,7 @@ object KDocRenderer {
      * In this case we should change link color to standard hyperlink color which we believe is apriori different.
      */
     private fun tuneAttributesForLink(attributes: TextAttributes): TextAttributes {
-        val globalScheme = EditorColorsManager.getInstance().globalScheme
+        val globalScheme = QuickDocHighlightingHelper.getColorScheme()
         if (attributes.foregroundColor == globalScheme.getAttributes(HighlighterColors.TEXT).foregroundColor
             || attributes.foregroundColor == globalScheme.getAttributes(DefaultLanguageHighlighterColors.IDENTIFIER).foregroundColor
         ) {
@@ -669,7 +688,7 @@ object KDocRenderer {
 
             private fun resolveKey(key: TextAttributesKey): TextAttributesAdapter {
                 return TextAttributesAdapter(
-                    EditorColorsManager.getInstance().globalScheme.getAttributes(key)
+                    QuickDocHighlightingHelper.getAttributes(key)
                 )
             }
 

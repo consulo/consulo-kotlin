@@ -34,7 +34,7 @@ import org.jetbrains.kotlin.KtNodeTypes.CLASS
 import org.jetbrains.kotlin.KtNodeTypes.CLASS_BODY
 import org.jetbrains.kotlin.KtNodeTypes.COLLECTION_LITERAL_EXPRESSION
 import org.jetbrains.kotlin.KtNodeTypes.CONDITION
-import org.jetbrains.kotlin.KtNodeTypes.CONTEXT_RECEIVER_LIST
+import org.jetbrains.kotlin.KtNodeTypes.CONTEXT_PARAMETER_LIST
 import org.jetbrains.kotlin.KtNodeTypes.DESTRUCTURING_DECLARATION
 import org.jetbrains.kotlin.KtNodeTypes.DOT_QUALIFIED_EXPRESSION
 import org.jetbrains.kotlin.KtNodeTypes.DO_WHILE
@@ -99,6 +99,7 @@ import org.jetbrains.kotlin.lexer.KtTokens.COLON
 import org.jetbrains.kotlin.lexer.KtTokens.COMMA
 import org.jetbrains.kotlin.lexer.KtTokens.COMMENTS
 import org.jetbrains.kotlin.lexer.KtTokens.CONSTRUCTOR_KEYWORD
+import org.jetbrains.kotlin.lexer.KtTokens.CONTEXT_KEYWORD
 import org.jetbrains.kotlin.lexer.KtTokens.DIV
 import org.jetbrains.kotlin.lexer.KtTokens.DOC_COMMENT
 import org.jetbrains.kotlin.lexer.KtTokens.DOT
@@ -414,8 +415,12 @@ abstract class KotlinCommonBlock(
         if (childParent != null) {
             val parentType = childParent.elementType
 
-            if (parentType === VALUE_PARAMETER_LIST || parentType === VALUE_ARGUMENT_LIST) {
+            if (parentType === VALUE_PARAMETER_LIST || parentType === VALUE_ARGUMENT_LIST || parentType === CONTEXT_PARAMETER_LIST) {
                 if (childType === RPAR) {
+                    return Indent.getNoneIndent()
+                }
+
+                if (parentType === CONTEXT_PARAMETER_LIST && childType == CONTEXT_KEYWORD) {
                     return Indent.getNoneIndent()
                 }
 
@@ -478,16 +483,17 @@ abstract class KotlinCommonBlock(
 
             in QUALIFIED_EXPRESSIONS -> ChildAttributes(Indent.getContinuationWithoutFirstIndent(), null)
 
-            VALUE_PARAMETER_LIST, VALUE_ARGUMENT_LIST -> {
+            VALUE_PARAMETER_LIST, VALUE_ARGUMENT_LIST, CONTEXT_PARAMETER_LIST -> {
                 val subBlocks = getSubBlocks()
                 val parameterIndent =
-                    if ((type == VALUE_PARAMETER_LIST && !settings.kotlinCustomSettings.CONTINUATION_INDENT_IN_PARAMETER_LISTS) ||
-                        (type == VALUE_ARGUMENT_LIST && !settings.kotlinCustomSettings.CONTINUATION_INDENT_IN_ARGUMENT_LISTS)
-                    ) {
-                        Indent.getNormalIndent()
-                    } else {
-                        Indent.getContinuationIndent()
-                    }
+                        if ((type == VALUE_PARAMETER_LIST && !settings.kotlinCustomSettings.CONTINUATION_INDENT_IN_PARAMETER_LISTS) ||
+                            (type == VALUE_ARGUMENT_LIST && !settings.kotlinCustomSettings.CONTINUATION_INDENT_IN_ARGUMENT_LISTS) ||
+                            (type == CONTEXT_PARAMETER_LIST && !settings.kotlinCustomSettings.CONTINUATION_INDENT_IN_CONTEXT_PARAMETER_LISTS)
+                        ) {
+                            Indent.getNormalIndent()
+                        } else {
+                            Indent.getContinuationIndent()
+                        }
 
                 if (newChildIndex != 1 && newChildIndex != 0 && newChildIndex < subBlocks.size) {
                     val block = subBlocks[newChildIndex]
@@ -540,6 +546,13 @@ abstract class KotlinCommonBlock(
         val parentType = node.elementType
         return when {
             parentType === VALUE_PARAMETER_LIST ->
+                getAlignmentForChildInParenthesis(
+                    kotlinCommonSettings.ALIGN_MULTILINE_PARAMETERS,
+                    VALUE_PARAMETER,
+                    kotlinCommonSettings.ALIGN_MULTILINE_METHOD_BRACKETS,
+                )
+
+            parentType === CONTEXT_PARAMETER_LIST  ->
                 getAlignmentForChildInParenthesis(
                     kotlinCommonSettings.ALIGN_MULTILINE_PARAMETERS,
                     VALUE_PARAMETER,
@@ -724,6 +737,15 @@ abstract class KotlinCommonBlock(
                         }
                     }
                 }
+            }
+
+            elementType === CONTEXT_PARAMETER_LIST -> {
+                return getWrappingStrategyForItemList(
+                    commonSettings.METHOD_PARAMETERS_WRAP,
+                    VALUE_PARAMETER,
+                    node.addTrailingComma,
+                    additionalWrap = trailingCommaWrappingStrategyWithMultiLineCheck(LPAR, RPAR),
+                )
             }
 
             elementType === FUNCTION_LITERAL -> if (trailingCommaExistsOrCanExist(nodePsi, settings)) {
@@ -1027,7 +1049,7 @@ private fun getWrapAfterAnnotation(childElement: ASTNode, wrapType: Int): Wrap? 
 }
 
 private fun getWrapAfterContextParameters(childElement: ASTNode, wrapType: Int): Wrap? {
-    return getWrapAfterElementInModifierList(childElement, wrapType) { it?.elementType == CONTEXT_RECEIVER_LIST }
+    return getWrapAfterElementInModifierList(childElement, wrapType) { it?.elementType == CONTEXT_PARAMETER_LIST }
 }
 
 private fun getWrapAfterElementInModifierList(childElement: ASTNode, wrapType: Int, acceptLastChildNode: (ASTNode?) -> Boolean): Wrap? {
@@ -1169,7 +1191,7 @@ private val INDENT_RULES = arrayOf(
 
     strategy("Indent for parts")
         .within(PROPERTY, FUN, DESTRUCTURING_DECLARATION, SECONDARY_CONSTRUCTOR)
-        .notForType(BLOCK, FUN_KEYWORD, VAL_KEYWORD, VAR_KEYWORD, CONSTRUCTOR_KEYWORD, RBRACKET, RPAR, EOL_COMMENT, CONTEXT_RECEIVER_LIST, MODIFIER_LIST)
+        .notForType(BLOCK, FUN_KEYWORD, VAL_KEYWORD, VAR_KEYWORD, CONSTRUCTOR_KEYWORD, RBRACKET, RPAR, EOL_COMMENT, CONTEXT_PARAMETER_LIST, MODIFIER_LIST)
         .set(Indent.getContinuationWithoutFirstIndent()),
 
     strategy("Chained calls")
@@ -1244,6 +1266,11 @@ private val INDENT_RULES = arrayOf(
         .forElement { it.elementType == VALUE_PARAMETER && it.psi.prevSibling != null }
         .continuationIf(KotlinCodeStyleSettings::CONTINUATION_INDENT_IN_PARAMETER_LISTS, indentFirst = true),
 
+    strategy("Context parameter list")
+        .within(CONTEXT_PARAMETER_LIST)
+        .forElement { it.elementType == VALUE_PARAMETER && it.psi.prevSibling != null }
+        .continuationIf(KotlinCodeStyleSettings::CONTINUATION_INDENT_IN_CONTEXT_PARAMETER_LISTS, indentFirst = false),
+
     strategy("Where clause")
         .within(CLASS, FUN, PROPERTY)
         .forType(WHERE_KEYWORD)
@@ -1255,7 +1282,7 @@ private val INDENT_RULES = arrayOf(
         .set(Indent.getNormalIndent()),
 
     strategy("Context Parameters List")
-        .within(CONTEXT_RECEIVER_LIST)
+        .within(CONTEXT_PARAMETER_LIST)
         .forType(VALUE_PARAMETER)
         .set(Indent.getNormalIndent()),
 
@@ -1380,7 +1407,7 @@ private fun getWrappingStrategyForModifierList(annotationsWrapType: Int, context
         val prevType = getPrevWithoutWhitespace(childElement)?.elementType
         if (thisType in ANNOTATIONS || prevType in ANNOTATIONS && thisType != EOL_COMMENT && prevType != EOL_COMMENT)
             annotationWrap
-        else if (thisType == CONTEXT_RECEIVER_LIST || prevType == CONTEXT_RECEIVER_LIST && thisType != EOL_COMMENT && prevType != EOL_COMMENT)
+        else if (thisType == CONTEXT_PARAMETER_LIST || prevType == CONTEXT_PARAMETER_LIST && thisType != EOL_COMMENT && prevType != EOL_COMMENT)
             contextParametersWrap
         else
             null

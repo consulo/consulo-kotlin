@@ -1,6 +1,28 @@
 load("@rules_jvm//:jvm.bzl", "jvm_library")
+load("//build:compiler-options.bzl", "create_kotlinc_options")
+load("//platform/build-scripts/bazel-rules:content_module_jar.bzl", "content_module_jar")
 
-### auto-generated section `build kotlin.jsr223` start
+### auto-generated section `dev intellij.kotlin.jsr223` start
+content_module_jar(module = ":jsr223")
+### auto-generated section `dev intellij.kotlin.jsr223` end
+
+### auto-generated section `build intellij.kotlin.jsr223` start
+create_kotlinc_options(
+    name = "custom_jsr223",
+    opt_in = [
+        "org.jetbrains.kotlin.psi.KtExperimentalApi",
+        "org.jetbrains.kotlin.psi.KtNonPublicApi",
+        "org.jetbrains.kotlin.psi.KtIdeApi",
+        "org.jetbrains.kotlin.analysis.api.KaExperimentalApi",
+        "org.jetbrains.kotlin.analysis.api.KaIdeApi",
+        "org.jetbrains.kotlin.analysis.api.KaPlatformInterface",
+        "org.jetbrains.kotlin.analysis.api.fir.diagnostics.KaUnstableDiagnosticApi",
+        "org.jetbrains.kotlin.analysis.api.KaNonPublicApi",
+        "org.jetbrains.kotlin.analysis.api.KaContextParameterApi",
+        "org.jetbrains.kotlin.analysis.api.permissions.KaAllowProhibitedAnalyzeFromWriteAction",
+    ],
+    x_context_parameters = True,
+)
 
 jvm_library(
     name = "jsr223",
@@ -12,7 +34,8 @@ jvm_library(
         ],
         allow_empty = True,
     ),
-    module_name = "kotlin.jsr223",
+    kotlinc_opts = ":custom_jsr223",
+    module_name = "intellij.kotlin.jsr223",
     resource_strip_prefix = "resources",
     resources = glob(
         ["resources/**/*"],
@@ -21,41 +44,23 @@ jvm_library(
     deps = [
         # do not sort,
         "@lib//:kotlin-stdlib",
-        "//plugins/kotlin/base/plugin",
         "//platform/core-api:core",
-        "//platform/core-impl",
         "//platform/util",
-        "@lib//:kotlinc-kotlin-compiler-common",
-        "@lib//:kotlinc-kotlin-script-runtime",
-        "@lib//:kotlinc-kotlin-scripting-jvm",
+        "//plugins/kotlin/ide-kotlinc",
+        "//libraries/kotlinc/kotlin-compiler-common:libraries-kotlinc-kotlin-compiler-common",
+        "//libraries/kotlinc/kotlin-scripting-common:libraries-kotlinc-kotlin-scripting-common",
+        "//libraries/kotlinc/kotlin-scripting-jvm:libraries-kotlinc-kotlin-scripting-jvm",
+        "//libraries/kotlinc/scripting-compiler-plugin:libraries-kotlinc-scripting-compiler-plugin",
     ],
 )
+### auto-generated section `build intellij.kotlin.jsr223` end
 
-jvm_library(
-    name = "jsr223_test_lib",
-    testonly = True,
-    srcs = glob(
-        [],
-        allow_empty = True,
-    ),
-    module_name = "kotlin.jsr223",
-    visibility = ["//visibility:public"],
-    runtime_deps = [
-        # do not sort,
-        ":jsr223",
-        "//plugins/kotlin/base/plugin:plugin_test_lib",
-        "//platform/core-api:core_test_lib",
-        "//platform/core-impl:core-impl_test_lib",
-        "//platform/util:util_test_lib",
-    ],
-)
-### auto-generated section `build kotlin.jsr223` end
-
-### auto-generated section `iml kotlin.jsr223` start
+### auto-generated section `iml intellij.kotlin.jsr223` start
 exports_files(
     [
-        "kotlin.jsr223.iml",
+        "intellij.kotlin.jsr223.iml",
+        "resources/intellij.kotlin.jsr223.xml",
     ],
     visibility = ["//visibility:public"],
 )
-### auto-generated section `iml kotlin.jsr223` end
+### auto-generated section `iml intellij.kotlin.jsr223` end

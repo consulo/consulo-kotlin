@@ -16,6 +16,7 @@ import org.jetbrains.kotlin.idea.base.projectStructure.RootKindFilter
 import org.jetbrains.kotlin.idea.base.projectStructure.matches
 import org.jetbrains.kotlin.idea.codeinsight.utils.KotlinSupportAvailability
 import org.jetbrains.kotlin.idea.core.util.toPsiFile
+import org.jetbrains.kotlin.kdoc.psi.api.KDocElement
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.NotNullableUserDataProperty
 
@@ -36,6 +37,7 @@ class KotlinDefaultHighlightingSettingsProvider : DefaultHighlightingSettingProv
                     psiFile.isCompiled -> SKIP_INSPECTION
                     !KotlinSupportAvailability.isSupported(psiFile) -> SKIP_HIGHLIGHTING
                     RootKindFilter.libraryFiles.matches(project, file) -> SKIP_INSPECTION
+                    psiFile.notUnderContentRoot() -> SKIP_INSPECTION
                     InjectedLanguageManager.getInstance(project).shouldInspectionsBeLenient(psiFile) -> SKIP_INSPECTION
                     else -> {
                         null
@@ -43,7 +45,15 @@ class KotlinDefaultHighlightingSettingsProvider : DefaultHighlightingSettingProv
                 }
 
             file.isKotlinDecompiledFile -> SKIP_HIGHLIGHTING
-            else -> null
+            else -> {
+                val injectedLanguageManager = InjectedLanguageManager.getInstance(project)
+                val injectionHost = injectedLanguageManager.getInjectionHost(psiFile)
+                if (injectionHost is KDocElement && injectedLanguageManager.shouldInspectionsBeLenient(psiFile)) {
+                    SKIP_INSPECTION
+                } else {
+                    null
+                }
+            }
         }
     }
 }

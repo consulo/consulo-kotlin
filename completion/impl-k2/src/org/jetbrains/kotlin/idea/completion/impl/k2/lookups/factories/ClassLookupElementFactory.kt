@@ -6,24 +6,26 @@ import com.intellij.codeInsight.completion.InsertionContext
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import kotlinx.serialization.Serializable
-import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.components.asSignature
-import org.jetbrains.kotlin.analysis.api.components.defaultType
-import org.jetbrains.kotlin.analysis.api.components.importableFqName
-import org.jetbrains.kotlin.analysis.api.components.lowerBoundIfFlexible
-import org.jetbrains.kotlin.analysis.api.components.render
-import org.jetbrains.kotlin.analysis.api.components.upperBoundIfFlexible
+import org.jetbrains.kotlin.analysis.api.renderer.render
 import org.jetbrains.kotlin.analysis.api.renderer.types.impl.KaTypeRendererForSource.WITH_SHORT_NAMES
+import org.jetbrains.kotlin.analysis.api.signatures.asSignature
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassLikeSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSamConstructorSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaTypeAliasSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.importableFqName
 import org.jetbrains.kotlin.analysis.api.symbols.nameOrAnonymous
 import org.jetbrains.kotlin.analysis.api.types.KaStarTypeProjection
 import org.jetbrains.kotlin.analysis.api.types.KaTypeArgumentWithVariance
 import org.jetbrains.kotlin.analysis.api.types.KaTypeProjection
+import org.jetbrains.kotlin.analysis.api.types.defaultType
+import org.jetbrains.kotlin.analysis.api.types.lowerBoundIfFlexible
+import org.jetbrains.kotlin.analysis.api.types.symbol
+import org.jetbrains.kotlin.analysis.api.types.upperBoundIfFlexible
 import org.jetbrains.kotlin.idea.KotlinIcons
 import org.jetbrains.kotlin.idea.base.analysis.withRootPrefixIfNeeded
 import org.jetbrains.kotlin.idea.base.serialization.names.KotlinFqNameSerializer
@@ -52,6 +54,11 @@ import org.jetbrains.kotlin.types.Variance
 
 internal object ClassLookupElementFactory {
 
+    private fun KaClassLikeSymbol.isObjectSymbol(): Boolean = when (this) {
+        is KaTypeAliasSymbol -> expandedType.symbol?.isObjectSymbol() == true
+        is KaClassSymbol -> classKind.isObject
+    }
+
     context(_: KaSession)
     fun createLookup(
         symbol: KaClassLikeSymbol,
@@ -59,7 +66,8 @@ internal object ClassLookupElementFactory {
         aliasName: Name? = null,
     ): LookupElementBuilder {
         val name = aliasName ?: symbol.nameOrAnonymous
-        return LookupElementBuilder.create(ClassifierLookupObject(name, importingStrategy), name.asString())
+        val lookupObject = ClassifierLookupObject(name, importingStrategy, symbol.isObjectSymbol())
+        return LookupElementBuilder.create(lookupObject, name.asString())
             .withInsertHandler(ClassifierInsertionHandler)
             .withTailText(TailTextProvider.getTailText(symbol, useFqnAsTailText = aliasName != null), true)
             .let { withClassifierSymbolInfo(symbol, it) }
@@ -77,7 +85,6 @@ internal object ClassLookupElementFactory {
         val constructorParenthesis = if (classKind != KaClassKind.INTERFACE) "()" else ""
         val hasTypeArguments = typeArguments == null || typeArguments.isNotEmpty()
 
-        @OptIn(KaExperimentalApi::class)
         val renderedFullTypeArgs = typeArguments?.takeIf { hasTypeArguments }?.joinToString(", ", "<", ">") {
             when (it) {
                 is KaStarTypeProjection -> "Any?"
@@ -85,7 +92,6 @@ internal object ClassLookupElementFactory {
             }
         }
 
-        @OptIn(KaExperimentalApi::class)
         val renderedShortTypeArgs = typeArguments?.takeIf { hasTypeArguments }?.joinToString(", ", "<", ">") {
             when (it) {
                 is KaStarTypeProjection -> "Any?"
@@ -122,7 +128,6 @@ internal object ClassLookupElementFactory {
             .let { withClassifierSymbolInfo(symbol, it) }
     }
 
-    @OptIn(KaExperimentalApi::class)
     context(_: KaSession)
     fun createConstructorLookup(
         containingSymbol: KaClassLikeSymbol,
@@ -159,7 +164,6 @@ internal object ClassLookupElementFactory {
             }
     }
 
-    @OptIn(KaExperimentalApi::class)
     context(s: KaSession)
     fun createSamObjectLookupElement(
         samInterfaceSymbol: KaClassLikeSymbol,
@@ -234,7 +238,8 @@ internal object ClassLookupElementFactory {
 @Serializable
 internal data class ClassifierLookupObject(
     @Serializable(with = KotlinNameSerializer::class) override val shortName: Name,
-    val importingStrategy: ImportStrategy
+    val importingStrategy: ImportStrategy,
+    val isObject: Boolean,
 ) : KotlinLookupObject
 
 @Serializable

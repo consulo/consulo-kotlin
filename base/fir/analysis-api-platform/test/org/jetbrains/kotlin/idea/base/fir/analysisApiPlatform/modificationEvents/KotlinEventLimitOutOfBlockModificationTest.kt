@@ -4,17 +4,20 @@ package org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.modificationEvent
 import com.intellij.codeInsight.multiverse.CodeInsightContext
 import com.intellij.codeInsight.multiverse.CodeInsightContextManager
 import com.intellij.codeInsight.multiverse.CodeInsightContextProvider
+import com.intellij.codeInsight.multiverse.CodeInsightContextProvider.Answer
 import com.intellij.codeInsight.multiverse.ProjectModelContextBridge
 import com.intellij.openapi.application.runUndoTransparentWriteAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VirtualFile
-import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.components.returnType
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisFromWriteAction
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisFromWriteAction
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.platform.modification.KotlinModificationEventKind
+import org.jetbrains.kotlin.analysis.api.session.analyze
+import org.jetbrains.kotlin.analysis.api.types.builtinTypes
 import org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.FirIdeOutOfBlockModificationService
 import org.jetbrains.kotlin.idea.base.projectStructure.toKaSourceModuleForProduction
 import org.jetbrains.kotlin.psi.KtCallExpression
@@ -331,8 +334,15 @@ class KotlinEventLimitOutOfBlockModificationTest : AbstractKotlinModificationEve
 
         val mockContext = object : CodeInsightContext {}
 
+        // A file has a single owning provider, and a test-only provider is registered first, so it owns every file it
+        // claims. To give `a.kt` two contexts this provider must supply both itself: the mock one and module A's.
+        // Other files stay unclaimed (null), so the platform provider owns them.
         CodeInsightContextManager.getInstance(project).registerTestOnlyCodeInsightContextProvider(object : CodeInsightContextProvider {
-            override fun getContexts(file: VirtualFile, project: Project): List<CodeInsightContext> = listOf(mockContext)
+            override fun isOwnerOf(context: CodeInsightContext): Boolean = context === mockContext
+
+            override fun getContexts(file: VirtualFile, project: Project): Answer =
+                if (file.name == "a.kt") Answer.Contexts(listOf(mockContext, moduleContextA)) else Answer.NotOwned
+
             override fun subscribeToChanges(project: Project, invalidator: CodeInsightContextProvider.Invalidator) {}
         }, testRootDisposable)
 

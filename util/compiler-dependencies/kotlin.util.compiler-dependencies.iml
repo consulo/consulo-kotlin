@@ -5,42 +5,40 @@
     <content url="file://$MODULE_DIR$" />
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.allopen-compiler-plugin" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.analysis-api-k2" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.analysis-api-fe10" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.analysis-api" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.analysis-api-impl-base" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.analysis-api-platform-interface" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.symbol-light-classes" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.allopen.compiler.plugin" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.analysis.api.k2" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.analysis.api" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.analysis.api.platform.interface" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.symbol.light.classes" scope="RUNTIME" />
     <orderEntry type="library" scope="PROVIDED" name="kotlinc.incremental-compilation-impl-tests" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-build-common-tests" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-compiler-cli" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-compiler-tests" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-compiler-common" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-compiler-fe10" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-compiler-fir" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-compiler-ir" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.kotlin.compiler.common" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.kotlin.compiler.fir" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.kotlin.compiler.ir" scope="RUNTIME" />
     <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-gradle-statistics" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlinx-serialization-compiler-plugin" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.lombok-compiler-plugin" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.low-level-api-fir" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.noarg-compiler-plugin" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.parcelize-compiler-plugin" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.sam-with-receiver-compiler-plugin" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.assignment-compiler-plugin" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.scripting-compiler-plugin" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.compose-compiler-plugin" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.js-plain-objects-compiler-plugin" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-dataframe-compiler-plugin" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-jps-common" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.kotlinx.serialization.compiler.plugin" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.lombok.compiler.plugin" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.low.level.api.fir" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.noarg.compiler.plugin" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.parcelize.compiler.plugin" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.sam.with.receiver.compiler.plugin" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.assignment.compiler.plugin" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.scripting.compiler.plugin" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.compose.compiler.plugin" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.js.plain.objects.compiler.plugin" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.kotlin.dataframe.compiler.plugin" scope="RUNTIME" />
     <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-objcexport-header-generator" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-swift-export" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-scripting-common" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-scripting-dependencies" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-scripting-compiler-impl" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-scripting-jvm" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-script-runtime" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.kotlin.scripting.common" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.kotlin.scripting.dependencies" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.kotlin.scripting.compiler.impl" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.kotlin.scripting.jvm" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.kotlin.script.runtime" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.kotlin.main.kts" scope="RUNTIME" />
     <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-build-tools-api" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-build-tools-api-jps" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-build-tools-impl" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-build-tools-cri-impl" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="kotlinc.kotlin-jps-plugin-tests" level="project" />

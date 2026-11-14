@@ -1,15 +1,11 @@
-// ERROR: Return type mismatch: expected 'MutableCollection<String>', actual 'MutableList<String?>'.
-// ERROR: Initializer type mismatch: expected 'MutableCollection<String>', actual 'MutableList<String?>'.
-// ERROR: Initializer type mismatch: expected 'MutableSet<String>', actual 'MutableSet<String?>'.
-// TODO handle the case when type argument is used in the method return type (make it not-null)
 class J {
-    var notNullSet: MutableSet<String> = mutableSetOf<String?>()
+    var notNullSet: Set<String> = emptySet<String>()
 
-    var notNullCollection: MutableCollection<String> = mutableListOf<String?>()
-    var nullableCollection: MutableCollection<String?> = mutableListOf<String?>()
+    var notNullCollection: Collection<String> = emptyList<String>()
+    var nullableCollection: Collection<String?> = emptyList<String?>()
 
-    var notNullList: MutableList<String> = mutableListOf<String>()
-    var nullableList: MutableList<String?> = mutableListOf<String?>()
+    var notNullList: List<String> = listOf<String>()
+    var nullableList: List<String?> = listOf<String?>()
 
     fun foo() {
         for (s in notNullSet) {
@@ -24,14 +20,14 @@ class J {
             }
         }
 
-        takeNotNullCollection(mutableListOf<String>())
+        takeNotNullCollection(emptyList<String>())
         takeNotNullCollection(returnNotNullCollection())
     }
 
-    private fun takeNotNullCollection(strings: MutableCollection<String>?) {
+    private fun takeNotNullCollection(strings: Collection<String>) {
     }
 
-    fun returnNotNullCollection(): MutableCollection<String> {
-        return mutableListOf<String?>()
+    fun returnNotNullCollection(): Collection<String> {
+        return emptyList<String>()
     }
 }

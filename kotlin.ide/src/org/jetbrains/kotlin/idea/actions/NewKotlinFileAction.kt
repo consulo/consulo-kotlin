@@ -19,7 +19,6 @@ import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.fileEditor.FileEditorManager
-import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.progress.Cancellation
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbService
@@ -32,7 +31,9 @@ import com.intellij.openapi.util.registry.RegistryManager
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFile
 import com.intellij.util.IncorrectOperationException
+import com.intellij.util.ThreeState
 import org.jetbrains.annotations.ApiStatus
+import org.jetbrains.annotations.Nls
 import org.jetbrains.jps.model.java.JavaModuleSourceRootTypes
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.idea.KotlinFileType
@@ -41,6 +42,7 @@ import org.jetbrains.kotlin.idea.base.projectStructure.NewKotlinFileHook
 import org.jetbrains.kotlin.idea.base.projectStructure.RootKindFilter
 import org.jetbrains.kotlin.idea.base.projectStructure.languageVersionSettings
 import org.jetbrains.kotlin.idea.base.projectStructure.matches
+import org.jetbrains.kotlin.idea.base.psi.addModifierKeyword
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.statistics.KotlinCreateFileFUSCollector
 import org.jetbrains.kotlin.idea.statistics.KotlinProjectSetupFUSCollector
@@ -54,12 +56,16 @@ import javax.swing.Icon
 
 internal class NewKotlinFileAction : AbstractNewKotlinFileAction(), DumbAware {
     override fun isAvailable(dataContext: DataContext): Boolean {
-        if (!super.isAvailable(dataContext)) return false
-
         val ideView = LangDataKeys.IDE_VIEW.getData(dataContext) ?: return false
         val project = CommonDataKeys.PROJECT.getData(dataContext) ?: return false
-        val projectFileIndex = ProjectRootManager.getInstance(project).fileIndex
+        val directories = ideView.directories.ifEmpty { return false }
 
+        val override = NewKotlinFileActionAvailabilityOverride.getAvailabilityOverride(directories)
+        if (override != ThreeState.UNSURE) return override.toBoolean()
+
+        if (!super.isAvailable(dataContext)) return false
+
+        val projectFileIndex = ProjectRootManager.getInstance(project).fileIndex
         return ideView.directories.any {
             val virtualFile = it.virtualFile
             RootKindFilter.projectSources.matches(project, virtualFile) ||
@@ -106,7 +112,8 @@ internal class NewKotlinFileAction : AbstractNewKotlinFileAction(), DumbAware {
     override fun equals(other: Any?): Boolean = other is NewKotlinFileAction
 }
 
-internal abstract class AbstractNewKotlinFileAction : CreateFileFromTemplateAction() {
+@ApiStatus.Internal
+abstract class AbstractNewKotlinFileAction : CreateFileFromTemplateAction() {
 
     private fun KtFile.editor(): Editor? =
         FileEditorManager.getInstance(this.project).selectedTextEditor?.takeIf { it.document == this.viewProvider.document }
@@ -294,7 +301,7 @@ fun createKotlinFileFromTemplate(name: String, template: FileTemplate, dir: PsiD
             val singleClass = psiFile.declarations.singleOrNull() as? KtClass
             if (singleClass != null && !singleClass.isEnum() && !singleClass.isInterface() && name.contains("Abstract")) {
                 runWriteAction {
-                    singleClass.addModifier(KtTokens.ABSTRACT_KEYWORD)
+                    singleClass.addModifierKeyword(KtTokens.ABSTRACT_KEYWORD)
                 }
             }
         }
@@ -303,13 +310,42 @@ fun createKotlinFileFromTemplate(name: String, template: FileTemplate, dir: PsiD
     }
 }
 
-internal fun CreateFileFromTemplateDialog.Builder.addKind(t: KotlinTemplate) =
+@ApiStatus.Internal
+fun CreateFileFromTemplateDialog.Builder.addKind(t: KotlinTemplate): CreateFileFromTemplateDialog.Builder =
     addKind(t.title, t.icon, t.fileName)
 
-internal interface KotlinTemplate {
+@ApiStatus.Internal
+interface KotlinTemplate {
     val title: String
     val icon: Icon
     val fileName: String
+}
+
+@ApiStatus.Internal
+enum class KotlinScriptFileTemplate(
+    @NlsContexts.ListItem override val title: String,
+    override val icon: Icon,
+    override val fileName: String,
+    val description: @Nls String
+) : KotlinTemplate {
+    GradleKts(
+        ".gradle.kts",
+        KotlinIcons.GRADLE_SCRIPT,
+        "Kotlin Script Gradle",
+        KotlinBundle.message("action.new.script.description.gradle.kts")
+    ),
+    MainKts(
+        ".main.kts",
+        KotlinIcons.SCRIPT,
+        "Kotlin Script MainKts",
+        KotlinBundle.message("action.new.script.description.main.kts")
+    ),
+    Kts(
+        ".kts",
+        KotlinIcons.SCRIPT,
+        "Kotlin Script",
+        KotlinBundle.message("action.new.script.description.kts")
+    ),
 }
 
 internal enum class KotlinFileTemplate(@NlsContexts.ListItem override val title: String, override val icon: Icon, override val fileName: String): KotlinTemplate {

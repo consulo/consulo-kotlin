@@ -58,6 +58,16 @@ public class K2KmpLightFixtureHighlightingTestGenerated extends AbstractK2KmpLig
         runTest("testData/kmp/highlighting/javaInferenceWithVarargGeneric.kt");
     }
 
+    @TestMetadata("jvmOverloadsJavaCallWithDefaultsInExpect.kt")
+    public void testJvmOverloadsJavaCallWithDefaultsInExpect() throws Exception {
+        runTest("testData/kmp/highlighting/jvmOverloadsJavaCallWithDefaultsInExpect.kt");
+    }
+
+    @TestMetadata("jvmOverloadsOnActualWithDefaultsInExpect.kt")
+    public void testJvmOverloadsOnActualWithDefaultsInExpect() throws Exception {
+        runTest("testData/kmp/highlighting/jvmOverloadsOnActualWithDefaultsInExpect.kt");
+    }
+
     @TestMetadata("literals.kt")
     public void testLiterals() throws Exception {
         runTest("testData/kmp/highlighting/literals.kt");

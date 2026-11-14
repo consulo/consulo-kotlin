@@ -8,7 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectRootModificationTracker
 import com.intellij.psi.util.CachedValueProvider.Result
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.util.containers.ContainerUtil
+import com.intellij.util.containers.Java11Shim
 import org.jetbrains.kotlin.analyzer.ModuleInfo
 import org.jetbrains.kotlin.container.StorageComponentContainer
 import org.jetbrains.kotlin.container.useInstance
@@ -16,8 +16,8 @@ import org.jetbrains.kotlin.descriptors.ModuleDescriptor
 import org.jetbrains.kotlin.extensions.StorageComponentContainerContributor
 import org.jetbrains.kotlin.idea.base.projectStructure.moduleInfo.ModuleProductionSourceInfo
 import org.jetbrains.kotlin.idea.compilerPlugin.getSpecialAnnotations
-import org.jetbrains.kotlin.idea.core.script.v1.ScriptDependenciesInfo
-import org.jetbrains.kotlin.idea.core.script.v1.ScriptModuleInfo
+import org.jetbrains.kotlin.idea.core.script.ScriptDependenciesInfo
+import org.jetbrains.kotlin.idea.core.script.ScriptModuleInfo
 import org.jetbrains.kotlin.platform.TargetPlatform
 import org.jetbrains.kotlin.platform.jvm.isJvm
 import org.jetbrains.kotlin.samWithReceiver.SamWithReceiverPluginNames.ANNOTATION_OPTION_NAME
@@ -32,7 +32,7 @@ private class IdeSamWithReceiverComponentContributor(private val project: Projec
 
     private val cache = CachedValuesManager.getManager(project).createCachedValue({
         Result.create(
-            ContainerUtil.createConcurrentWeakMap<Module, List<String>>(),
+            Java11Shim.INSTANCE.createConcurrentWeakMap<Module, List<String>>(),
             ProjectRootModificationTracker.getInstance(
                 project
             )

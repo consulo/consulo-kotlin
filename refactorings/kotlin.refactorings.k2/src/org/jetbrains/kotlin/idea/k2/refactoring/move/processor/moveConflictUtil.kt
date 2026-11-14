@@ -1,26 +1,25 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.kotlin.idea.k2.refactoring.move.processor
 
-import com.intellij.openapi.diagnostic.ControlFlowException
 import com.intellij.openapi.diagnostic.fileLogger
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
 import com.intellij.refactoring.util.MoveRenameUsageInfo
 import com.intellij.util.containers.MultiMap
 import org.jetbrains.annotations.ApiStatus
-import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.components.defaultType
-import org.jetbrains.kotlin.analysis.api.components.render
 import org.jetbrains.kotlin.analysis.api.renderer.declarations.KaDeclarationRenderer
 import org.jetbrains.kotlin.analysis.api.renderer.declarations.impl.KaDeclarationRendererForSource
+import org.jetbrains.kotlin.analysis.api.renderer.render
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaFunctionSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaPackageSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaPropertySymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbol
+import org.jetbrains.kotlin.analysis.api.types.defaultType
 import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.idea.base.projectStructure.toKaSourceModuleContainingElement
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
@@ -37,6 +36,7 @@ import org.jetbrains.kotlin.idea.k2.refactoring.move.processor.conflict.checkMov
 import org.jetbrains.kotlin.idea.k2.refactoring.move.processor.conflict.checkNameClashConflicts
 import org.jetbrains.kotlin.idea.k2.refactoring.move.processor.conflict.checkRequiresClassInstanceConflict
 import org.jetbrains.kotlin.idea.k2.refactoring.move.processor.conflict.checkSealedClassesConflict
+import org.jetbrains.kotlin.idea.k2.refactoring.move.processor.conflict.checkSuperReferenceConflict
 import org.jetbrains.kotlin.idea.k2.refactoring.move.processor.conflict.checkUsedTypeParameterFromParentClassConflict
 import org.jetbrains.kotlin.idea.k2.refactoring.move.processor.conflict.checkVisibilityConflictForNonMovedUsages
 import org.jetbrains.kotlin.idea.k2.refactoring.move.processor.conflict.checkVisibilityConflictsForInternalUsages
@@ -113,13 +113,13 @@ internal fun findAllMoveConflicts(
         putAllValues(checkSealedClassesConflict(allDeclarationsToMove, targetPkg, targetKaModule, targetIdeaModule))
         putAllValues(checkNameClashConflicts(allDeclarationsToMove, targetPkg, targetKaModule, target?.getTarget() as? KtClassOrObject))
         putAllValues(checkUsedTypeParameterFromParentClassConflict(allDeclarationsToMove, target))
+        putAllValues(checkSuperReferenceConflict(allDeclarationsToMove, target))
         putAllValues(checkFunctionOverriddenInSubclassConflict(allDeclarationsToMove))
         putAllValues(checkRequiresClassInstanceConflict(usages, allDeclarationsToMove, target))
         putAllValues(checkImplicitPackagePrefixConflict(targetDir, targetPkg))
     }
 }
 
-@OptIn(KaExperimentalApi::class)
 @NlsSafe
 @ApiStatus.Internal
 context(_: KaSession)
@@ -164,7 +164,7 @@ internal fun tryFindConflict(findConflict: () -> Pair<PsiElement, String>?): Pai
     return try {
         findConflict()
     } catch (e: Exception) {
-        if (e is ControlFlowException) throw e
+        rethrowControlFlowException(e)
         fileLogger().error(e)
         null
     }

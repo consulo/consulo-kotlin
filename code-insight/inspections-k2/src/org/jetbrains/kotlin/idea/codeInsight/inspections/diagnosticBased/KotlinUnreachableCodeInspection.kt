@@ -13,14 +13,22 @@ import com.intellij.psi.createSmartPointer
 import com.intellij.psi.util.startOffset
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.fir.diagnostics.KaFirDiagnostic
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSuccessfulCall
+import org.jetbrains.kotlin.analysis.api.resolution.symbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
 import org.jetbrains.kotlin.cfg.UnreachableCode
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinKtDiagnosticBasedInspectionBase
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinModCommandQuickFix
+import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtVisitor
 import org.jetbrains.kotlin.psi.KtVisitorVoid
+import org.jetbrains.kotlin.psi.psiUtil.anyDescendantOfType
 import kotlin.reflect.KClass
+
+private val todoFqName = FqName("kotlin.TODO")
 
 class KotlinUnreachableCodeInspection : KotlinKtDiagnosticBasedInspectionBase<KtElement, KaFirDiagnostic.UnreachableCode, KotlinUnreachableCodeInspection.Context>() {
     data class Context(
@@ -30,12 +38,14 @@ class KotlinUnreachableCodeInspection : KotlinKtDiagnosticBasedInspectionBase<Kt
     override val diagnosticType: KClass<KaFirDiagnostic.UnreachableCode>
         get() = KaFirDiagnostic.UnreachableCode::class
 
-    override fun KaSession.prepareContextByDiagnostic(
+    context(session: KaSession)
+    override fun prepareContextByDiagnostic(
         element: KtElement,
         diagnostic: KaFirDiagnostic.UnreachableCode
     ): Context? {
         val reachable = diagnostic.reachable.mapNotNullTo(HashSet()) { it as? KtElement }
         val unreachable = diagnostic.unreachable.mapNotNullTo(HashSet()) { it as? KtElement }
+        if (element.containsTodoCall()) return null
 
         val unreachableTextRanges =
             UnreachableCode
@@ -53,8 +63,18 @@ class KotlinUnreachableCodeInspection : KotlinKtDiagnosticBasedInspectionBase<Kt
                 }
             }
         }
+        if (unreachableElementPointers.isEmpty()) return null
 
         return Context(unreachableElementPointers)
+    }
+
+    context(_: KaSession)
+    private fun KtElement.containsTodoCall(): Boolean = anyDescendantOfType<KtCallExpression> { it.isTodoCall() }
+
+    context(_: KaSession)
+    private fun KtCallExpression.isTodoCall(): Boolean {
+        val symbol = resolveSuccessfulCall()?.symbol as? KaNamedFunctionSymbol ?: return false
+        return symbol.callableId?.asSingleFqName() == todoFqName
     }
 
     override fun getProblemDescription(

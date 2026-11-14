@@ -1,4 +1,4 @@
-// Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
 package org.jetbrains.kotlin.idea.k2.refactoring.changeSignature.usages
 
@@ -12,29 +12,31 @@ import com.intellij.psi.util.PsiSuperMethodUtil
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtil
 import com.intellij.refactoring.changeSignature.CallerUsageInfo
-import com.intellij.refactoring.changeSignature.ChangeInfo
 import com.intellij.usageView.UsageInfo
 import com.intellij.util.containers.ContainerUtil
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.components.resolveToCall
 import org.jetbrains.kotlin.analysis.api.fir.diagnostics.KaFirDiagnostic
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisFromWriteAction
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisFromWriteAction
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
-import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
-import org.jetbrains.kotlin.analysis.api.resolution.KaErrorCallInfo
 import org.jetbrains.kotlin.analysis.api.resolution.KaExplicitReceiverValue
 import org.jetbrains.kotlin.analysis.api.resolution.KaImplicitReceiverValue
 import org.jetbrains.kotlin.analysis.api.resolution.KaSmartCastedReceiverValue
-import org.jetbrains.kotlin.analysis.api.resolution.singleFunctionCallOrNull
-import org.jetbrains.kotlin.analysis.api.resolution.successfulCallOrNull
+import org.jetbrains.kotlin.analysis.api.resolution.errors
+import org.jetbrains.kotlin.analysis.api.resolution.function
+import org.jetbrains.kotlin.analysis.api.resolution.isSuccessful
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSuccessfulCall
+import org.jetbrains.kotlin.analysis.api.resolution.simple
+import org.jetbrains.kotlin.analysis.api.resolution.single
+import org.jetbrains.kotlin.analysis.api.resolution.tryResolveCall
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaAnonymousObjectSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassifierSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaReceiverParameterSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
 import org.jetbrains.kotlin.asJava.toLightMethods
+import org.jetbrains.kotlin.builtins.StandardNames
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.defaultValue
 import org.jetbrains.kotlin.idea.base.projectStructure.languageVersionSettings
@@ -47,12 +49,14 @@ import org.jetbrains.kotlin.idea.k2.refactoring.changeSignature.KotlinChangeInfo
 import org.jetbrains.kotlin.idea.k2.refactoring.changeSignature.KotlinChangeInfoBase
 import org.jetbrains.kotlin.idea.k2.refactoring.changeSignature.KotlinParameterInfo
 import org.jetbrains.kotlin.idea.k2.refactoring.introduce.introduceVariable.K2IntroduceVariableHandler
+import org.jetbrains.kotlin.idea.k2.refactoring.util.collectContextParameterValues
 import org.jetbrains.kotlin.idea.k2.refactoring.util.createContextArgumentReplacementMapForFunctionCall
 import org.jetbrains.kotlin.idea.k2.refactoring.util.createReplacementReceiverArgumentExpression
 import org.jetbrains.kotlin.idea.refactoring.canMoveLambdaOutsideParentheses
 import org.jetbrains.kotlin.idea.refactoring.isInsideOfCallerBody
 import org.jetbrains.kotlin.idea.refactoring.moveFunctionLiteralOutsideParentheses
 import org.jetbrains.kotlin.idea.refactoring.replaceListPsiAndKeepDelimiters
+import org.jetbrains.kotlin.idea.refactoring.updateSimpleName
 import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.idea.search.KotlinSearchUsagesSupport
 import org.jetbrains.kotlin.name.Name
@@ -69,11 +73,13 @@ import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtEnumEntry
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtLambdaArgument
+import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtObjectDeclaration
 import org.jetbrains.kotlin.psi.KtOperationExpression
 import org.jetbrains.kotlin.psi.KtParameter
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtQualifiedExpression
+import org.jetbrains.kotlin.psi.KtSafeQualifiedExpression
 import org.jetbrains.kotlin.psi.KtSimpleNameExpression
 import org.jetbrains.kotlin.psi.KtSuperTypeCallEntry
 import org.jetbrains.kotlin.psi.KtSuperTypeListEntry
@@ -81,31 +87,32 @@ import org.jetbrains.kotlin.psi.KtThisExpression
 import org.jetbrains.kotlin.psi.KtUnaryExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.psi.createExpressionByPattern
+import org.jetbrains.kotlin.psi.psiUtil.anyDescendantOfType
 import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfTypeAndBranch
 import org.jetbrains.kotlin.psi.psiUtil.getPossiblyQualifiedCallExpression
 import org.jetbrains.kotlin.psi.psiUtil.getQualifiedExpressionForSelector
 import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
 import org.jetbrains.kotlin.psi.psiUtil.isTopLevelKtOrJavaMember
+import org.jetbrains.kotlin.resolution.KtResolvableCall
 import org.jetbrains.kotlin.types.expressions.OperatorConventions
-import org.jetbrains.kotlin.utils.addToStdlib.safeAs
 import org.jetbrains.kotlin.utils.sure
 
 internal class KotlinFunctionCallUsage(
     element: KtCallElement,
     private val callee: PsiElement
-) : UsageInfo(element), KotlinBaseChangeSignatureUsage {
+) : UsageInfo(element), KotlinBaseChangeSignatureUsage, WithContextParameters {
 
     @OptIn(KaAllowAnalysisFromWriteAction::class, KaAllowAnalysisOnEdt::class)
     private val indexToExpMap: Map<Int, SmartPsiElementPointer<KtExpression>>? = allowAnalysisFromWriteAction {
         allowAnalysisOnEdt {
             analyze(element) {
-                val ktCall = element.resolveToCall()
-                val functionCall = ktCall?.singleFunctionCallOrNull()
+                val resolutionAttempt = element.tryResolveCall()
+                val functionCall = resolutionAttempt?.single?.function
                     ?: return@allowAnalysisOnEdt null
-                val partiallyAppliedSymbol = functionCall.partiallyAppliedSymbol
-                if (ktCall is KaErrorCallInfo && (partiallyAppliedSymbol.signature.valueParameters.size != element.valueArguments.size ||
-                        ktCall.diagnostic is KaFirDiagnostic.NamedParameterNotFound)) {
+                if (!resolutionAttempt.isSuccessful && (functionCall.signature.valueParameters.size != element.valueArguments.size ||
+                            resolutionAttempt.errors.firstOrNull()?.diagnostic is KaFirDiagnostic.NamedParameterNotFound)
+                ) {
                     //don't update broken call sites e.g. if new parameter is added as follows
                     //first add new argument to all function usages and only then call refactoring to update function hierarchy
                     return@allowAnalysisOnEdt null
@@ -113,7 +120,8 @@ internal class KotlinFunctionCallUsage(
                 val receiverOffset = if (callee is KtCallableDeclaration && callee.receiverTypeReference != null) 1 else 0
                 val map = mutableMapOf<Int, SmartPsiElementPointer<KtExpression>>()
 
-                val oldIdxMap: Map<KaValueParameterSymbol, Int> = partiallyAppliedSymbol.signature.valueParameters.mapIndexed { idx, s -> s.symbol to (idx + receiverOffset) }.toMap()
+                val oldIdxMap: Map<KaValueParameterSymbol, Int> =
+                    functionCall.signature.valueParameters.mapIndexed { idx, s -> s.symbol to (idx + receiverOffset) }.toMap()
                 functionCall.valueArgumentMapping.forEach { (expr, variableSymbol) ->
                     map[oldIdxMap[variableSymbol.symbol]!!] = expr.createSmartPointer()
                 }
@@ -125,15 +133,15 @@ internal class KotlinFunctionCallUsage(
                         }
                     }
                 }
-                val receiver = ((partiallyAppliedSymbol.extensionReceiver
-                    ?: partiallyAppliedSymbol.dispatchReceiver) as? KaExplicitReceiverValue)?.expression
+                val receiver = ((functionCall.extensionReceiver
+                    ?: functionCall.dispatchReceiver) as? KaExplicitReceiverValue)?.expression
                 if (receiver != null) {
                     val receiverPointer = receiver.createSmartPointer()
                     if (receiverOffset > 0) map[0] = receiverPointer
                     map[Int.MAX_VALUE] = receiverPointer
                 } else {
-                    val symbol = ((partiallyAppliedSymbol.extensionReceiver
-                        ?: partiallyAppliedSymbol.dispatchReceiver) as? KaImplicitReceiverValue)?.symbol
+                    val symbol = ((functionCall.extensionReceiver
+                        ?: functionCall.dispatchReceiver) as? KaImplicitReceiverValue)?.symbol
                     val thisText = if (symbol is KaClassifierSymbol && symbol !is KaAnonymousObjectSymbol) {
                         "this@" + symbol.name!!.asString()
                     } else {
@@ -160,8 +168,7 @@ internal class KotlinFunctionCallUsage(
         allowAnalysisFromWriteAction {
             allowAnalysisOnEdt {
                 analyze(element) {
-                    val partiallyAppliedSymbol = element.resolveToCall()?.singleFunctionCallOrNull()?.partiallyAppliedSymbol
-                    val receiverValue = partiallyAppliedSymbol?.extensionReceiver
+                    val receiverValue = element.tryResolveCall()?.single?.function?.extensionReceiver
                     when (val receiver = (receiverValue as? KaSmartCastedReceiverValue)?.original ?: receiverValue) {
                         is KaExplicitReceiverValue -> receiver.expression.text to null
                         is KaImplicitReceiverValue -> {
@@ -183,14 +190,18 @@ internal class KotlinFunctionCallUsage(
     private val onReceiver  = allowAnalysisFromWriteAction { allowAnalysisOnEdt { analyze(element) { onReceiver(element) } } }
 
     context(_: KaSession)
-    private fun onReceiver(element: KtElement): Boolean {
-        val partiallyAppliedSymbol = element.resolveToCall()?.successfulCallOrNull<KaCallableMemberCall<*, *>>()?.partiallyAppliedSymbol
-        val receiverValue = (partiallyAppliedSymbol?.dispatchReceiver ?: partiallyAppliedSymbol?.extensionReceiver)?.let { (it as? KaSmartCastedReceiverValue)?.original ?: it }
+    private fun onReceiver(element: KtResolvableCall): Boolean {
+        val call = element.resolveSuccessfulCall()?.simple ?: return false
+        val receiverValue = (call.dispatchReceiver ?: call.extensionReceiver)?.let { (it as? KaSmartCastedReceiverValue)?.original ?: it }
 
         if ((receiverValue as? KaImplicitReceiverValue)?.symbol is KaReceiverParameterSymbol) return true
 
-        return receiverValue is KaExplicitReceiverValue && onReceiver(receiverValue.expression)
+        return receiverValue is KaExplicitReceiverValue &&
+                (receiverValue.expression as? KtResolvableCall)?.let { onReceiver(it) } == true
     }
+
+    override fun getContextParametersValues(changeInfo: KotlinChangeInfoBase): List<String> =
+        collectContextParameterValues(changeInfo) { indexToExpMap?.get(it.oldIndex) }
 
     override fun processUsage(
       changeInfo: KotlinChangeInfoBase,
@@ -206,11 +217,10 @@ internal class KotlinFunctionCallUsage(
         changeInfo: KotlinChangeInfoBase,
         element: KtCallElement,
         allUsages: Array<out UsageInfo>,
-        skipRedundantArgumentList: Boolean = false,
     ): KtElement? {
         var result: KtElement? = element
 
-        changeNameIfNeeded(changeInfo, element)
+        (element.calleeExpression as? KtSimpleNameExpression)?.updateSimpleName(changeInfo)
 
         if (element.valueArgumentList == null && changeInfo.isParameterSetOrOrderChanged && element.lambdaArguments.isNotEmpty()) {
             val anchor = element.typeArgumentList ?: element.calleeExpression
@@ -220,7 +230,7 @@ internal class KotlinFunctionCallUsage(
         }
         if (element.valueArgumentList != null) {
             if (changeInfo.isParameterSetOrOrderChanged) {
-                result = updateArgumentsAndReceiver(changeInfo, element, allUsages, skipRedundantArgumentList)
+                result = updateArgumentsAndReceiver(changeInfo, element, allUsages)
             } else {
                 changeArgumentNames(changeInfo, element)
             }
@@ -242,14 +252,6 @@ internal class KotlinFunctionCallUsage(
         val argumentMapping = indexToExpMap ?: return false
         val fullCallElement = element.getQualifiedExpressionForSelector() ?: element
         return getExplicitDispatchReceiverToPreserve(changeInfo, fullCallElement, argumentMapping) != null
-    }
-
-    private fun changeNameIfNeeded(changeInfo: ChangeInfo, element: KtCallElement) {
-        if (!changeInfo.isNameChanged) return
-
-        val callee = element.calleeExpression as? KtSimpleNameExpression ?: return
-
-        callee.replace(KtPsiFactory(project).createSimpleName(changeInfo.newName))
     }
 
     class ArgumentInfo(
@@ -304,30 +306,14 @@ internal class KotlinFunctionCallUsage(
         changeInfo: KotlinChangeInfoBase,
         element: KtCallElement,
         allUsages: Array<out UsageInfo>,
-        skipRedundantArgumentList: Boolean,
     ): KtElement? {
-        val argumentMapping = indexToExpMap
-        if (argumentMapping == null) return null
+        if (indexToExpMap == null) return null
         val fullCallElement = element.getQualifiedExpressionForSelector() ?: element
 
         val oldArguments = element.valueArguments
         val newParameters = changeInfo.newParameters.filter { changeInfo.receiverParameterInfo != it && !it.isContextParameter }
 
-        val contextValues = changeInfo.newParameters.filter { it.isContextParameter && !it.wasContextParameter }.mapNotNull {
-            val elementPointer = argumentMapping[it.oldIndex]
-            when (elementPointer) {
-                null -> it.defaultValueForCall?.text
-                else -> {
-                    val element = elementPointer.element
-                    when {
-                        element == null -> null
-                        element is KtThisExpression -> null
-                        (element.mainReference?.resolve() as? KtParameter)?.isContextParameter == true -> null
-                        else -> element.text
-                    }
-                }
-            }
-        }
+        val contextValues = getContextParametersValues(changeInfo)
 
         val purelyNamedCall = element is KtCallExpression && oldArguments.isNotEmpty() && oldArguments.all { it.isNamed() }
 
@@ -337,7 +323,7 @@ internal class KotlinFunctionCallUsage(
         val newArgumentInfos = newParameters.asSequence().withIndex().map {
             val (index, param) = it
             val oldIndex = param.oldIndex
-            val resolvedArgument = if (param.wasContextParameter) contextParameters?.get(param.oldIndex) else argumentMapping[oldIndex]
+            val resolvedArgument = if (param.wasContextParameter) contextParameters?.get(param.oldIndex) else indexToExpMap[oldIndex]
             val receiverValue = if (oldIndex == originalReceiverInfo?.oldIndex && !param.wasContextParameter) {
                 val explicitExtensionReceiver = explicitToImplicitExtensionReceiver.first
                 if (PsiTreeUtil.isAncestor(changeInfo.method, element, false)) {
@@ -352,6 +338,21 @@ internal class KotlinFunctionCallUsage(
             } else null
             ArgumentInfo(param, index, resolvedArgument, receiverValue)
         }.toList()
+
+        // `s?.bar()` becomes `s?.let { bar(it) }` when the receiver becomes a value argument
+        val safeCallReceiverArgument = if (fullCallElement is KtSafeQualifiedExpression && newReceiverInfo == null) {
+            newArgumentInfos.firstOrNull { it.receiverValue != null }
+        } else null
+        val implicitLambdaParameter = StandardNames.IMPLICIT_LAMBDA_PARAMETER_NAME.asString()
+        val safeCallLambdaParameter = safeCallReceiverArgument?.let { argument ->
+            fun KtNameReferenceExpression.isImplicitLambdaParameter(): Boolean = getReferencedName() == implicitLambdaParameter
+            val usesImplicitLambdaParameter = element.valueArguments.any { valueArgument ->
+                val expression = valueArgument.getArgumentExpression() ?: return@any false
+                (expression as? KtNameReferenceExpression)?.isImplicitLambdaParameter() == true ||
+                        expression.anyDescendantOfType<KtNameReferenceExpression> { it.isImplicitLambdaParameter() }
+            }
+            if (usesImplicitLambdaParameter) argument.parameter.name else implicitLambdaParameter
+        }
 
         val lastParameterIndex = newParameters.lastIndex
         val canMixArguments = element.languageVersionSettings.supportsFeature(LanguageFeature.MixedNamedArgumentsInTheirOwnPosition)
@@ -383,7 +384,8 @@ internal class KotlinFunctionCallUsage(
                 val name = argInfo.name?.let { Name.identifier(it) }
 
                 if (argInfo.receiverValue != null) {
-                    appendValueArgument(psiFactory.createArgument(psiFactory.createExpression(argInfo.receiverValue), name))
+                    val value = if (argInfo === safeCallReceiverArgument) safeCallLambdaParameter!! else argInfo.receiverValue
+                    appendValueArgument(psiFactory.createArgument(psiFactory.createExpression(value), name))
                     continue
                 }
 
@@ -410,11 +412,11 @@ internal class KotlinFunctionCallUsage(
             }
         }
         val receiver: PsiElement? = if (newReceiverInfo?.oldIndex != originalReceiverInfo?.oldIndex && newReceiverInfo != null) {
-            createReplacementReceiverArgumentExpression(psiFactory, newReceiverInfo, argumentMapping, contextParameters)
+            createReplacementReceiverArgumentExpression(psiFactory, newReceiverInfo, indexToExpMap, contextParameters)
         } else {
             null
         }
-        val dispatchReceiverToPreserve = getExplicitDispatchReceiverToPreserve(changeInfo, fullCallElement, argumentMapping)
+        val dispatchReceiverToPreserve = getExplicitDispatchReceiverToPreserve(changeInfo, fullCallElement, indexToExpMap)
         val receiverToUse = if (dispatchReceiverToPreserve != null) {
             getLabeledThisReceiverArgument(receiver, element, psiFactory)
         } else {
@@ -429,7 +431,7 @@ internal class KotlinFunctionCallUsage(
 
         val lastOldArgument = oldArguments.lastOrNull()
         val lastNewParameter = newParameters.lastOrNull()
-        val oldLastResolvedArgument = argumentMapping[lastNewParameter?.oldIndex ?: -1]?.element
+        val oldLastResolvedArgument = indexToExpMap[lastNewParameter?.oldIndex ?: -1]?.element
         val lambdaArgumentNotTouched = lastOldArgument is KtLambdaArgument && oldLastResolvedArgument == lastOldArgument
 
         if (lambdaArgumentNotTouched) {
@@ -455,6 +457,13 @@ internal class KotlinFunctionCallUsage(
             }
 
             newElement = fullCallElement.replace(replacingElement) as KtElement
+            if (safeCallReceiverArgument != null) {
+                val lambdaParameterPrefix =
+                    if (safeCallLambdaParameter == implicitLambdaParameter) "" else "$safeCallLambdaParameter -> "
+                newElement = newElement.replace(
+                    psiFactory.createExpressionByPattern("$0?.let { $lambdaParameterPrefix$1 }", safeCallReceiverArgument.receiverValue!!, newElement)
+                ) as KtElement
+            }
             if (dispatchReceiverToPreserve != null) {
                 newElement.qualifyNestedThisExpressions()
                 newElement = newElement.replace(psiFactory.createExpression("with(${dispatchReceiverToPreserve.text}) {\n${newElement.text}\n}")) as KtElement
@@ -468,14 +477,11 @@ internal class KotlinFunctionCallUsage(
                 }
             }
         }
+        wrapIntoContextValues(newElement, contextValues, psiFactory) { currentElement ->
+            (currentElement.parent as? KtQualifiedExpression)?.takeIf { it.selectorExpression == currentElement } ?: currentElement
+        }?.let { newElement = it }
 
-        for (string in contextValues) {
-            val elementToWrap = (newElement.parent as? KtQualifiedExpression)?.takeIf { it.selectorExpression == newElement } ?: newElement
-            elementToWrap.qualifyNestedThisExpressions()
-            newElement = elementToWrap.replace(psiFactory.createExpression("with($string) {\n${elementToWrap.text}\n}")) as KtElement
-        }
-
-        val newCallExpression = newElement.safeAs<KtExpression>()?.getPossiblyQualifiedCallExpression()
+        val newCallExpression = (newElement as? KtExpression)?.getPossiblyQualifiedCallExpression()
         if (newCallExpression != null && allowAnalysisFromWriteAction {
                 allowAnalysisOnEdt {
                     analyze(newCallExpression) {
@@ -486,10 +492,6 @@ internal class KotlinFunctionCallUsage(
             newCallExpression.moveFunctionLiteralOutsideParentheses()
         }
 
-        //if (!skipRedundantArgumentList) {
-        //    newCallExpression?.valueArgumentList?.let(::removeEmptyArgumentListIfApplicable)
-        //}
-        //
         return newElement
     }
 

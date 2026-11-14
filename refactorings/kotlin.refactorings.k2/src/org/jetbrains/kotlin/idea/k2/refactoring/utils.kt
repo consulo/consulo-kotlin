@@ -16,16 +16,13 @@ import com.intellij.refactoring.rename.RenamerFactory
 import com.intellij.refactoring.util.RefactoringDescriptionLocation
 import org.jetbrains.annotations.Nls
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.components.containingSymbol
-import org.jetbrains.kotlin.analysis.api.components.declaredMemberScope
-import org.jetbrains.kotlin.analysis.api.components.importableFqName
-import org.jetbrains.kotlin.analysis.api.components.semanticallyEquals
 import org.jetbrains.kotlin.analysis.api.resolution.KaExplicitReceiverValue
 import org.jetbrains.kotlin.analysis.api.resolution.KaImplicitReceiverValue
 import org.jetbrains.kotlin.analysis.api.resolution.KaReceiverValue
 import org.jetbrains.kotlin.analysis.api.resolution.KaSmartCastedReceiverValue
 import org.jetbrains.kotlin.analysis.api.scopes.KaScope
+import org.jetbrains.kotlin.analysis.api.scopes.declaredMemberScope
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.signatures.KaCallableSignature
 import org.jetbrains.kotlin.analysis.api.signatures.KaFunctionSignature
 import org.jetbrains.kotlin.analysis.api.symbols.KaAnonymousObjectSymbol
@@ -36,11 +33,17 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaClassifierSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaFunctionSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaReceiverParameterSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.allOverriddenSymbols
+import org.jetbrains.kotlin.analysis.api.symbols.containingSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.fakeOverrideOriginal
+import org.jetbrains.kotlin.analysis.api.symbols.importableFqName
 import org.jetbrains.kotlin.analysis.api.symbols.markers.KaDeclarationContainerSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.markers.KaNamedSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.name
 import org.jetbrains.kotlin.analysis.api.symbols.receiverType
+import org.jetbrains.kotlin.analysis.api.symbols.symbol
 import org.jetbrains.kotlin.analysis.api.types.KaType
+import org.jetbrains.kotlin.analysis.api.types.semanticallyEquals
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.analyzeInModalWindow
 import org.jetbrains.kotlin.idea.codeinsight.utils.resolveExpression
 import org.jetbrains.kotlin.idea.refactoring.canMoveLambdaOutsideParentheses
@@ -84,6 +87,18 @@ fun PsiElement?.canDeleteElement(): Boolean {
             || this is KtProperty
             || this is KtTypeParameter
             || this is KtTypeAlias
+}
+
+/**
+ * The declarations that [declaration] overrides, except [ignoredElements], as [checkSuperMethods] finds them for its dialog, and with no
+ * dialog.
+ */
+internal fun overriddenDeclarations(declaration: KtDeclaration, ignoredElements: Collection<PsiElement>): List<PsiElement> {
+    if (!declaration.hasModifier(KtTokens.OVERRIDE_KEYWORD)) return emptyList()
+    return analyze(declaration) {
+        (declaration.symbol as? KaCallableSymbol)?.allOverriddenSymbols?.mapNotNull { it.psi }?.filter { it !in ignoredElements }?.toList()
+            .orEmpty()
+    }
 }
 
 fun checkSuperMethods(declaration: KtDeclaration, ignore: Collection<PsiElement>, @Nls actionString: String): List<PsiElement> {

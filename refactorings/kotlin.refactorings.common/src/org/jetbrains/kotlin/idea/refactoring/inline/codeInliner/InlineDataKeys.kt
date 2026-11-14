@@ -22,6 +22,12 @@ object InlineDataKeys {
     @JvmStatic
     val NEW_DECLARATION_KEY = Key<Unit>("NEW_DECLARATION")
 
+    @JvmStatic
+    val SIDE_EFFECTS = Key<Boolean>("SIDE_EFFECTS")
+
+    @JvmStatic
+    val ARTIFICIAL_VARARG_ARRAY_VALUE_KEY: Key<Unit> = Key<Unit>("ARTIFICIAL_VARARG_ARRAY_VALUE")
+
     // these keys are used on KtValueArgument
     @JvmStatic
     val MAKE_ARGUMENT_NAMED_KEY = Key<Unit>("MAKE_ARGUMENT_NAMED")
@@ -48,6 +54,8 @@ object InlineDataKeys {
         it.putCopyableUserData(RECEIVER_VALUE_KEY, null)
         it.putCopyableUserData(WAS_FUNCTION_LITERAL_ARGUMENT_KEY, null)
         it.putCopyableUserData(NEW_DECLARATION_KEY, null)
+        it.putCopyableUserData(SIDE_EFFECTS, null)
+        it.putCopyableUserData(ARTIFICIAL_VARARG_ARRAY_VALUE_KEY, null)
         it.putCopyableUserData(MAKE_ARGUMENT_NAMED_KEY, null)
         it.putCopyableUserData(DEFAULT_PARAMETER_VALUE_KEY, null)
         it.putCopyableUserData(PARAMETER_VALUE_KEY, null)

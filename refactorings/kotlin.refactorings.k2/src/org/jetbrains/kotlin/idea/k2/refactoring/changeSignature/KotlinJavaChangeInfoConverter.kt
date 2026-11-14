@@ -22,18 +22,24 @@ import com.intellij.refactoring.changeSignature.OverriderUsageInfo
 import com.intellij.refactoring.changeSignature.ParameterInfoImpl
 import com.intellij.refactoring.util.CanonicalTypes
 import com.intellij.usageView.UsageInfo
-import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
-import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.components.asPsiType
+import org.jetbrains.kotlin.analysis.api.javaInterop.asKaType
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisFromWriteAction
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisFromWriteAction
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
+import org.jetbrains.kotlin.analysis.api.renderer.render
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolVisibility
+import org.jetbrains.kotlin.analysis.api.types.KaStandardTypeClassIds
+import org.jetbrains.kotlin.analysis.api.types.classId
+import org.jetbrains.kotlin.analysis.api.types.type
 import org.jetbrains.kotlin.asJava.toLightMethods
 import org.jetbrains.kotlin.asJava.unwrapped
 import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.jetbrains.kotlin.idea.refactoring.changeSignature.KotlinValVar
 import org.jetbrains.kotlin.idea.refactoring.changeSignature.toValVar
+import org.jetbrains.kotlin.idea.search.ExpectActualUtils
 import org.jetbrains.kotlin.load.java.JvmAbi
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtElement
@@ -42,6 +48,7 @@ import org.jetbrains.kotlin.psi.KtNamedDeclaration
 import org.jetbrains.kotlin.psi.KtParameter
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.KtPsiFactory
+import org.jetbrains.kotlin.psi.psiUtil.isCompanion
 import org.jetbrains.kotlin.psi.psiUtil.isExpectDeclaration
 import org.jetbrains.kotlin.types.Variance
 
@@ -82,13 +89,19 @@ class KotlinJavaChangeInfoConverter: JavaChangeInfoConverter {
 
         var javaChangeInfos = changeInfo.getUserData(javaChangeInfoKey)
         if (javaChangeInfos == null) {
-            val ktCallableDeclaration = changeInfo.method.takeUnless { it.isExpectDeclaration() } ?: unwrappedKotlinBase
-            val isProperty = ktCallableDeclaration is KtParameter || ktCallableDeclaration is KtProperty
-            val isJvmOverloads = isJvmAnnotated(ktCallableDeclaration, JvmOverloads::class.java.simpleName)
-            javaChangeInfos = ktCallableDeclaration?.toLightMethods()?.map {
-                createJavaInfoForLightMethod(ktCallableDeclaration, it, changeInfo, isJvmOverloads, isProperty)
-            } ?: emptyList()
-            changeInfo.putUserData(javaChangeInfoKey, javaChangeInfos)
+            val declarations = ExpectActualUtils.withExpectedActuals(changeInfo.method)
+                    .filterIsInstance<KtNamedDeclaration>()
+                    .filterNot { it.isExpectDeclaration() }
+            javaChangeInfos = declarations.flatMap { ktCallableDeclaration ->
+                val isProperty = ktCallableDeclaration is KtParameter || ktCallableDeclaration is KtProperty
+                val isJvmOverloads = isJvmAnnotated(ktCallableDeclaration, JvmOverloads::class.java.simpleName)
+                ktCallableDeclaration.toLightMethods().map {
+                    createJavaInfoForLightMethod(ktCallableDeclaration, it, changeInfo, isJvmOverloads, isProperty)
+                }
+            }
+            if (javaChangeInfos.isNotEmpty()) {
+                changeInfo.putUserData(javaChangeInfoKey, javaChangeInfos)
+            }
         }
 
         val javaChangeInfo = javaChangeInfos.firstOrNull { info ->
@@ -183,7 +196,7 @@ class KotlinJavaChangeInfoConverter: JavaChangeInfoConverter {
         )
     }
 
-    @OptIn(KaAllowAnalysisOnEdt::class, KaAllowAnalysisFromWriteAction::class, KaExperimentalApi::class)
+    @OptIn(KaAllowAnalysisOnEdt::class, KaAllowAnalysisFromWriteAction::class)
     private fun createPsiType(ktTypeText: String, originalFunction: PsiElement, unitToVoid: Boolean = false): PsiType {
         val project = originalFunction.project
         val codeFragment = KtPsiFactory(project).createTypeCodeFragment(ktTypeText, originalFunction)
@@ -191,7 +204,7 @@ class KotlinJavaChangeInfoConverter: JavaChangeInfoConverter {
             allowAnalysisFromWriteAction {
                 analyze(codeFragment) {
                     val ktType = codeFragment.getContentElement()?.type!!
-                    if (unitToVoid && ktType.isUnitType) PsiTypes.voidType() else ktType.asPsiType(originalFunction, true)!!
+                    if (unitToVoid && ktType.classId == KaStandardTypeClassIds.UNIT) PsiTypes.voidType() else ktType.asPsiType(originalFunction, true)!!
                 }
             }
         }
@@ -272,6 +285,14 @@ class KotlinJavaChangeInfoConverter: JavaChangeInfoConverter {
             }
         }
 
+        if ((originalFunction as? KtCallableDeclaration)?.isCompanion == true) {
+            params.removeFirst()
+            params.forEach {
+                if (!it.isNew) {
+                    it.oldParameterIndex -= 1
+                }
+            }
+        }
         return params
     }
 
@@ -299,6 +320,22 @@ class KotlinJavaChangeInfoConverter: JavaChangeInfoConverter {
 
             override fun getOldParameterIndex(oldParameterName: String): Int? {
                 return changeInfo.oldParameterNames.indexOf(oldParameterName).takeIf { it >= 0 }
+            }
+
+            override fun isValueParameterRemoved(): Boolean {
+                val retainedIndices = changeInfo.newParameters
+                    .mapTo(mutableSetOf()) { it.oldIndex }
+
+                return changeInfo.oldParameterNames.indices.any {
+                    it !in retainedIndices
+                }
+            }
+
+            override fun isValueParameterRetyped(): Boolean {
+                val oldTypes = changeInfo.oldParameterTypes
+                return changeInfo.newParameters.any {
+                    it.oldIndex >= 0 && it.typeText != oldTypes[it.oldIndex]
+                }
             }
 
             override fun getNewParameters(): Array<out KotlinParameterInfo> {
@@ -349,7 +386,7 @@ class KotlinJavaChangeInfoConverter: JavaChangeInfoConverter {
         }
     }
 
-    @OptIn(KaExperimentalApi::class, KaAllowAnalysisOnEdt::class, KaAllowAnalysisFromWriteAction::class)
+    @OptIn(KaAllowAnalysisOnEdt::class, KaAllowAnalysisFromWriteAction::class)
     private fun createKotlinTypeInfo(
         p: JavaParameterInfo,
         psiMethod: PsiMethod,

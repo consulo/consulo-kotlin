@@ -8,14 +8,15 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.SearchScope
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
-import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
-import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaDeclarationSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.getExpectsForActual
+import org.jetbrains.kotlin.analysis.api.symbols.symbol
 import org.jetbrains.kotlin.idea.base.psi.isEffectivelyActual
 import org.jetbrains.kotlin.idea.stubindex.KotlinFullClassNameIndex
+import org.jetbrains.kotlin.idea.stubindex.KotlinFullTypeAliasNameIndex
 import org.jetbrains.kotlin.idea.stubindex.KotlinTopLevelFunctionFqnNameIndex
 import org.jetbrains.kotlin.idea.stubindex.KotlinTopLevelPropertyFqnNameIndex
-import org.jetbrains.kotlin.idea.stubindex.KotlinTopLevelTypeAliasFqNameIndex
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtClassOrObject
@@ -25,6 +26,7 @@ import org.jetbrains.kotlin.psi.KtNamedDeclaration
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.psiUtil.isExpectDeclaration
+import org.jetbrains.kotlin.psi.psiUtil.isFromCompanionBlock
 
 @RequiresBackgroundThread(generateAssertion = false)
 fun KtDeclaration.findAllActualForExpect(searchScope: SearchScope = runReadAction { useScope }, compatibleOnly: Boolean = true): Sequence<SmartPsiElementPointer<KtDeclaration>> {
@@ -36,7 +38,7 @@ fun KtDeclaration.findAllActualForExpect(searchScope: SearchScope = runReadActio
         val fqNameAsString = fqName.asString()
         val targetDeclarations = KotlinFullClassNameIndex.getAllElements(fqNameAsString, project, scope) {
             it.matchesWithExpect(containingClassOrObjectOrSelf, compatibleOnly)
-        } + KotlinTopLevelTypeAliasFqNameIndex.getAllElements(fqNameAsString, project, scope) {
+        } + KotlinFullTypeAliasNameIndex.getAllElements(fqNameAsString, project, scope) {
             it.matchesWithExpect(containingClassOrObjectOrSelf, compatibleOnly)
         }
 
@@ -59,8 +61,15 @@ fun KtDeclaration.findAllActualForExpect(searchScope: SearchScope = runReadActio
                 }
                 is KtNamedDeclaration ->
                     when (targetDeclaration) {
-                        is KtClassOrObject -> targetDeclaration.declarations.firstOrNull {
-                            it is KtNamedDeclaration && it.name == declaration.name && it.matchesWithExpect(declaration, compatibleOnly)
+                        is KtClassOrObject -> {
+                            val targetMembers = if (declaration.isFromCompanionBlock) {
+                                targetDeclaration.companionBlocks.flatMap { it.declarations }
+                            } else {
+                                targetDeclaration.declarations
+                            }
+                            targetMembers.firstOrNull {
+                                it is KtNamedDeclaration && it.name == declaration.name && it.matchesWithExpect(declaration, compatibleOnly)
+                            }
                         }
                         else -> null
                     }
@@ -86,7 +95,6 @@ fun KtDeclaration.findAllActualForExpect(searchScope: SearchScope = runReadActio
     }.map { it.createSmartPointer() }
 }
 
-@OptIn(KaExperimentalApi::class)
 private fun KtDeclaration.matchesWithExpect(expectDeclaration: KtDeclaration, compatibleOnly: Boolean): Boolean {
     val declaration = this
     if (compatibleOnly) {

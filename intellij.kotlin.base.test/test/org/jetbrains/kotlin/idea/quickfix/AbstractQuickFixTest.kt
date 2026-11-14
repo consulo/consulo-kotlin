@@ -131,6 +131,7 @@ abstract class AbstractQuickFixTest : KotlinLightCodeInsightFixtureTestCase(), Q
 
                         doKotlinQuickFixTest(beforeFileName)
                         runInEdtAndWait {
+                            checkForWarningsAfter(beforeFile, myFixture.file as KtFile, beforeFileText)
                             checkForErrorsAfter(beforeFile, myFixture.file as KtFile, beforeFileText)
                         }
                     } finally {
@@ -167,7 +168,7 @@ abstract class AbstractQuickFixTest : KotlinLightCodeInsightFixtureTestCase(), Q
         //multiple, when chooser is provided
         val calledId = calledEventIds.firstOrNull() as? String ?: error("single `called` event is expected: $calledEventIds")
 
-        val fusDirectiveName = "FUS_K2_QUICKFIX_NAME"
+        val fusDirectiveName = "FUS_QUICKFIX_NAME"
         val quickFixName = InTextDirectivesUtils.findStringWithPrefixes(fileText, "// $fusDirectiveName:")
         if (quickFixName.isNullOrEmpty()) {
             val expected = """
@@ -258,6 +259,7 @@ abstract class AbstractQuickFixTest : KotlinLightCodeInsightFixtureTestCase(), Q
                 checkForUnexpectedActions()
 
                 if (ktFile != null) {
+                    checkForWarningsBefore(testFile, ktFile, fileText)
                     checkForErrorsBefore(testFile, ktFile, fileText)
                 }
             }
@@ -464,8 +466,10 @@ abstract class AbstractQuickFixTest : KotlinLightCodeInsightFixtureTestCase(), Q
         )
     }
 
+    protected open fun checkForWarningsBefore(mainFile: File, ktFile: KtFile, fileText: String) {}
     protected open fun checkForErrorsBefore(mainFile: File, ktFile: KtFile, fileText: String) {}
 
+    protected open fun checkForWarningsAfter(mainFile: File, ktFile: KtFile, fileText: String) {}
     protected open fun checkForErrorsAfter(mainFile: File, ktFile: KtFile, fileText: String) {}
 
     override val additionalToolDirectives: Array<String>

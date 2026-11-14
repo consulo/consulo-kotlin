@@ -31,9 +31,11 @@ import com.intellij.psi.util.descendantsOfType
 import com.intellij.util.Processor
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.intellij.util.containers.ContainerUtil
-import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.resolution.singleFunctionCallOrNull
+import org.jetbrains.kotlin.analysis.api.resolution.function
+import org.jetbrains.kotlin.analysis.api.resolution.single
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
+import org.jetbrains.kotlin.analysis.api.resolution.tryResolveCall
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.asJava.LightClassUtil.getLightClassMethods
 import org.jetbrains.kotlin.asJava.LightClassUtil.getLightClassPropertyMethods
 import org.jetbrains.kotlin.asJava.LightClassUtil.getLightFieldForCompanionObject
@@ -71,6 +73,7 @@ import org.jetbrains.kotlin.psi.KtDeclaration
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtEnumEntry
 import org.jetbrains.kotlin.psi.KtEnumEntrySuperclassReferenceExpression
+import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtFunction
 import org.jetbrains.kotlin.psi.KtImportDirective
 import org.jetbrains.kotlin.psi.KtNamedDeclaration
@@ -88,7 +91,6 @@ import org.jetbrains.kotlin.psi.psiUtil.isExpectDeclaration
 import org.jetbrains.kotlin.psi.psiUtil.parameterIndex
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.utils.addToStdlib.popLast
-import org.jetbrains.kotlin.utils.addToStdlib.safeAs
 
 data class KotlinReferencesSearchOptions(
     val acceptCallableOverrides: Boolean = false,
@@ -167,7 +169,7 @@ class KotlinAliasedImportedElementSearcher : QueryExecutorBase<PsiReference, Ref
         private val mySession: SearchSession
     ) : RequestResultProcessor(myTarget) {
         override fun processTextOccurrence(element: PsiElement, offsetInElement: Int, consumer: Processor<in PsiReference>): Boolean {
-            val importStatement = element.parent as? KtImportDirective ?: return true
+            val importStatement = (element as? KtExpression)?.parent as? KtImportDirective ?: return true
             val alias = importStatement.alias ?: return true
             val importAlias = alias.name ?: return true
 
@@ -194,7 +196,7 @@ class KotlinReferencesSearcher : QueryExecutorBase<PsiReference, ReferencesSearc
 
     private class QueryProcessor(val queryParameters: ReferencesSearch.SearchParameters, val consumer: Processor<in PsiReference>) {
 
-        private val kotlinOptions = queryParameters.safeAs<KotlinAwareReferencesSearchParameters>()?.kotlinOptions ?: Empty
+        private val kotlinOptions = (queryParameters as? KotlinAwareReferencesSearchParameters)?.kotlinOptions ?: Empty
 
         private val longTasks = ContainerUtil.createConcurrentList<() -> Unit>()
 
@@ -204,9 +206,20 @@ class KotlinReferencesSearcher : QueryExecutorBase<PsiReference, ReferencesSearc
             }
         }
 
+        /**
+         * ensure to execute conventions search after current search has already processed the usages
+         */
+        private fun scheduleConventionSearch(createSearcher: (SearchRequestCollector) -> OperatorReferenceSearcher<*>?) {
+            val conventionCollector = SearchRequestCollector(queryParameters.optimizer.searchSession)
+            val searcher = createSearcher(conventionCollector) ?: return
+            queryParameters.optimizer.searchCustom {
+                searcher.processOperatorUsages() && PsiSearchHelper.getInstance(queryParameters.project).processRequests(conventionCollector, consumer)
+            }
+        }
+
         fun process() {
             var element: SmartPsiElementPointer<PsiElement>? = null
-            var classNameForCompanionObject: String? = null
+
 
             val (elementToSearchPointer: SmartPsiElementPointer<PsiNamedElement>, effectiveSearchScope) =
                 DumbService.getInstance(queryParameters.project).runReadActionInSmartMode( Computable{
@@ -221,7 +234,6 @@ class KotlinReferencesSearcher : QueryExecutorBase<PsiReference, ReferencesSearc
                 val effectiveSearchScope = queryParameters.effectiveSearchScope(elementToSearch)
 
                 element = SmartPointerManager.createPointer(psiElement)
-                classNameForCompanionObject = elementToSearch.getClassNameForCompanionObject()
 
                 SmartPointerManager.createPointer(elementToSearch) to effectiveSearchScope
             }) ?: return
@@ -249,7 +261,7 @@ class KotlinReferencesSearcher : QueryExecutorBase<PsiReference, ReferencesSearc
                         }
                     }
 
-                    classNameForCompanionObject?.let { name ->
+                    elementToSearch.getClassNameForCompanionObject()?.let { name ->
                         longTasks.add {
                             runReadAction { elementToSearchPointer.element }?.let { elementToSearch ->
                                 queryParameters.optimizer.searchWord(
@@ -264,12 +276,12 @@ class KotlinReferencesSearcher : QueryExecutorBase<PsiReference, ReferencesSearc
                 if (elementToSearchPointer.element is KtParameter && kotlinOptions.searchNamedArguments) {
                     longTasks.add {
                         DumbService.getInstance(queryParameters.project).runReadActionInSmartMode(Runnable {
-                            elementToSearchPointer.element.safeAs<KtParameter>()?.let(::searchNamedArguments)
+                            (elementToSearchPointer.element as? KtParameter)?.let(::searchNamedArguments)
                         })
                     }
                 }
 
-                if (runReadAction { elementToSearchPointer.element is KtElement && !isOnlyKotlinSearch(effectiveSearchScope) }) {
+                if (elementToSearchPointer.element is KtElement && !isOnlyKotlinSearch(effectiveSearchScope)) {
                     longTasks.add {
                         DumbService.getInstance(queryParameters.project).runReadActionInSmartMode(Runnable {
                             element?.element?.let(::searchLightElements)
@@ -277,15 +289,12 @@ class KotlinReferencesSearcher : QueryExecutorBase<PsiReference, ReferencesSearc
                     }
                 }
 
-                element?.element?.takeIf { it is KtFunction || it is PsiMethod }?.let { _ ->
-                    element.element?.let {
+                scheduleConventionSearch { conventionCollector ->
+                    element?.element?.takeIf { it is KtFunction || it is PsiMethod }?.let { target ->
                         OperatorReferenceSearcher.create(
-                            it, effectiveSearchScope, consumer, queryParameters.optimizer, kotlinOptions
+                            target, effectiveSearchScope, consumer, conventionCollector, kotlinOptions
                         )
                     }
-                        ?.let { searcher ->
-                            longTasks.add { searcher.run() }
-                        }
                 }
 
                 element?.element?.takeIf { (it as? KtConstructor<*>)?.containingClass()?.isEnum() == true }?.let { el ->
@@ -294,7 +303,7 @@ class KotlinReferencesSearcher : QueryExecutorBase<PsiReference, ReferencesSearc
                     klass.declarations.filterIsInstance<KtEnumEntry>().forEach { enumEntry ->
                         enumEntry.descendantsOfType<KtEnumEntrySuperclassReferenceExpression>().forEach { superEntry ->
                             val target = analyze(superEntry) {
-                                superEntry.resolveToCall()?.singleFunctionCallOrNull()?.partiallyAppliedSymbol?.symbol?.psi
+                                superEntry.tryResolveCall()?.single?.function?.symbol?.psi
                             }
                             if (target != el &&
                                 !(kotlinOptions.acceptOverloads && target is KtConstructor<*> && target.containingClass() == klass)
@@ -347,37 +356,28 @@ class KotlinReferencesSearcher : QueryExecutorBase<PsiReference, ReferencesSearc
             )
         }
 
-        @RequiresReadLock
+        @RequiresReadLock(generateAssertion = false /* IJPL-115548 */)
         private fun searchLightElements(element: PsiElement) {
-            val project = element.project
             when (element) {
                 is KtClassOrObject -> {
                     processKtClassOrObject(element)
                 }
 
                 is KtConstructor<*> -> {
-                    val psiMethods = findAllRelatedActualsOrSelf(element)
-                        .filterIsInstance<KtConstructor<*>>()
-                        .flatMap { getLightClassMethods(it) }
-
-                    psiMethods.forEach { psiMethod ->
-                        val pointer = psiMethod.createSmartPointer()
-                        longTasks.add {
-                            runReadAction { pointer.element }?.let {
-                                MethodReferencesSearch.search(
-                                    it,
-                                    queryParameters.effectiveSearchScope.excludeFileTypes(
-                                        project, KotlinFileType.INSTANCE
-                                    ),
-                                    true
-                                ).forEach(consumer)
-                            }
-                        }
+                    val containingClass = element.containingClass()
+                    if (containingClass?.isAnnotation() == true) {
+                        searchLightElements(containingClass)
+                        return
                     }
+                    searchLightMethods<KtConstructor<*>>(element)
                 }
 
                 is KtNamedFunction -> {
-                    element.name?.let { getLightClassMethods(element).forEach(::searchNamedElement) }
+                    if (kotlinOptions.acceptCallableOverrides) {
+                        searchLightMethods<KtNamedFunction>(element)
+                    } else {
+                        element.name?.let { getLightClassMethods(element).forEach(::searchNamedElement) }
+                    }
 
                     processStaticsFromCompanionObject(element)
                 }
@@ -387,7 +387,11 @@ class KotlinReferencesSearcher : QueryExecutorBase<PsiReference, ReferencesSearc
                             .filterIsInstance<KtProperty>()
                             .map { getLightClassPropertyMethods(it) }
                     propertyAccessors.forEach { propertyAccessor ->
-                        propertyAccessor.allDeclarations.forEach(::searchNamedElement)
+                        if (kotlinOptions.acceptCallableOverrides) {
+                            searchMethodReferences(propertyAccessor)
+                        } else {
+                            propertyAccessor.allDeclarations.forEach(::searchNamedElement)
+                        }
                     }
                     processStaticsFromCompanionObject(element)
                 }
@@ -425,26 +429,42 @@ class KotlinReferencesSearcher : QueryExecutorBase<PsiReference, ReferencesSearc
         }
 
         @RequiresReadLock
+        private inline fun <reified T: KtFunction> searchLightMethods(element: T) {
+            val psiMethods = findAllRelatedActualsOrSelf(element)
+                .filterIsInstance<T>()
+                .flatMap { getLightClassMethods(it) }
+
+            searchMethodReferences(psiMethods)
+        }
+
+        @RequiresReadLock
+        private fun searchMethodReferences(psiMethods: Iterable<PsiMethod>) {
+            psiMethods.forEach { psiMethod ->
+                val pointer = psiMethod.createSmartPointer()
+                queryParameters.optimizer.searchCustom {
+                    val method = runReadAction { pointer.element } ?: return@searchCustom true
+                    MethodReferencesSearch.search(
+                        method,
+                        runReadAction { queryParameters.effectiveSearchScope(method) },
+                        true
+                    ).forEach(consumer)
+                }
+            }
+        }
+
+        @RequiresReadLock(generateAssertion = false /* IJPL-115548 */)
         private fun searchPropertyAccessorMethods(origin: KtParameter) {
             val lightMethods = findAllRelatedActualsOrSelf(origin)
                 .filterIsInstance<KtParameter>()
-                .flatMap { it.toLightElements() }
-                .toList()
-            val namedElements = lightMethods.filterDataClassComponentsIfDisabled(kotlinOptions).filterIsInstance<PsiMethod>()
-            for (element in namedElements) {
-                val pointer = element.createSmartPointer()
-                longTasks.add {
-                    runReadAction { pointer.element }?.let {
-                        MethodReferencesSearch.search(it, queryParameters.effectiveSearchScope, true).forEach(consumer)
-                    }
-                }
-            }
+                .flatMap { getLightClassPropertyMethods(it) }
+                .filterDataClassComponentsIfDisabled(kotlinOptions)
+            searchMethodReferences(lightMethods)
         }
 
         /**
          * return self if [element] is not expect nor actual
          */
-        @RequiresReadLock
+        @RequiresReadLock(generateAssertion = false /* IJPL-115548 */)
         private fun findAllRelatedActualsOrSelf(element: KtDeclaration): Set<KtDeclaration> {
             val expectActualSupport = ExpectActualSupport.getInstance(element.project)
             return when {
@@ -460,7 +480,7 @@ class KotlinReferencesSearcher : QueryExecutorBase<PsiReference, ReferencesSearc
             }
         }
 
-        @RequiresReadLock
+        @RequiresReadLock(generateAssertion = false /* IJPL-115548 */)
         private fun processKtClassOrObject(element: KtClassOrObject) {
             if (element.name == null) return
 
@@ -496,16 +516,18 @@ class KotlinReferencesSearcher : QueryExecutorBase<PsiReference, ReferencesSearc
                         searchNamedElement(element, componentMethodName)
 
                         if (kotlinOptions.searchForComponentConventions) {
-                            val componentIndex = element.parameterIndex()
-                            val searcher = DestructuringDeclarationReferenceSearcher(
-                                element,
-                                componentIndex + 1,
-                                queryParameters.effectiveSearchScope,
-                                consumer,
-                                queryParameters.optimizer,
-                                kotlinOptions
-                            )
-                            longTasks.add { searcher.run() }
+                            scheduleConventionSearch { conventionCollector ->
+                                val param = elementPointer.element as? KtParameter ?: return@scheduleConventionSearch null
+                                val componentIndex = element.parameterIndex()
+                                DestructuringDeclarationReferenceSearcher(
+                                    param,
+                                    componentIndex + 1,
+                                    queryParameters.effectiveSearchScope,
+                                    consumer,
+                                    conventionCollector,
+                                    kotlinOptions
+                                )
+                            }
                         }
                     }
 
@@ -524,7 +546,7 @@ class KotlinReferencesSearcher : QueryExecutorBase<PsiReference, ReferencesSearc
             })
         }
 
-        @RequiresReadLock
+        @RequiresReadLock(generateAssertion = false /* IJPL-115548 */)
         private fun searchDataClassComponentUsages(
             containingClass: KtLightClass,
             componentMethodName: String,
@@ -535,14 +557,17 @@ class KotlinReferencesSearcher : QueryExecutorBase<PsiReference, ReferencesSearc
                 it.name == componentMethodName && it.parameterList.parametersCount == 0
             }?.let {
                 searchNamedElement(it)
-
-                OperatorReferenceSearcher.create(
-                    it, queryParameters.effectiveSearchScope, consumer, queryParameters.optimizer, kotlinOptions
-                )?.let { searcher -> longTasks.add { searcher.run() } }
+                val pointer = it.createSmartPointer()
+                scheduleConventionSearch { conventionCollector ->
+                    val method = pointer.element ?: return@scheduleConventionSearch null
+                    OperatorReferenceSearcher.create(
+                        method, queryParameters.effectiveSearchScope, consumer, conventionCollector, kotlinOptions
+                    )
+                }
             }
         }
 
-        @RequiresReadLock
+        @RequiresReadLock(generateAssertion = false /* IJPL-115548 */)
         private fun processStaticsFromCompanionObject(element: KtDeclaration) {
             findStaticMethodsFromCompanionObject(element).forEach(::searchNamedElement)
         }
@@ -558,7 +583,7 @@ class KotlinReferencesSearcher : QueryExecutorBase<PsiReference, ReferencesSearc
             return allMethods.filter { it is KtLightMethod && it.kotlinOrigin == declaration }
         }
 
-        @RequiresReadLock
+        @RequiresReadLock(generateAssertion = false /* IJPL-115548 */)
         private fun searchNamedElement(
             element: PsiNamedElement?,
             name: String? = null,

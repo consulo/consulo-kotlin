@@ -98,6 +98,11 @@ public class FirKeywordCompletionTestGenerated extends AbstractFirKeywordComplet
         runTest("../../completion/testData/keywords/AllowValInWhen.kt");
     }
 
+    @TestMetadata("AsBetweenImportDirectives.kt")
+    public void testAsBetweenImportDirectives() throws Exception {
+        runTest("../../completion/testData/keywords/AsBetweenImportDirectives.kt");
+    }
+
     @TestMetadata("BeforeClass.kt")
     public void testBeforeClass() throws Exception {
         runTest("../../completion/testData/keywords/BeforeClass.kt");
@@ -106,6 +111,21 @@ public class FirKeywordCompletionTestGenerated extends AbstractFirKeywordComplet
     @TestMetadata("BeforeDelegationCall.kt")
     public void testBeforeDelegationCall() throws Exception {
         runTest("../../completion/testData/keywords/BeforeDelegationCall.kt");
+    }
+
+    @TestMetadata("BeforeImportDirectiveWithoutPackage.kt")
+    public void testBeforeImportDirectiveWithoutPackage() throws Exception {
+        runTest("../../completion/testData/keywords/BeforeImportDirectiveWithoutPackage.kt");
+    }
+
+    @TestMetadata("BeforeMisplacedImportDirective.kt")
+    public void testBeforeMisplacedImportDirective() throws Exception {
+        runTest("../../completion/testData/keywords/BeforeMisplacedImportDirective.kt");
+    }
+
+    @TestMetadata("BetweenImportDirectives.kt")
+    public void testBetweenImportDirectives() throws Exception {
+        runTest("../../completion/testData/keywords/BetweenImportDirectives.kt");
     }
 
     @TestMetadata("BreakContinue.kt")
@@ -153,11 +173,6 @@ public class FirKeywordCompletionTestGenerated extends AbstractFirKeywordComplet
         runTest("../../completion/testData/keywords/ContextParameter.kt");
     }
 
-    @TestMetadata("ContextReceiver.kt")
-    public void testContextReceiver() throws Exception {
-        runTest("../../completion/testData/keywords/ContextReceiver.kt");
-    }
-
     @TestMetadata("ContinuePrefixMatching.kt")
     public void testContinuePrefixMatching() throws Exception {
         runTest("../../completion/testData/keywords/ContinuePrefixMatching.kt");
@@ -186,6 +201,11 @@ public class FirKeywordCompletionTestGenerated extends AbstractFirKeywordComplet
     @TestMetadata("FileKeyword.kt")
     public void testFileKeyword() throws Exception {
         runTest("../../completion/testData/keywords/FileKeyword.kt");
+    }
+
+    @TestMetadata("FileUseSiteTargetBeforeImportDirective.kt")
+    public void testFileUseSiteTargetBeforeImportDirective() throws Exception {
+        runTest("../../completion/testData/keywords/FileUseSiteTargetBeforeImportDirective.kt");
     }
 
     @TestMetadata("FixingLayoutAndReturn.kt")
@@ -311,6 +331,11 @@ public class FirKeywordCompletionTestGenerated extends AbstractFirKeywordComplet
     @TestMetadata("InIf.kt")
     public void testInIf() throws Exception {
         runTest("../../completion/testData/keywords/InIf.kt");
+    }
+
+    @TestMetadata("InInterfaceCompanionBlockScope.kt")
+    public void testInInterfaceCompanionBlockScope() throws Exception {
+        runTest("../../completion/testData/keywords/InInterfaceCompanionBlockScope.kt");
     }
 
     @TestMetadata("InInterfaceScope.kt")
@@ -543,6 +568,21 @@ public class FirKeywordCompletionTestGenerated extends AbstractFirKeywordComplet
         runTest("../../completion/testData/keywords/Receiver.kt");
     }
 
+    @TestMetadata("RepeatedModifier.kt")
+    public void testRepeatedModifier() throws Exception {
+        runTest("../../completion/testData/keywords/RepeatedModifier.kt");
+    }
+
+    @TestMetadata("RepeatedModifierInsideClass.kt")
+    public void testRepeatedModifierInsideClass() throws Exception {
+        runTest("../../completion/testData/keywords/RepeatedModifierInsideClass.kt");
+    }
+
+    @TestMetadata("RepeatedModifierNotAdjacent.kt")
+    public void testRepeatedModifierNotAdjacent() throws Exception {
+        runTest("../../completion/testData/keywords/RepeatedModifierNotAdjacent.kt");
+    }
+
     @TestMetadata("Return1.kt")
     public void testReturn1() throws Exception {
         runTest("../../completion/testData/keywords/Return1.kt");
@@ -593,6 +633,16 @@ public class FirKeywordCompletionTestGenerated extends AbstractFirKeywordComplet
         runTest("../../completion/testData/keywords/Return9.kt");
     }
 
+    @TestMetadata("ReturnAfterReturn.kt")
+    public void testReturnAfterReturn() throws Exception {
+        runTest("../../completion/testData/keywords/ReturnAfterReturn.kt");
+    }
+
+    @TestMetadata("ReturnAsExpressionBody.kt")
+    public void testReturnAsExpressionBody() throws Exception {
+        runTest("../../completion/testData/keywords/ReturnAsExpressionBody.kt");
+    }
+
     @TestMetadata("ReturnBoolean.kt")
     public void testReturnBoolean() throws Exception {
         runTest("../../completion/testData/keywords/ReturnBoolean.kt");
@@ -601,6 +651,21 @@ public class FirKeywordCompletionTestGenerated extends AbstractFirKeywordComplet
     @TestMetadata("ReturnCollection.kt")
     public void testReturnCollection() throws Exception {
         runTest("../../completion/testData/keywords/ReturnCollection.kt");
+    }
+
+    @TestMetadata("ReturnInExpressionBody.kt")
+    public void testReturnInExpressionBody() throws Exception {
+        runTest("../../completion/testData/keywords/ReturnInExpressionBody.kt");
+    }
+
+    @TestMetadata("ReturnInExpressionBodyBeforeLanguageFeature.kt")
+    public void testReturnInExpressionBodyBeforeLanguageFeature() throws Exception {
+        runTest("../../completion/testData/keywords/ReturnInExpressionBodyBeforeLanguageFeature.kt");
+    }
+
+    @TestMetadata("ReturnInExpressionBodyWithoutExplicitType.kt")
+    public void testReturnInExpressionBodyWithoutExplicitType() throws Exception {
+        runTest("../../completion/testData/keywords/ReturnInExpressionBodyWithoutExplicitType.kt");
     }
 
     @TestMetadata("ReturnIterable.kt")
@@ -646,6 +711,11 @@ public class FirKeywordCompletionTestGenerated extends AbstractFirKeywordComplet
     @TestMetadata("ReturnWithLabelPrefix.kt")
     public void testReturnWithLabelPrefix() throws Exception {
         runTest("../../completion/testData/keywords/ReturnWithLabelPrefix.kt");
+    }
+
+    @TestMetadata("RichErrorsModifier.kt")
+    public void testRichErrorsModifier() throws Exception {
+        runTest("../../completion/testData/keywords/RichErrorsModifier.kt");
     }
 
     @TestMetadata("SealedForAlreadySealed.kt")

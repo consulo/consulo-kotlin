@@ -190,4 +190,36 @@
       </problem>
     </problems>
   </test>
+  <test name="RunBlocking suppressed by the @Suppress annotation">
+    <input_files>
+      <input_file path="SuppressedRunBlocking.kt"/>
+    </input_files>
+    <problems>
+      <problem>
+        <trace_element fq_name="SuppressedRunBlocking.reported" file="SuppressedRunBlocking.kt" offset="207"/>
+        <trace_element fq_name="--> runBlocking" file="SuppressedRunBlocking.kt" offset="228"/>
+      </problem>
+      <problem>
+        <trace_element fq_name="SuppressedRunBlocking.reportedForOtherId" file="SuppressedRunBlocking.kt" offset="509"/>
+        <trace_element fq_name="--> runBlocking" file="SuppressedRunBlocking.kt" offset="540"/>
+      </problem>
+    </problems>
+  </test>
+  <test name="RunBlocking in a function with the same name as a suspend function in another file of the package">
+    <input_files>
+      <input_file path="SameNameInPackageBlocking.kt"/>
+      <input_file path="SameNameInPackageSuspend.kt"/>
+    </input_files>
+  </test>
+  <test name="RunBlocking in an extension function with the same name as a suspend extension function on another receiver">
+    <input_files>
+      <input_file path="SameNameDifferentReceivers.kt"/>
+    </input_files>
+  </test>
+  <test name="RunBlocking in a private function with the same name as a private function in another file of the package">
+    <input_files>
+      <input_file path="SamePrivateNameBlocking.kt"/>
+      <input_file path="SamePrivateNameCoroutine.kt"/>
+    </input_files>
+  </test>
 </tests>

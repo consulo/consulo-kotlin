@@ -1322,6 +1322,44 @@ public abstract class K2EnterHandlerTestGenerated extends AbstractK2EnterHandler
         }
 
         @RunWith(JUnit3RunnerWithInners.class)
+        @TestMetadata("../../idea/tests/testData/editor/enterHandler/kDocCodeFence")
+        public static class KDocCodeFence extends AbstractK2EnterHandlerTest {
+            private void runTest(String testDataFilePath) throws Exception {
+                KotlinTestUtils.runTest(this::doNewlineTest, this, testDataFilePath);
+            }
+
+            @TestMetadata("ImplicitKotlinFenceCurlyBraces.after.kt")
+            public void testImplicitKotlinFenceCurlyBraces() throws Exception {
+                runTest("../../idea/tests/testData/editor/enterHandler/kDocCodeFence/ImplicitKotlinFenceCurlyBraces.after.kt");
+            }
+
+            @TestMetadata("ImplicitKotlinFenceEmptyParentheses.after.kt")
+            public void testImplicitKotlinFenceEmptyParentheses() throws Exception {
+                runTest("../../idea/tests/testData/editor/enterHandler/kDocCodeFence/ImplicitKotlinFenceEmptyParentheses.after.kt");
+            }
+
+            @TestMetadata("ImplicitKotlinFenceSingleSpace.after.kt")
+            public void testImplicitKotlinFenceSingleSpace() throws Exception {
+                runTest("../../idea/tests/testData/editor/enterHandler/kDocCodeFence/ImplicitKotlinFenceSingleSpace.after.kt");
+            }
+
+            @TestMetadata("ImplicitKotlinFenceSpaces.after.kt")
+            public void testImplicitKotlinFenceSpaces() throws Exception {
+                runTest("../../idea/tests/testData/editor/enterHandler/kDocCodeFence/ImplicitKotlinFenceSpaces.after.kt");
+            }
+
+            @TestMetadata("ImplicitKotlinFenceTrailingSpaces.after.kt")
+            public void testImplicitKotlinFenceTrailingSpaces() throws Exception {
+                runTest("../../idea/tests/testData/editor/enterHandler/kDocCodeFence/ImplicitKotlinFenceTrailingSpaces.after.kt");
+            }
+
+            @TestMetadata("ImplicitKotlinFenceWord.after.kt")
+            public void testImplicitKotlinFenceWord() throws Exception {
+                runTest("../../idea/tests/testData/editor/enterHandler/kDocCodeFence/ImplicitKotlinFenceWord.after.kt");
+            }
+        }
+
+        @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../idea/tests/testData/editor/enterHandler/multilineString")
         public abstract static class MultilineString extends AbstractK2EnterHandlerTest {
             @RunWith(JUnit3RunnerWithInners.class)
@@ -1506,6 +1544,11 @@ public abstract class K2EnterHandlerTestGenerated extends AbstractK2EnterHandler
                     runTest("../../idea/tests/testData/editor/enterHandler/multilineString/spaces/InsertDefaultMargin.after.kt");
                 }
 
+                @TestMetadata("NoTrimIndentInAnnotationParameterDefault.after.kt")
+                public void testNoTrimIndentInAnnotationParameterDefault() throws Exception {
+                    runTest("../../idea/tests/testData/editor/enterHandler/multilineString/spaces/NoTrimIndentInAnnotationParameterDefault.after.kt");
+                }
+
                 @TestMetadata("NoTrimIndentInAnnotations.after.kt")
                 public void testNoTrimIndentInAnnotations() throws Exception {
                     runTest("../../idea/tests/testData/editor/enterHandler/multilineString/spaces/NoTrimIndentInAnnotations.after.kt");
@@ -1539,6 +1582,36 @@ public abstract class K2EnterHandlerTestGenerated extends AbstractK2EnterHandler
                 @TestMetadata("RestoreIndentFromEmptyLine.after.kt")
                 public void testRestoreIndentFromEmptyLine() throws Exception {
                     runTest("../../idea/tests/testData/editor/enterHandler/multilineString/spaces/RestoreIndentFromEmptyLine.after.kt");
+                }
+
+                @TestMetadata("TrimIndentInAnnotationParameterDefault.after.kt")
+                public void testTrimIndentInAnnotationParameterDefault() throws Exception {
+                    runTest("../../idea/tests/testData/editor/enterHandler/multilineString/spaces/TrimIndentInAnnotationParameterDefault.after.kt");
+                }
+
+                @TestMetadata("TrimIndentInAnnotations.after.kt")
+                public void testTrimIndentInAnnotations() throws Exception {
+                    runTest("../../idea/tests/testData/editor/enterHandler/multilineString/spaces/TrimIndentInAnnotations.after.kt");
+                }
+
+                @TestMetadata("TrimIndentInConst.after.kt")
+                public void testTrimIndentInConst() throws Exception {
+                    runTest("../../idea/tests/testData/editor/enterHandler/multilineString/spaces/TrimIndentInConst.after.kt");
+                }
+
+                @TestMetadata("TrimIndentInConstInObject.after.kt")
+                public void testTrimIndentInConstInObject() throws Exception {
+                    runTest("../../idea/tests/testData/editor/enterHandler/multilineString/spaces/TrimIndentInConstInObject.after.kt");
+                }
+
+                @TestMetadata("TrimIndentInConstInterpolationPrefix.after.kt")
+                public void testTrimIndentInConstInterpolationPrefix() throws Exception {
+                    runTest("../../idea/tests/testData/editor/enterHandler/multilineString/spaces/TrimIndentInConstInterpolationPrefix.after.kt");
+                }
+
+                @TestMetadata("TrimMarginInConst.after.kt")
+                public void testTrimMarginInConst() throws Exception {
+                    runTest("../../idea/tests/testData/editor/enterHandler/multilineString/spaces/TrimMarginInConst.after.kt");
                 }
             }
 
@@ -2219,6 +2292,36 @@ public abstract class K2EnterHandlerTestGenerated extends AbstractK2EnterHandler
             @TestMetadata("SettingAlignMultilineParametersInCalls.after.kt")
             public void testSettingAlignMultilineParametersInCalls() throws Exception {
                 runTest("../../idea/tests/testData/editor/enterHandler/SettingAlignMultilineParametersInCalls.after.kt");
+            }
+
+            @TestMetadata("SingleLineKDocAtContentStart.after.kt")
+            public void testSingleLineKDocAtContentStart() throws Exception {
+                runTest("../../idea/tests/testData/editor/enterHandler/SingleLineKDocAtContentStart.after.kt");
+            }
+
+            @TestMetadata("SingleLineKDocAtContentStartIndented.after.kt")
+            public void testSingleLineKDocAtContentStartIndented() throws Exception {
+                runTest("../../idea/tests/testData/editor/enterHandler/SingleLineKDocAtContentStartIndented.after.kt");
+            }
+
+            @TestMetadata("SingleLineKDocAtContentStartInline.after.kt")
+            public void testSingleLineKDocAtContentStartInline() throws Exception {
+                runTest("../../idea/tests/testData/editor/enterHandler/SingleLineKDocAtContentStartInline.after.kt");
+            }
+
+            @TestMetadata("SingleLineKDocAtContentStartInlineWithoutSeparator.after.kt")
+            public void testSingleLineKDocAtContentStartInlineWithoutSeparator() throws Exception {
+                runTest("../../idea/tests/testData/editor/enterHandler/SingleLineKDocAtContentStartInlineWithoutSeparator.after.kt");
+            }
+
+            @TestMetadata("SingleLineKDocAtContentStartWithoutSeparator.after.kt")
+            public void testSingleLineKDocAtContentStartWithoutSeparator() throws Exception {
+                runTest("../../idea/tests/testData/editor/enterHandler/SingleLineKDocAtContentStartWithoutSeparator.after.kt");
+            }
+
+            @TestMetadata("SingleLineKDocBeforeSingleLineKDoc.after.kt")
+            public void testSingleLineKDocBeforeSingleLineKDoc() throws Exception {
+                runTest("../../idea/tests/testData/editor/enterHandler/SingleLineKDocBeforeSingleLineKDoc.after.kt");
             }
 
             @TestMetadata("SmartEnterBetweenOpeningAndClosingBrackets.after.kt")

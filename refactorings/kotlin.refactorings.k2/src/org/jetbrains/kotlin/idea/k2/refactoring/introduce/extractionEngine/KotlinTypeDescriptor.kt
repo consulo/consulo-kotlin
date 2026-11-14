@@ -4,23 +4,30 @@ package org.jetbrains.kotlin.idea.k2.refactoring.introduce.extractionEngine
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
-import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.components.allSupertypes
-import org.jetbrains.kotlin.analysis.api.components.createUseSiteVisibilityChecker
+import org.jetbrains.kotlin.analysis.api.expressions.returnType
 import org.jetbrains.kotlin.analysis.api.renderer.declarations.impl.KaDeclarationRendererForSource
+import org.jetbrains.kotlin.analysis.api.renderer.render
 import org.jetbrains.kotlin.analysis.api.renderer.types.impl.KaTypeRendererForSource
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaAnonymousObjectSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassLikeSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.findClass
 import org.jetbrains.kotlin.analysis.api.symbols.symbol
-import org.jetbrains.kotlin.analysis.api.symbols.typeParameters
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.analysis.api.types.KaDefinitelyNotNullType
 import org.jetbrains.kotlin.analysis.api.types.KaErrorType
 import org.jetbrains.kotlin.analysis.api.types.KaIntersectionType
 import org.jetbrains.kotlin.analysis.api.types.KaType
 import org.jetbrains.kotlin.analysis.api.types.KaTypeParameterType
+import org.jetbrains.kotlin.analysis.api.types.allSupertypes
+import org.jetbrains.kotlin.analysis.api.types.builtinTypes
+import org.jetbrains.kotlin.analysis.api.types.commonSupertype
+import org.jetbrains.kotlin.analysis.api.types.isFunctionType
+import org.jetbrains.kotlin.analysis.api.types.isSuspendFunctionType
+import org.jetbrains.kotlin.analysis.api.types.semanticallyEquals
+import org.jetbrains.kotlin.analysis.api.types.typeCreation.typeCreator
+import org.jetbrains.kotlin.analysis.api.visibility.createUseSiteVisibilityChecker
 import org.jetbrains.kotlin.idea.k2.refactoring.extractFunction.Parameter
 import org.jetbrains.kotlin.idea.refactoring.introduce.extractionEngine.IExtractionData
 import org.jetbrains.kotlin.idea.refactoring.introduce.extractionEngine.IParameter
@@ -56,7 +63,6 @@ class KotlinTypeDescriptor(private val data: IExtractionData) : TypeDescriptor<K
 
     override fun createListType(argTypes: List<KaType>): KaType {
         return analyze(data.commonParent) {
-            @OptIn(KaExperimentalApi::class)
             typeCreator.classType(StandardClassIds.List) {
                 invariantTypeArgument {
                     if (argTypes.isNotEmpty()) argTypes.commonSupertype else builtinTypes.nullableAny
@@ -65,7 +71,6 @@ class KotlinTypeDescriptor(private val data: IExtractionData) : TypeDescriptor<K
         }
     }
 
-    @OptIn(KaExperimentalApi::class)
     override fun createTuple(outputValues: List<OutputValue<KaType>>): KaType {
         analyze(data.commonParent) {
             val boxingClass = when (outputValues.size) {
@@ -86,7 +91,6 @@ class KotlinTypeDescriptor(private val data: IExtractionData) : TypeDescriptor<K
     override fun returnType(ktNamedDeclaration: KtNamedDeclaration): KaType =
         analyze(data.commonParent) { (ktNamedDeclaration as KtDeclarationWithReturnType).returnType }
 
-    @OptIn(KaExperimentalApi::class)
     override fun renderForMessage(ktNamedDeclaration: KtNamedDeclaration): String {
         return analyze(data.commonParent) {
             ktNamedDeclaration.symbol.render(KaDeclarationRendererForSource.WITH_SHORT_NAMES)
@@ -101,7 +105,6 @@ class KotlinTypeDescriptor(private val data: IExtractionData) : TypeDescriptor<K
 
     }
 
-    @OptIn(KaExperimentalApi::class)
     override fun renderTypeWithoutApproximation(kotlinType: KaType): String {
         return analyze(data.commonParent) {
             kotlinType.render(position = Variance.INVARIANT)
@@ -114,7 +117,6 @@ class KotlinTypeDescriptor(private val data: IExtractionData) : TypeDescriptor<K
         }
     }
 
-    @OptIn(KaExperimentalApi::class)
     override fun renderType(
         type: KaType, isReceiver: Boolean, variance: Variance
     ): String = analyze(data.commonParent) {
@@ -128,7 +130,31 @@ class KotlinTypeDescriptor(private val data: IExtractionData) : TypeDescriptor<K
         typeParameters: MutableSet<TypeParameter>,
     ): Boolean {
         return analyze(data.commonParent) {
-            isResolvableInScope(typeToCheck, data.targetSibling, typeParameters)
+            val scope = data.targetSibling
+
+            fun collectTypeParametersOutOfScope(type: KaType) {
+                when (type) {
+                    is KaTypeParameterType -> {
+                        val typeParameter = type.symbol.psi as? KtTypeParameter ?: return
+                        val typeParameterListOwner = typeParameter.parentOfType<KtTypeParameterListOwner>()
+                        if (typeParameterListOwner == null || !PsiTreeUtil.isAncestor(typeParameterListOwner, scope, true)) {
+                            typeParameters.add(TypeParameter(typeParameter, typeParameter.collectRelevantConstraints()))
+                        }
+                    }
+
+                    is KaClassType -> {
+                        (type.symbol as? KaAnonymousObjectSymbol)?.superTypes?.forEach(::collectTypeParametersOutOfScope)
+                        type.typeArguments.forEach { argument -> argument.type?.let(::collectTypeParametersOutOfScope) }
+                    }
+
+                    is KaDefinitelyNotNullType -> collectTypeParametersOutOfScope(type.original)
+                    else -> {}
+                }
+            }
+
+            if (!isResolvableInScope(typeToCheck, scope)) return@analyze false
+            collectTypeParametersOutOfScope(typeToCheck)
+            true
         }
     }
 }
@@ -142,27 +168,40 @@ context(_: KaSession)
 fun isResolvableInScope(
     typeToCheck: KaType,
     scope: PsiElement,
-    typeParameters: MutableSet<TypeParameter>,
 ): Boolean {
-   return getUnResolvableInScope(typeToCheck, scope, typeParameters) == null
+   return getUnResolvableInScope(typeToCheck, scope) == null
 }
 
-@OptIn(KaExperimentalApi::class)
+/**
+ * Checks whether [typeToCheck] contains a type parameter whose owner does not contain [scope].
+ */
+context(_: KaSession)
+fun hasTypeParametersOutOfScope(
+    typeToCheck: KaType,
+    scope: PsiElement,
+): Boolean = when (typeToCheck) {
+    is KaTypeParameterType -> {
+        val typeParameter = typeToCheck.symbol.psi as? KtTypeParameter
+        val typeParameterListOwner = typeParameter?.parentOfType<KtTypeParameterListOwner>()
+        typeParameter != null && (typeParameterListOwner == null || !PsiTreeUtil.isAncestor(typeParameterListOwner, scope, true))
+    }
+
+    is KaClassType ->
+        (typeToCheck.symbol as? KaAnonymousObjectSymbol)?.superTypes?.any { hasTypeParametersOutOfScope(it, scope) } == true ||
+                typeToCheck.typeArguments.any { argument -> argument.type?.let { hasTypeParametersOutOfScope(it, scope) } == true }
+
+    is KaDefinitelyNotNullType -> hasTypeParametersOutOfScope(typeToCheck.original, scope)
+    else -> false
+}
+
 context(_: KaSession)
 fun getUnResolvableInScope(
     typeToCheck: KaType,
     scope: PsiElement,
-    typeParameters: MutableSet<TypeParameter>,
     classAccessibilityChecker: (KaClassLikeSymbol) -> Boolean = { true }
 ): KaType? {
     require(scope.containingFile is KtFile)
-    ((typeToCheck as? KaTypeParameterType)?.symbol?.psi as? KtTypeParameter)?.let { typeParameter ->
-        val typeParameterListOwner = typeParameter.parentOfType<KtTypeParameterListOwner>()
-        if (typeParameterListOwner == null || !PsiTreeUtil.isAncestor(typeParameterListOwner, scope, true)) {
-            typeParameters.add(TypeParameter(typeParameter, typeParameter.collectRelevantConstraints()))
-        }
-        return null
-    }
+    if (typeToCheck is KaTypeParameterType) return null
     if (typeToCheck is KaClassType) {
 
         val classSymbol = typeToCheck.symbol
@@ -170,7 +209,6 @@ fun getUnResolvableInScope(
             getUnResolvableInScope(
                 it,
                 scope,
-                typeParameters,
                 classAccessibilityChecker
             )
         }
@@ -194,7 +232,7 @@ fun getUnResolvableInScope(
         }
 
         val unresolvedInTypeArguments = typeToCheck.typeArguments.mapNotNull { it.type }.firstNotNullOfOrNull {
-            getUnResolvableInScope(it, scope, typeParameters, classAccessibilityChecker)
+            getUnResolvableInScope(it, scope, classAccessibilityChecker)
         }
         if (unresolvedInTypeArguments != null) {
             return unresolvedInTypeArguments
@@ -207,7 +245,7 @@ fun getUnResolvableInScope(
         return typeToCheck
     }
     if (typeToCheck is KaDefinitelyNotNullType) {
-        val unresolvedOriginal = getUnResolvableInScope(typeToCheck.original, scope, typeParameters, classAccessibilityChecker)
+        val unresolvedOriginal = getUnResolvableInScope(typeToCheck.original, scope, classAccessibilityChecker)
         if (unresolvedOriginal != null) {
             return unresolvedOriginal
         }
@@ -220,9 +258,9 @@ context(_: KaSession)
 fun approximateWithResolvableType(type: KaType?, scope: PsiElement): KaType? {
     if (type == null) return null
     if (!(type is KaClassType && type.symbol is KaAnonymousObjectSymbol)
-        && isResolvableInScope(type, scope, mutableSetOf())
+        && isResolvableInScope(type, scope)
     ) return type
     return type.allSupertypes.firstOrNull {
-        isResolvableInScope(it, scope, mutableSetOf())
+        isResolvableInScope(it, scope)
     }
 }

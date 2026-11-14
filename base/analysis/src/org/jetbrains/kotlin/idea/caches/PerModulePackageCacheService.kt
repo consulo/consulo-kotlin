@@ -1,7 +1,8 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 
 package org.jetbrains.kotlin.idea.caches
 
+import com.intellij.concurrency.ConcurrentCollectionFactory
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
@@ -39,13 +40,11 @@ import com.intellij.psi.search.FileTypeIndex
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.GlobalSearchScopes
 import com.intellij.util.Processor
-import com.intellij.util.containers.CollectionFactory
-import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.indexing.DumbModeAccessType
 import com.intellij.util.indexing.FileBasedIndex
 import org.jetbrains.annotations.TestOnly
-import org.jetbrains.kotlin.analysis.api.projectStructure.KaModuleProvider
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaSourceModule
+import org.jetbrains.kotlin.analysis.api.projectStructure.kaModule
 import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.idea.base.indices.KotlinPackageIndexUtils
 import org.jetbrains.kotlin.idea.base.projectStructure.openapiModule
@@ -306,7 +305,7 @@ class PerModulePackageCacheService(private val project: Project) : Disposable {
 
     private val cache: Lazy<ConcurrentMap<Module, ConcurrentMap<KaSourceModule, ConcurrentMap<FqName, Boolean>>>> =
         lazy(LazyThreadSafetyMode.PUBLICATION) {
-            ContainerUtil.createConcurrentWeakMap<Module, ConcurrentMap<KaSourceModule, ConcurrentMap<FqName, Boolean>>>()
+            ConcurrentCollectionFactory.createConcurrentWeakMap<Module, ConcurrentMap<KaSourceModule, ConcurrentMap<FqName, Boolean>>>()
         }
 
     private val implicitPackagePrefixCache = ImplicitPackagePrefixCache(project)
@@ -375,9 +374,7 @@ class PerModulePackageCacheService(private val project: Project) : Disposable {
                         }
                     }
                 } else {
-                    val moduleByVirtualFile = PsiManager.getInstance(project).findFile(vfile)?.let {
-                        KaModuleProvider.getModule(project, it, null)
-                    }
+                    val moduleByVirtualFile = PsiManager.getInstance(project).findFile(vfile)?.kaModule(null)
                     if (moduleByVirtualFile == null || moduleByVirtualFile !is KaSourceModule) {
                         LOG.debugIfEnabled(project) { "Skip $vfile as it has mismatched ModuleInfo=$moduleByVirtualFile" }
                     }
@@ -398,7 +395,7 @@ class PerModulePackageCacheService(private val project: Project) : Disposable {
                     }
                     return@processPending
                 }
-                val nullableModuleInfo = KaModuleProvider.getModule(project, file, null)
+                val nullableModuleInfo = file.kaModule(null)
                 (nullableModuleInfo as? KaSourceModule)?.let { invalidateCacheForKaSourceModule(it) }
                 if (nullableModuleInfo !is KaSourceModule) {
                     LOG.debugIfEnabled(project) { "Skip $file as it has mismatched ModuleInfo=$nullableModuleInfo" }
@@ -433,10 +430,10 @@ class PerModulePackageCacheService(private val project: Project) : Disposable {
         checkPendingChanges()
 
         val perSourceInfoCache = cache.value.getOrPut(module) {
-            if (useStrongMapForCaching) ConcurrentHashMap() else CollectionFactory.createConcurrentSoftMap()
+            if (useStrongMapForCaching) ConcurrentHashMap() else ConcurrentCollectionFactory.createConcurrentSoftMap()
         }
         val cacheForCurrentModuleInfo = perSourceInfoCache.getOrPut(moduleInfo) {
-            if (useStrongMapForCaching) ConcurrentHashMap() else CollectionFactory.createConcurrentSoftMap()
+            if (useStrongMapForCaching) ConcurrentHashMap() else ConcurrentCollectionFactory.createConcurrentSoftMap()
         }
         if (!DumbService.isDumb(project) || FileBasedIndex.getInstance().getCurrentDumbModeAccessType(project) == null) {
             try {

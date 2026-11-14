@@ -1,6 +1,5 @@
 // "Rename variable to 'productName'" "true"
 // COMPILER_ARGUMENTS: -Xname-based-destructuring=only-syntax
-// SHOULD_FAIL_WITH: Variable 'productName' is already declared in lambda
 
 data class Product (val id: String, val productName: String)
 
@@ -11,4 +10,4 @@ fun test (product: Product) {
         print(name)
     }
 }
-// FUS_K2_QUICKFIX_NAME: org.jetbrains.kotlin.idea.codeInsight.inspections.declarations.RenameVariableToMatchPropertiesQuickFix
+// FUS_QUICKFIX_NAME: org.jetbrains.kotlin.idea.codeInsight.inspections.declarations.RenameVariableToMatchPropertiesQuickFix

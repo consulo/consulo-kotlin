@@ -1,4 +1,3 @@
-// FIR_IDENTICAL
 // HIGHLIGHT_WARNINGS
 // WITH_COROUTINES
 package test
@@ -8,6 +7,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 fun CoroutineScope.test(job: Job) {
-    launch(<!HIGHLIGHTING("severity='WARNING'; descr='Passing 'CoroutineContext' with a 'Job' to 'launch' builder can lead to structured concurrency violations'")!>job<!>) {}
+    <!HIGHLIGHTING("severity='WARNING'; descr='[DEPRECATION]'")!>launch<!>(<!HIGHLIGHTING("severity='WARNING'; descr='Passing 'CoroutineContext' with a 'Job' to 'launch' builder can lead to structured concurrency violations'")!>job<!>) {}
 }
 // TOOL: org.jetbrains.kotlin.idea.codeInsight.inspections.coroutines.CoroutineContextWithJobInspection

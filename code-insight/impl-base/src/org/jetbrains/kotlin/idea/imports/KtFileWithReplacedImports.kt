@@ -1,12 +1,12 @@
-// Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.kotlin.idea.imports
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.projectStructure.isDangling
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.idea.base.codeInsight.KotlinOptimizeImportsFacility
 import org.jetbrains.kotlin.idea.base.psi.copied
 import org.jetbrains.kotlin.idea.base.psi.imports.addImport
@@ -62,7 +62,7 @@ class KtFileWithReplacedImports private constructor(
     /**
      * Allows one to analyze code in [ktFile].
      */
-    fun <T> analyze(action: KaSession.() -> T): T = analyze(ktFile, action)
+    fun <T> analyze(action: context(KaSession) () -> T): T = analyze(ktFile, action)
 
     companion object {
         fun createFrom(originalFile: KtFile): KtFileWithReplacedImports {
@@ -84,7 +84,8 @@ private fun createCopyOfDanglingFile(danglingKtFile: KtFile): KtFile {
 
     val psiFactory = KtPsiFactory(danglingKtFile.project)
     return psiFactory.createFile("fakeFileWithSubstitutedImports.kt", danglingKtFile.text).apply {
-        // to make analysis of this file equivalent to the original dangling file
-        analysisContext = danglingKtFile.analysisContext
+        // to make analysis of this file equivalent to the original dangling file;
+        // a copy that a ModCommand edits knows its file only as the original file, not as the analysis context
+        analysisContext = danglingKtFile.analysisContext ?: danglingKtFile.originalFile.takeIf { it !== danglingKtFile }
     }
 }

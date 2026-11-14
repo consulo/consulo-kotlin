@@ -5,7 +5,6 @@ import com.intellij.debugger.SourcePosition
 import com.intellij.debugger.engine.SourcePositionProvider
 import com.intellij.debugger.impl.DebuggerContextImpl
 import com.intellij.debugger.impl.DebuggerContextUtil
-import com.intellij.debugger.impl.PositionUtil
 import com.intellij.debugger.ui.tree.FieldDescriptor
 import com.intellij.debugger.ui.tree.LocalVariableDescriptor
 import com.intellij.debugger.ui.tree.NodeDescriptor
@@ -19,6 +18,8 @@ import com.sun.jdi.AbsentInformationException
 import com.sun.jdi.ClassNotPreparedException
 import com.sun.jdi.ClassType
 import com.sun.jdi.ReferenceType
+import org.jetbrains.kotlin.analysis.api.resolution.symbols
+import org.jetbrains.kotlin.analysis.api.resolution.tryResolveSymbols
 import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaVariableSymbol
 import org.jetbrains.kotlin.codegen.AsmUtil
@@ -29,7 +30,6 @@ import org.jetbrains.kotlin.idea.debugger.base.util.runDumbAnalyze
 import org.jetbrains.kotlin.idea.debugger.base.util.safeAllInterfaces
 import org.jetbrains.kotlin.idea.debugger.base.util.safeAllLineLocations
 import org.jetbrains.kotlin.idea.debugger.core.render.GetterDescriptor
-import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.load.java.possibleGetMethodNames
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.KtClassOrObject
@@ -70,7 +70,7 @@ class KotlinSourcePositionProvider : SourcePositionProvider() {
         context: DebuggerContextImpl,
         nearest: Boolean
     ): SourcePosition? {
-        val place = PositionUtil.getContextElement(context) ?: return null
+        val place = context.getContextElement() ?: return null
         if (place.containingFile !is KtFile) return null
 
         val contextElement = CodeFragmentContextTuner.getInstance().tuneContextElement(place) ?: return null
@@ -80,7 +80,7 @@ class KotlinSourcePositionProvider : SourcePositionProvider() {
         if (localReferenceExpression !is KtSimpleNameExpression) return null
 
         return runDumbAnalyze(localReferenceExpression, fallback = null) f@{
-            for (symbol in localReferenceExpression.mainReference.resolveToSymbols()) {
+            for (symbol in localReferenceExpression.tryResolveSymbols()?.symbols.orEmpty()) {
                 if (symbol !is KaVariableSymbol) continue
 
                 if (symbol is KaValueParameterSymbol && symbol.isImplicitLambdaParameter) {

@@ -10,6 +10,7 @@ import com.intellij.refactoring.HelpID
 import com.intellij.refactoring.RefactoringBundle
 import com.intellij.refactoring.util.CommonRefactoringUtil
 import com.intellij.refactoring.util.RefactoringUIUtil
+import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.NonNls
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
@@ -26,7 +27,7 @@ import org.jetbrains.kotlin.psi.KtNamedDeclaration
 import org.jetbrains.kotlin.psi.KtParameter
 import org.jetbrains.kotlin.psi.psiUtil.containingClass
 
-val PUSH_MEMBERS_DOWN: String get() = RefactoringBundle.message("push.members.down.title")
+val PUSH_MEMBERS_DOWN: @Nls String get() = RefactoringBundle.message("push.members.down.title")
 
 class KotlinPushDownHandler : AbstractPullPushMembersHandler(
     refactoringName = PUSH_MEMBERS_DOWN,
@@ -43,6 +44,7 @@ class KotlinPushDownHandler : AbstractPullPushMembersHandler(
     }
 
     private fun reportFinalClassOrObject(project: Project, editor: Editor?, classOrObject: KtClassOrObject) {
+        @Suppress("HardCodedStringLiteral")
         val message = RefactoringBundle.getCannotRefactorMessage(
             KotlinBundle.message("text.class.0.is.final", RefactoringUIUtil.getDescription(classOrObject, false)).capitalize()
         )
@@ -75,7 +77,11 @@ class KotlinPushDownHandler : AbstractPullPushMembersHandler(
             return
         }
 
-        val members = allowAnalysisOnEdt { KotlinMemberInfoStorage(classOrObject).getClassMemberInfos(classOrObject).filter { it.member !is KtParameter } }
+        val members = allowAnalysisOnEdt {
+            KotlinMemberInfoStorage(classOrObject)
+                .getClassMemberInfos(classOrObject)
+                .filter { it.member !is KtParameter } + classOrObject.companionObjects.map { KotlinMemberInfo.Declaration(it) }
+        }
         if (isUnitTestMode()) {
             val helper = dataContext?.getData(PUSH_DOWN_TEST_HELPER_KEY) as TestHelper
             val selectedMembers = helper.adjustMembers(members)

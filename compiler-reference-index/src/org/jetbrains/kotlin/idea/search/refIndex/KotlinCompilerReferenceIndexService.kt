@@ -15,13 +15,14 @@ import com.intellij.compiler.server.BuildManagerListener
 import com.intellij.compiler.server.CustomBuilderMessageHandler
 import com.intellij.compiler.server.PortableCachesLoadListener
 import com.intellij.ide.highlighter.JavaFileType
+import com.intellij.ide.trustedProjects.TrustedProjects
 import com.intellij.lang.injection.InjectedLanguageManager
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.diagnostic.rethrowControlFlowException
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.externalSystem.service.project.manage.ProjectDataImportListener
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.module.Module
@@ -31,6 +32,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.ModificationTracker
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.CommonClassNames
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
@@ -213,7 +215,10 @@ class KotlinCompilerReferenceIndexService(private val project: Project, private 
     }
 
     internal class KCRIIsUpToDateConsumer : IsUpToDateCheckConsumer {
-        override fun isApplicable(project: Project): Boolean = isEnabled(project) && KotlinCompilerReferenceIndexStorage.hasIndex(project)
+        override fun isApplicable(project: Project): Boolean = TrustedProjects.isProjectTrusted(project)
+                && isEnabled(project)
+                && KotlinCompilerReferenceIndexStorage.hasIndex(project)
+
         override fun isUpToDate(project: Project, isUpToDate: Boolean) {
             if (!isUpToDate) {
                 return
@@ -338,6 +343,14 @@ class KotlinCompilerReferenceIndexService(private val project: Project, private 
         null
     }
 
+    /**
+     * Returns whether we should restrict the scope based on the amount of dirty modules, see [DirtyScopeHolder.isMostlyDirty].
+     * Attempts to acquire a read lock, if no read lock can be acquired, returns false.
+     */
+    private fun shouldRestrictScope(): Boolean = tryWithReadLock {
+        initialized && runReadActionBlocking { !dirtyScopeHolder.isMostlyDirty }
+    } == true
+
     fun scopeWithCodeReferences(element: PsiElement): GlobalSearchScope? {
         if (!isServiceEnabledFor(element)) return null
         val originalElement = element.unwrapped ?: return null
@@ -345,8 +358,9 @@ class KotlinCompilerReferenceIndexService(private val project: Project, private 
         return runActionSafe("scope with code references") {
             CachedValuesManager.getCachedValue(originalElement) {
                 CachedValueProvider.Result.create(
-                    buildScopeWithReferences(referentFiles(originalElement), originalElement),
+                    if (shouldRestrictScope()) buildScopeWithReferences(referentFiles(originalElement), originalElement) else null,
                     PsiModificationTracker.MODIFICATION_COUNT,
+                    VirtualFileManager.getInstance(),
                     this,
                 )
             }

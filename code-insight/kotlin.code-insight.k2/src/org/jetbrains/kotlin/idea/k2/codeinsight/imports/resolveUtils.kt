@@ -6,11 +6,11 @@ import com.intellij.psi.PsiMember
 import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.components.compositeScope
-import org.jetbrains.kotlin.analysis.api.components.containingDeclaration
+import org.jetbrains.kotlin.analysis.api.symbols.containingDeclaration
 import org.jetbrains.kotlin.analysis.api.components.importingScopeContext
-import org.jetbrains.kotlin.analysis.api.components.namedClassSymbol
-import org.jetbrains.kotlin.analysis.api.components.type
-import org.jetbrains.kotlin.analysis.api.impl.base.components.KaBaseIllegalPsiException
+import org.jetbrains.kotlin.analysis.api.javaInterop.namedClassSymbol
+import org.jetbrains.kotlin.analysis.api.types.type
+import org.jetbrains.kotlin.analysis.api.fir.components.KaFirIllegalPsiException
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassLikeSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaDeclarationSymbol
@@ -97,7 +97,7 @@ private fun resolveReferencedType(reference: KtReference): KaType? {
 
     // FIXME: KTIJ-34288
     @OptIn(KaImplementationDetail::class)
-    return KaBaseIllegalPsiException.allowIllegalPsiAccess {
+    return KaFirIllegalPsiException.allowIllegalPsiAccess {
          psiType?.type
     }
 }

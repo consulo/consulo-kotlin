@@ -41,12 +41,15 @@ class EvaluateCompileTimeExpressionIntention : KotlinApplicableModCommandAction<
 
     override fun getFamilyName(): @IntentionFamilyName String = KotlinBundle.message("evaluate.compile.time.expression")
 
-    override fun KaSession.prepareContext(element: KtBinaryExpression): String? {
+    context(session: KaSession)
+    override fun prepareContext(element: KtBinaryExpression): String? {
         val expressionEvaluator = LanguageConstantExpressionEvaluator.INSTANCE.forLanguage(element.language)
         val value = expressionEvaluator.computeConstantExpression(element, false) ?: return null
         return when (value) {
             is Char -> "'${StringUtil.escapeStringCharacters(value.toString())}'"
             is Long -> "${value}L"
+            is UInt -> "${value}u"
+            is ULong -> "${value}uL"
             is Float -> when {
                 value.isNaN() -> "Float.NaN"
                 value.isInfinite() -> if (value > 0.0f) "Float.POSITIVE_INFINITY" else "Float.NEGATIVE_INFINITY"
@@ -67,7 +70,7 @@ class EvaluateCompileTimeExpressionIntention : KotlinApplicableModCommandAction<
 
     private fun KtExpression?.isConstantExpression(): Boolean {
         return when (val expression = KtPsiUtil.deparenthesize(this)) {
-            is KtConstantExpression -> expression.elementType in constantNodeTypes
+            is KtConstantExpression -> expression.iElementType in constantNodeTypes
             is KtPrefixExpression -> expression.baseExpression.isConstantExpression()
             is KtBinaryExpression -> expression.left.isConstantExpression() && expression.right.isConstantExpression()
             else -> false

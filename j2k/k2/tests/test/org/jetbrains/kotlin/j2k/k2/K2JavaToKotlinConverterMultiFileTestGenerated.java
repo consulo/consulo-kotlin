@@ -23,9 +23,19 @@ public class K2JavaToKotlinConverterMultiFileTestGenerated extends AbstractK2Jav
         KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
     }
 
+    @TestMetadata("AllOpenFieldToProperty")
+    public void testAllOpenFieldToProperty() throws Exception {
+        runTest("../../shared/tests/testData/multiFile/AllOpenFieldToProperty/");
+    }
+
     @TestMetadata("AnnotationDoesNotLoseImport")
     public void testAnnotationDoesNotLoseImport() throws Exception {
         runTest("../../shared/tests/testData/multiFile/AnnotationDoesNotLoseImport/");
+    }
+
+    @TestMetadata("ClassNullMarked")
+    public void testClassNullMarked() throws Exception {
+        runTest("../../shared/tests/testData/multiFile/ClassNullMarked/");
     }
 
     @TestMetadata("DetectPropertiesMultipleFiles")
@@ -63,14 +73,34 @@ public class K2JavaToKotlinConverterMultiFileTestGenerated extends AbstractK2Jav
         runTest("../../shared/tests/testData/multiFile/Java17_RecordClassExplicitAccessor/");
     }
 
+    @TestMetadata("JavaOverridersOfCollectionParameters")
+    public void testJavaOverridersOfCollectionParameters() throws Exception {
+        runTest("../../shared/tests/testData/multiFile/JavaOverridersOfCollectionParameters/");
+    }
+
     @TestMetadata("JavaUsageOfBothFieldAndAccessor")
     public void testJavaUsageOfBothFieldAndAccessor() throws Exception {
         runTest("../../shared/tests/testData/multiFile/JavaUsageOfBothFieldAndAccessor/");
     }
 
+    @TestMetadata("Jsr305PackageDefault")
+    public void testJsr305PackageDefault() throws Exception {
+        runTest("../../shared/tests/testData/multiFile/Jsr305PackageDefault/");
+    }
+
     @TestMetadata("KT11952")
     public void testKT11952() throws Exception {
         runTest("../../shared/tests/testData/multiFile/KT11952/");
+    }
+
+    @TestMetadata("KotlinUsersOfCollectionParameters")
+    public void testKotlinUsersOfCollectionParameters() throws Exception {
+        runTest("../../shared/tests/testData/multiFile/KotlinUsersOfCollectionParameters/");
+    }
+
+    @TestMetadata("MethodReferenceToGetter")
+    public void testMethodReferenceToGetter() throws Exception {
+        runTest("../../shared/tests/testData/multiFile/MethodReferenceToGetter/");
     }
 
     @TestMetadata("OverrideFieldToPrimaryConstructorProperty")
@@ -83,9 +113,19 @@ public class K2JavaToKotlinConverterMultiFileTestGenerated extends AbstractK2Jav
         runTest("../../shared/tests/testData/multiFile/OverridePropertyAndUseAnotherPropertyOfSupertypeCompanion/");
     }
 
+    @TestMetadata("PackageNullMarked")
+    public void testPackageNullMarked() throws Exception {
+        runTest("../../shared/tests/testData/multiFile/PackageNullMarked/");
+    }
+
     @TestMetadata("ProtectedVisibility")
     public void testProtectedVisibility() throws Exception {
         runTest("../../shared/tests/testData/multiFile/ProtectedVisibility/");
+    }
+
+    @TestMetadata("ShortenInsideNotNullAssertion")
+    public void testShortenInsideNotNullAssertion() throws Exception {
+        runTest("../../shared/tests/testData/multiFile/ShortenInsideNotNullAssertion/");
     }
 
     @TestMetadata("StaticAnnotation")

@@ -37,6 +37,7 @@ import kotlin.jvm.functions.Function1;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils;
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle;
 import org.jetbrains.kotlin.idea.references.ReferenceUtilsKt;
 import org.jetbrains.kotlin.lexer.KtTokens;
@@ -223,9 +224,10 @@ public abstract class AbstractKotlinInplaceVariableIntroducer<D extends KtCallab
                                               () -> {
                                                   if (exprTypeCheckbox.isSelected()) {
                                                       String renderedType = renderType(myExprType);
-                                                      myDeclaration.setTypeReference(new KtPsiFactory(myProject).createType(renderedType));
+                                                      KotlinPsiModificationUtils.setCallableTypeReference(
+                                                          myDeclaration, new KtPsiFactory(myProject).createType(renderedType));
                                                   } else {
-                                                      myDeclaration.setTypeReference(null);
+                                                      KotlinPsiModificationUtils.setCallableTypeReference(myDeclaration, null);
                                                   }
                                               }
                         );
@@ -278,11 +280,9 @@ public abstract class AbstractKotlinInplaceVariableIntroducer<D extends KtCallab
                 TextRange range = identifier.getTextRange();
                 RangeHighlighter[] highlighters = myEditor.getMarkupModel().getAllHighlighters();
                 for (RangeHighlighter highlighter : highlighters) {
-                    if (highlighter.getStartOffset() == range.getStartOffset()) {
-                        if (highlighter.getEndOffset() == range.getEndOffset()) {
-                            greedyToRight.set(highlighter.isGreedyToRight());
-                            highlighter.setGreedyToRight(false);
-                        }
+                    if (TextRange.areSegmentsEqual(highlighter, range)) {
+                        greedyToRight.set(highlighter.isGreedyToRight());
+                        highlighter.setGreedyToRight(false);
                     }
                 }
             }
@@ -302,10 +302,8 @@ public abstract class AbstractKotlinInplaceVariableIntroducer<D extends KtCallab
                 TextRange range = identifier.getTextRange();
                 RangeHighlighter[] highlighters = myEditor.getMarkupModel().getAllHighlighters();
                 for (RangeHighlighter highlighter : highlighters) {
-                    if (highlighter.getStartOffset() == range.getStartOffset()) {
-                        if (highlighter.getEndOffset() == range.getEndOffset()) {
-                            highlighter.setGreedyToRight(greedyToRight.get());
-                        }
+                    if (TextRange.areSegmentsEqual(highlighter, range)) {
+                        highlighter.setGreedyToRight(greedyToRight.get());
                     }
                 }
             }

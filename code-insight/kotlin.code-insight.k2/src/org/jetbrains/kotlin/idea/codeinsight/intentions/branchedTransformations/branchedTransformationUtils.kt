@@ -4,7 +4,15 @@ package org.jetbrains.kotlin.idea.codeinsight.intentions.branchedTransformations
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiMethod
+import com.intellij.psi.util.PropertyUtil
 import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.resolution.simple
+import org.jetbrains.kotlin.analysis.api.resolution.single
+import org.jetbrains.kotlin.analysis.api.resolution.symbol
+import org.jetbrains.kotlin.analysis.api.resolution.tryResolveCall
+import org.jetbrains.kotlin.analysis.api.symbols.KaPropertySymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaSyntheticJavaPropertySymbol
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.idea.base.projectStructure.languageVersionSettings
 import org.jetbrains.kotlin.idea.base.psi.replaced
@@ -41,6 +49,7 @@ import org.jetbrains.kotlin.psi.KtWhenEntry
 import org.jetbrains.kotlin.psi.KtWhenExpression
 import org.jetbrains.kotlin.psi.buildExpression
 import org.jetbrains.kotlin.psi.createExpressionByPattern
+import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
 import org.jetbrains.kotlin.psi.psiUtil.isPropertyParameter
 import org.jetbrains.kotlin.utils.KotlinExceptionWithAttachments
 
@@ -99,6 +108,31 @@ fun KtWhenCondition.generateNewConditionWithSubject(subject: KtExpression?, isNu
 
         else -> throw IllegalArgumentException("Unknown KtWhenCondition type: $this")
     }
+}
+
+fun KtWhenExpression.generateExpressionWithoutSubject(
+    generateCondition: (KtWhenCondition) -> KtExpression,
+): KtExpression = KtPsiFactory(project).buildExpression {
+    appendFixedText("when {\n")
+    for (entry in entries) {
+        val branchExpression = entry.expression
+        if (entry.isElse) {
+            appendFixedText("else")
+        } else {
+            appendExpressions(entry.conditions.map(generateCondition), separator = "||")
+            val guardExpression = entry.guard?.getExpression()
+            if (guardExpression != null) {
+                if (entry.elseKeyword == null) {
+                    appendFixedText("&&")
+                }
+                appendExpression(guardExpression)
+            }
+        }
+        appendFixedText("->")
+        appendExpression(branchExpression)
+        appendFixedText("\n")
+    }
+    appendFixedText("}")
 }
 
 /**
@@ -229,8 +263,53 @@ fun KtWhenExpression.getSubjectToIntroduce(checkConstants: Boolean = true): KtEx
         }
     }
 
+    if (lastCandidate != null && lastCandidate.mayInvokeGetterWithSideEffects() && countSubjectEvaluations(lastCandidate) > 1) {
+        return null
+    }
+
     return lastCandidate
 }
+
+context(_: KaSession)
+private fun KtWhenExpression.countSubjectEvaluations(subject: KtExpression): Int =
+    entries
+        .flatMap { it.conditions.toList() }
+        .filterIsInstance<KtWhenConditionWithExpression>()
+        .sumOf { condition ->
+            val conditionExpression = condition.expression ?: return@sumOf 0
+            (conditionExpression.collectDescendantsOfType<KtExpression>() + conditionExpression).count { it.matches(subject) }
+        }
+
+/**
+ * Returns `true` if evaluating this expression may invoke a getter with potential side effects, namely when it
+ * is (or its receiver chain contains) a Java synthetic property access whose getter is not a trivial field
+ * accessor, or a Kotlin property with a non-default getter
+ */
+context(_: KaSession)
+private fun KtExpression.mayInvokeGetterWithSideEffects(): Boolean =
+    when (val expr = safeDeparenthesize()) {
+        is KtQualifiedExpression ->
+            expr.receiverExpression.mayInvokeGetterWithSideEffects() ||
+                    (expr.selectorExpression?.mayInvokeGetterWithSideEffects() == true)
+
+        is KtNameReferenceExpression ->
+            // A candidate of red code counts too, so the check stays conservative.
+            when (val symbol = expr.tryResolveCall()?.single?.simple?.symbol) {
+                is KaSyntheticJavaPropertySymbol -> {
+                    // A synthetic Java property is backed by a getter method that may have side effects.
+                    // A trivial field accessor (`return field;`) has no observable side effects, so it is safe
+                    // to fold into a `when` subject; otherwise stay conservative. `PropertyUtil.getFieldOfGetter`
+                    // is the platform's index-backed check for such simple accessors (it also covers compiled getters).
+                    val getter = symbol.javaGetterSymbol.psi as? PsiMethod
+                    getter == null || PropertyUtil.getFieldOfGetter(getter) == null
+                }
+
+                is KaPropertySymbol -> symbol.getter?.isNotDefault == true
+                else -> false
+            }
+
+        else -> false
+    }
 
 context(_: KaSession)
 private fun BuilderByPattern<KtExpression>.appendConditionWithSubjectRemoved(conditionExpression: KtExpression?, subject: KtExpression) {
@@ -427,8 +506,10 @@ fun KtExpression.isPure(): Boolean {
         }
 
         is KtCallExpression -> {
-            // Collection literals: listOf(), setOf(), mapOf() - smart stdlib detection
-            return isStdlibCollectionConstructorCall(expr)
+            return isStdlibCollectionConstructorCall(expr) &&
+                    expr.valueArguments.all { argument ->
+                        argument.getArgumentExpression()?.isPure() ?: true
+                    }
         }
 
         is KtQualifiedExpression -> {

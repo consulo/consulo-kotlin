@@ -28,8 +28,11 @@ import com.intellij.refactoring.util.MoveRenameUsageInfo
 import com.intellij.usageView.UsageInfo
 import com.intellij.util.IncorrectOperationException
 import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.resolution.symbols
+import org.jetbrains.kotlin.analysis.api.resolution.tryResolveSymbols
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaPropertySymbol
+import org.jetbrains.kotlin.analysis.api.symbols.symbol
 import org.jetbrains.kotlin.analysis.api.types.KaFunctionType
 import org.jetbrains.kotlin.asJava.toLightElements
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.allowAnalysisFromWriteActionInEdt
@@ -271,7 +274,7 @@ sealed class K2MoveRenameUsageInfo(
                         val mainReference = refElem.mainReference
                         if (mainReference != null) {
                             val declPsi = allowAnalysisFromWriteActionInEdt(refElem) {
-                              mainReference.resolveToSymbols().firstOrNull { declSymbol ->
+                              refElem.tryResolveSymbols()?.symbols.orEmpty().firstOrNull { declSymbol ->
                                 (declSymbol as KaCallableSymbol).isExtensionDecl()
                               }?.psi
                             }
@@ -552,10 +555,12 @@ sealed class K2MoveRenameUsageInfo(
             val fileCount = qualifiedUsages.size
             val progress = ProgressManager.getInstance().progressIndicator
             qualifiedUsages.forEach { (file, usageMap) ->
+                // Retargeting might invalidate elements
+                val validUsages = usageMap.keys.filter { it.isValid }
                 // We create pointers to the qualified elements here because they might get invalidated by shortening.
-                val qualifiedExpressionPointers = usageMap.keys.filterIsInstance<KtDotQualifiedExpression>().map { it.createSmartPointer() }
+                val qualifiedExpressionPointers = validUsages.filterIsInstance<KtDotQualifiedExpression>().map { it.createSmartPointer() }
                 if (file is KtFile) {
-                  shortenReferences(usageMap.keys.filterIsInstance<KtElement>())
+                  shortenReferences(validUsages.filterIsInstance<KtElement>())
                 }
                 // There are some circumstances where the reference shortener does not shorten an expression we added the root prefix to.
                 // This can happen if the reference shortener is unable to add an import because the declaration's name is already

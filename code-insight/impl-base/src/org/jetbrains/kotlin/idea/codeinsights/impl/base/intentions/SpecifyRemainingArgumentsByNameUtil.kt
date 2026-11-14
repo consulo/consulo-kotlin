@@ -10,24 +10,28 @@ import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.parentsOfType
 import org.jetbrains.annotations.ApiStatus
-import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.components.isSubtypeOf
+import org.jetbrains.kotlin.analysis.api.expressions.expressionType
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallCandidate
 import org.jetbrains.kotlin.analysis.api.resolution.KaFunctionCall
+import org.jetbrains.kotlin.analysis.api.resolution.KaImplicitInvokeCall
 import org.jetbrains.kotlin.analysis.api.resolution.KaImplicitReceiverValue
+import org.jetbrains.kotlin.analysis.api.resolution.collectCallCandidates
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSuccessfulCall
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
+import org.jetbrains.kotlin.analysis.api.session.useSiteModule
 import org.jetbrains.kotlin.analysis.api.signatures.KaVariableSignature
 import org.jetbrains.kotlin.analysis.api.symbols.KaContextParameterSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaPropertySymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
-import org.jetbrains.kotlin.analysis.api.useSiteModule
+import org.jetbrains.kotlin.analysis.api.symbols.symbol
+import org.jetbrains.kotlin.analysis.api.types.hasCommonSubtypeWith
+import org.jetbrains.kotlin.analysis.api.types.isSubtypeOf
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.idea.base.projectStructure.languageVersionSettings
-import org.jetbrains.kotlin.analysis.api.symbols.contextParameters
-import org.jetbrains.kotlin.analysis.api.symbols.symbol
 import org.jetbrains.kotlin.idea.base.psi.appendValueArgument
+import org.jetbrains.kotlin.idea.base.psi.insertValueArgumentBefore
 import org.jetbrains.kotlin.idea.base.util.reformat
 import org.jetbrains.kotlin.idea.formatter.KotlinCommonCodeStyleSettings
 import org.jetbrains.kotlin.idea.formatter.kotlinCommonSettings
@@ -36,7 +40,6 @@ import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
-import org.jetbrains.kotlin.psi.KtExperimentalApi
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtPsiFactory
@@ -106,7 +109,7 @@ object SpecifyRemainingArgumentsByNameUtil {
             val expression = psiFactory.createExpression(suggested ?: "TODO()")
             val argument = psiFactory.createArgument(expression = expression, name = argumentName)
             val addedArgument = if (anchor != null) {
-                element.addArgumentBefore(argument, anchor)
+                element.insertValueArgumentBefore(argument, anchor)
             } else {
                 element.addArgumentWithCommentsPreserve(argument, psiFactory)
             }
@@ -142,17 +145,17 @@ object SpecifyRemainingArgumentsByNameUtil {
     }
 
     /**
-     * Returns false if [argumentMapping] contains arguments whose type conflicts with the type of the parameter.
+     * Returns false if [valueArgumentMapping] contains arguments whose type conflicts with the type of the parameter.
      */
-    private fun KaSession.isValidArgumentMapping(argumentMapping: Map<KtExpression, KaVariableSignature<KaValueParameterSymbol>>): Boolean {
-        return argumentMapping.all {
+    context(session: KaSession)
+    private fun isValidArgumentMapping(valueArgumentMapping: Map<KtExpression, KaVariableSignature<KaValueParameterSymbol>>): Boolean {
+        return valueArgumentMapping.all {
             val expressionType = it.key.expressionType ?: return@all false
             it.value.returnType.hasCommonSubtypeWith(expressionType)
         }
     }
 
     @ApiStatus.Internal
-    @OptIn(KaExperimentalApi::class)
     context(_: KaSession)
     fun contextSuggestedNames(
         candidateCall: KaFunctionCall<*>,
@@ -212,7 +215,6 @@ object SpecifyRemainingArgumentsByNameUtil {
      * See [RemainingArgumentsData] for details.
      */
     @ApiStatus.Internal
-    @OptIn(KaExperimentalApi::class)
     context(session: KaSession)
     fun KaFunctionCall<*>.getRemainingArgumentsData(existingArgumentsCount: Int): RemainingArgumentsData? {
         if (!symbol.hasStableParameterNames) return null
@@ -275,12 +277,11 @@ object SpecifyRemainingArgumentsByNameUtil {
     }
 
     /**
-     * Given the list of [allCalls] that are possible, this function returns the minimum required arguments
-     * to complete any of the calls and the maximum arguments available (including context parameters).
-     * The largest overload is determined by value parameter count.
+     * This function prefers direct calls. It uses implicit `invoke` calls only when no direct call is available.
+     * It returns data from the candidate with the fewest required value parameters.
      */
-    @OptIn(KaExperimentalApi::class)
-    private fun KaSession.getRemainingArgumentsData(allCalls: List<KaCallCandidate>, existingArgumentsCount: Int): RemainingArgumentsData? {
+    context(session: KaSession)
+    private fun getRemainingArgumentsData(allCalls: List<KaCallCandidate>, existingArgumentsCount: Int): RemainingArgumentsData? {
         val allFunctionCalls = allCalls.map { info ->
             // If any of the calls cannot be resolved, we do not want to continue
             info.candidate as? KaFunctionCall<*> ?: return null
@@ -288,28 +289,19 @@ object SpecifyRemainingArgumentsByNameUtil {
         val validPossibleCalls = allFunctionCalls.filter { it.symbol.hasStableParameterNames && isValidArgumentMapping(it.valueArgumentMapping) }
         if (validPossibleCalls.isEmpty()) return null
 
-        val smallestData = validPossibleCalls.minBy { call -> call.symbol.valueParameters.count { !it.hasDeclaredDefaultValue } }
-                .getRemainingArgumentsData(existingArgumentsCount) ?: return null
-        val largestData =
-            validPossibleCalls.maxBy { it.symbol.valueParameters.size }
-                .getRemainingArgumentsData(existingArgumentsCount) ?: return null
-
-        return RemainingArgumentsData(
-            smallestData.remainingRequiredArguments,
-            largestData.allValueRemainingArguments,
-            largestData.allContextRemainingArguments,
-            largestData.allContextParameterNames,
-            largestData.implicitContextArgumentNames
-        )
+        val directCalls = validPossibleCalls.filterNot { it is KaImplicitInvokeCall }.ifEmpty { validPossibleCalls }
+        return directCalls
+            .minBy { call -> call.symbol.valueParameters.count { !it.hasDeclaredDefaultValue } }
+            .getRemainingArgumentsData(existingArgumentsCount)
     }
 
     /**
      * Calculates the [RemainingArgumentsData] for the [element].
      */
-    @OptIn(KaExperimentalApi::class, KtExperimentalApi::class)
-    fun KaSession.findRemainingNamedArguments(element: KtValueArgumentList): RemainingArgumentsData? {
+    context(session: KaSession)
+    fun findRemainingNamedArguments(element: KtValueArgumentList): RemainingArgumentsData? {
         val functionCall = element.parent as? KtCallExpression ?: return null
-        val resolvedCall = functionCall.resolveCall()
+        val resolvedCall = functionCall.resolveSuccessfulCall()
         val existingArgumentsCount = functionCall.valueArguments.size
 
         return if (resolvedCall != null) {

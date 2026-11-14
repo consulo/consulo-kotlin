@@ -4,10 +4,10 @@ package org.jetbrains.kotlin.idea.k2.refactoring.move.processor.conflict
 import com.intellij.openapi.module.Module
 import com.intellij.psi.PsiElement
 import com.intellij.util.containers.MultiMap
-import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
-import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaModule
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.symbol
 import org.jetbrains.kotlin.analysis.api.types.symbol
 import org.jetbrains.kotlin.idea.base.projectStructure.getKaModule
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
@@ -44,7 +44,7 @@ internal fun KtClassOrObject.getSealedSuperTypes(): Set<KtClass> {
 
 // Makes sure the list is sorted to ensure consistent results
 private fun List<KtClassOrObject>.toListOfNames() = map {
-    it.fqName?.asString() ?: it.nameAsSafeName.asString()
+    it.getClassId()?.relativeClassName?.asString() ?: it.nameAsSafeName.asString()
 }.sorted()
 
 /**

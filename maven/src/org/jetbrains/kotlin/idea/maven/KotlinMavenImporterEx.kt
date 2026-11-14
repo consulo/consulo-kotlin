@@ -91,7 +91,7 @@ class KotlinMavenImporterEx : KotlinMavenImporter(), MavenWorkspaceFacetConfigur
         mavenProject: MavenProject
     ) {
         storage.modifyModuleEntity(module) {
-            this.kotlinSettings += createWorkspaceEntity(module)
+            this.moduleSettings += createWorkspaceEntity(module)
         }
 
         val mavenPlugin = mavenProject.findKotlinMavenPlugin() ?: return
@@ -205,9 +205,9 @@ class KotlinMavenImporterEx : KotlinMavenImporter(), MavenWorkspaceFacetConfigur
             ?.firstOrNull { it.goals.any { s -> s in compilationGoals } }
             ?.configurationElement?.let { getCompilerArgumentsByConfigurationElement(mavenProject, it, configuredPlatform, project) }
         LOG.debug("Parsing compiler arguments: ", sharedArguments.args)
-        parseCompilerArgumentsToFacetSettings(sharedArguments.args, kotlinFacetSettings, null) //modifiableModelsProvider -> null
+        parseCompilerArgumentsToFacetSettings(sharedArguments.args, kotlinFacetSettings)
         if (executionArguments != null) {
-            parseCompilerArgumentsToFacetSettings(executionArguments.args, kotlinFacetSettings, null) //modifiableModelsProvider -> null
+            parseCompilerArgumentsToFacetSettings(executionArguments.args, kotlinFacetSettings)
         }
         if (kotlinFacetSettings.compilerArguments is K2JSCompilerArguments) {
             deprecatedKotlinJsCompiler(project, compilerVersion.kotlinVersion)

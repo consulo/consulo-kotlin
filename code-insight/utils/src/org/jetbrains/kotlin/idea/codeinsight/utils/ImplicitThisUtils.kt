@@ -2,13 +2,8 @@
 package org.jetbrains.kotlin.idea.codeinsight.utils
 
 import org.jetbrains.annotations.ApiStatus
-import org.jetbrains.kotlin.analysis.api.KaContextParameterApi
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.components.KaImplicitReceiver
-import org.jetbrains.kotlin.analysis.api.components.containingDeclaration
-import org.jetbrains.kotlin.analysis.api.components.expandedSymbol
-import org.jetbrains.kotlin.analysis.api.components.isSubClassOf
-import org.jetbrains.kotlin.analysis.api.components.resolveToSymbol
 import org.jetbrains.kotlin.analysis.api.components.scopeContext
 import org.jetbrains.kotlin.analysis.api.symbols.KaAnonymousFunctionSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
@@ -17,10 +12,13 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaPropertySymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaVariableSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.containingDeclaration
+import org.jetbrains.kotlin.analysis.api.symbols.isSubClassOf
 import org.jetbrains.kotlin.analysis.api.symbols.name
 import org.jetbrains.kotlin.analysis.api.symbols.receiverType
 import org.jetbrains.kotlin.analysis.api.types.KaFunctionType
-import org.jetbrains.kotlin.idea.references.mainReference
+import org.jetbrains.kotlin.analysis.api.types.expandedSymbol
+import org.jetbrains.kotlin.idea.util.tryResolveSymbolsCallFirst
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableReferenceExpression
@@ -44,17 +42,16 @@ data class ExplicitReceiverInfo(
     val receiverProvidedBy: KtDeclaration,
 )
 
-@OptIn(KaContextParameterApi::class)
 @ApiStatus.Internal
 context(_: KaSession)
 fun KtExpression.getImplicitReceiverInfo(): ImplicitReceiverInfo? {
     val reference = when (this) {
         is KtSimpleNameExpression -> this
         is KtCallableReferenceExpression -> callableReference
-        is KtCallExpression -> calleeExpression
+        is KtCallExpression -> calleeExpression as? KtSimpleNameExpression
         else -> null
     } ?: return null
-    val declarationSymbol = reference.mainReference?.resolveToSymbol() ?: return null
+    val declarationSymbol = reference.tryResolveSymbolsCallFirst().singleOrNull() ?: return null
 
     // Get associated class symbol on declaration-site
     val declarationAssociatedClass = getAssociatedClass(declarationSymbol) ?: return null
@@ -88,7 +85,6 @@ fun getLabelToBeReferencedByThis(symbol: KaSymbol): ExplicitReceiverInfo? {
     return (receiverProvidedBy as? KtDeclaration)?.let { ExplicitReceiverInfo(associatedTag, it) }
 }
 
-@OptIn(KaContextParameterApi::class)
 context(_: KaSession)
 private fun getAssociatedClass(symbol: KaSymbol): KaClassSymbol? {
     // both variables and functions are callable, and only they can be referenced by "this"
@@ -106,7 +102,6 @@ private fun getAssociatedClass(symbol: KaSymbol): KaClassSymbol? {
     }
 }
 
-@OptIn(KaContextParameterApi::class)
 context(_: KaSession)
 private fun getImplicitReceiverInfoOfClass(
     implicitReceivers: List<KaImplicitReceiver>, associatedClass: KaClassSymbol

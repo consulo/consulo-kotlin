@@ -1,23 +1,25 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.kotlin.gradle.multiplatformTests.junit5
 
+import com.intellij.gradle.testFramework.jvm.GradleJvmResolver
+import com.intellij.gradle.testFramework.jvm.JavaVersionRestriction
+import com.intellij.gradle.testFramework.util.createGradleWrapper
 import com.intellij.openapi.application.writeAction
 import com.intellij.openapi.project.Project
 import com.intellij.testFramework.junit5.fixture.TestFixture
 import com.intellij.testFramework.junit5.fixture.tempPathFixture
 import com.intellij.testFramework.junit5.fixture.testFixture
-import org.jetbrains.plugins.gradle.testFramework.util.createGradleWrapper
 import org.jetbrains.kotlin.gradle.multiplatformTests.AbstractKotlinMppGradleImportingTest.Companion.configureByFiles
+import org.jetbrains.kotlin.gradle.multiplatformTests.AbstractKotlinMppGradleImportingTest.Companion.createLocalPropertiesFiles
 import org.jetbrains.kotlin.gradle.multiplatformTests.KotlinMppTestProperties
-import org.jetbrains.kotlin.gradle.multiplatformTests.KotlinTestProperties
 import org.jetbrains.kotlin.gradle.multiplatformTests.TestFeature
 import org.jetbrains.kotlin.gradle.multiplatformTests.testFeatures.CustomGradlePropertiesTestFeature
 import org.jetbrains.kotlin.gradle.multiplatformTests.testFeatures.GradleProjectsPublishingTestsFeature
+import org.jetbrains.kotlin.gradle.multiplatformTests.testFeatures.LibraryKindsChecker
 import org.jetbrains.kotlin.gradle.multiplatformTests.testFeatures.LinkedProjectPathsTestsFeature
 import org.jetbrains.kotlin.gradle.multiplatformTests.testFeatures.NoErrorEventsDuringImportFeature
 import org.jetbrains.kotlin.gradle.multiplatformTests.testFeatures.checkers.AllFilesAreUnderContentRootChecker
 import org.jetbrains.kotlin.gradle.multiplatformTests.testFeatures.checkers.DocumentationChecker
-import org.jetbrains.kotlin.gradle.multiplatformTests.testFeatures.LibraryKindsChecker
 import org.jetbrains.kotlin.gradle.multiplatformTests.testFeatures.checkers.ReferenceTargetChecker
 import org.jetbrains.kotlin.gradle.multiplatformTests.testFeatures.checkers.TestTasksChecker
 import org.jetbrains.kotlin.gradle.multiplatformTests.testFeatures.checkers.contentRoots.ContentRootsChecker
@@ -114,14 +116,14 @@ class KotlinTestFeaturesBuilder : KotlinTestFeaturesScope() {
 internal interface KotlinTestFeaturesInternal : KotlinTestFeatures {
     val enabledFeatures: List<TestFeature<*>>
     val scope: KotlinTestFeaturesScope
-    val testProperties: KotlinTestProperties
+    val testProperties: KotlinMppTestProperties
     val testDataDir: Path
 }
 
 private class KotlinTestFeaturesImpl(
     override val enabledFeatures: List<TestFeature<*>>,
     override val scope: KotlinTestFeaturesScope,
-    override val testProperties: KotlinTestProperties,
+    override val testProperties: KotlinMppTestProperties,
     override val testDataDir: Path,
 ) : KotlinTestFeaturesInternal {
     override fun check(
@@ -144,7 +146,7 @@ private class KotlinTestFeaturesImpl(
 
 /**
  * Configurable fixture bundling enabled checkers + their typed configuration, plus the per-versions
- * [KotlinTestProperties] used by every checker. Wire it into the rest of the test pipeline via
+ * [KotlinMppTestProperties] used by every checker. Wire it into the rest of the test pipeline via
  * [projectRootFixture] / [KotlinTestFeatures.check].
  *
  * Example:
@@ -189,6 +191,12 @@ fun TestFixture<KotlinTestFeatures>.projectRootFixture(
     projectRoot.createGradleWrapper(versions.gradle.version)
 
     writeAction {
+        createLocalPropertiesFiles(
+            projectRoot,
+            features.testDataDir,
+            GradleJvmResolver.resolveGradleJvmHomePath(versions.gradle.version, JavaVersionRestriction.DEFAULT),
+            features.testProperties,
+        )
         configureByFiles(
             projectRoot,
             features.testDataDir,

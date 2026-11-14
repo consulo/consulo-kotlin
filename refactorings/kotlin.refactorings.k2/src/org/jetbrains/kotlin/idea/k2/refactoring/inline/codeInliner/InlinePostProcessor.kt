@@ -4,15 +4,22 @@ package org.jetbrains.kotlin.idea.k2.refactoring.inline.codeInliner
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.psi.SmartPsiElementPointer
-import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.resolution.singleFunctionCallOrNull
-import org.jetbrains.kotlin.analysis.api.resolution.successfulFunctionCallOrNull
+import org.jetbrains.kotlin.analysis.api.resolution.function
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSuccessfulCall
+import org.jetbrains.kotlin.analysis.api.resolution.resolveSuccessfulSymbol
+import org.jetbrains.kotlin.analysis.api.resolution.single
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
+import org.jetbrains.kotlin.analysis.api.resolution.tryResolveCall
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.symbols.KaFunctionSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.allOverriddenSymbols
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.defaultValue
 import org.jetbrains.kotlin.idea.base.codeInsight.ShortenOptionsForIde
 import org.jetbrains.kotlin.idea.base.codeInsight.ShortenReferencesFacility
+import org.jetbrains.kotlin.idea.base.psi.deleteValueArgument
+import org.jetbrains.kotlin.idea.base.psi.insertValueArgumentAfter
+import org.jetbrains.kotlin.idea.codeinsight.utils.NamedArgumentUtils
 import org.jetbrains.kotlin.idea.codeinsight.utils.RemoveExplicitTypeArgumentsUtils
 import org.jetbrains.kotlin.idea.k2.refactoring.inline.KotlinInlineAnonymousFunctionProcessor
 import org.jetbrains.kotlin.idea.k2.refactoring.introduce.K2SemanticMatcher.isSemanticMatch
@@ -21,6 +28,7 @@ import org.jetbrains.kotlin.idea.k2.refactoring.util.areTypeArgumentsRedundant
 import org.jetbrains.kotlin.idea.k2.refactoring.util.isRedundantUnit
 import org.jetbrains.kotlin.idea.refactoring.canMoveLambdaOutsideParentheses
 import org.jetbrains.kotlin.idea.refactoring.inline.codeInliner.AbstractInlinePostProcessor
+import org.jetbrains.kotlin.idea.refactoring.inline.codeInliner.InlineDataKeys.ARTIFICIAL_VARARG_ARRAY_VALUE_KEY
 import org.jetbrains.kotlin.idea.refactoring.inline.codeInliner.InlineDataKeys.DEFAULT_PARAMETER_VALUE_KEY
 import org.jetbrains.kotlin.idea.refactoring.inline.codeInliner.InlineDataKeys.MAKE_ARGUMENT_NAMED_KEY
 import org.jetbrains.kotlin.idea.refactoring.inline.codeInliner.InlineDataKeys.USER_CODE_KEY
@@ -87,16 +95,9 @@ object InlinePostProcessor: AbstractInlinePostProcessor() {
         val argumentsToExpand = ArrayList<Pair<KtValueArgument, KtCallExpression>>()
 
         result.forEachDescendantOfType<KtValueArgument>(canGoInside = { it.getCopyableUserData(USER_CODE_KEY) == null }) { argument ->
-            if (argument.getSpreadElement() != null && !argument.isNamed()) {
-                val argumentExpression = argument.getArgumentExpression() ?: return@forEachDescendantOfType
-                val callExpression =
-                  ((argumentExpression as? KtDotQualifiedExpression)?.selectorExpression ?: argumentExpression) as? KtCallExpression
-                        ?: return@forEachDescendantOfType
-                val resolved =
-                  callExpression.referenceExpression()?.mainReference?.resolve() as? KtNamedDeclaration ?: return@forEachDescendantOfType
-                if (ARRAY_CALL_FQ_NAMES.contains(resolved.fqName)) {
-                    argumentsToExpand.add(argument to callExpression)
-                }
+            val callExpression = argument.arrayOfCallExpression() ?: return@forEachDescendantOfType
+            if (argument.getSpreadElement() != null || argument.canReplaceArtificialVarargArray(callExpression)) {
+                argumentsToExpand.add(argument to callExpression)
             }
         }
 
@@ -106,17 +107,48 @@ object InlinePostProcessor: AbstractInlinePostProcessor() {
     }
 
 
+    private fun KtValueArgument.arrayOfCallExpression(): KtCallExpression? {
+        val argumentExpression = getArgumentExpression() ?: return null
+        val callExpression =
+          ((argumentExpression as? KtDotQualifiedExpression)?.selectorExpression ?: argumentExpression) as? KtCallExpression
+                ?: return null
+        if (argumentExpression.getCopyableUserData(ARTIFICIAL_VARARG_ARRAY_VALUE_KEY) != null) return callExpression
+
+        val resolved = callExpression.referenceExpression()?.mainReference?.resolve() as? KtNamedDeclaration ?: return null
+        return callExpression.takeIf { ARRAY_CALL_FQ_NAMES.contains(resolved.fqName) }
+    }
+
+    private fun KtValueArgument.canReplaceArtificialVarargArray(arrayOfCallExpression: KtCallExpression): Boolean {
+        if (!isArtificialVarargArrayPassedToVararg()) return false
+        return !isNamed() || arrayOfCallExpression.valueArgumentList?.arguments.orEmpty().isEmpty()
+    }
+
+    private fun KtValueArgument.isArtificialVarargArrayPassedToVararg(): Boolean {
+        val argumentExpression = getArgumentExpression() ?: return false
+        if (argumentExpression.getCopyableUserData(ARTIFICIAL_VARARG_ARRAY_VALUE_KEY) == null) return false
+
+        val argumentList = parent as? KtValueArgumentList ?: return false
+        val callExpression = argumentList.parent as? KtCallExpression ?: return false
+        return analyze(callExpression) {
+            callExpression.resolveSuccessfulCall()
+                ?.valueArgumentMapping
+                ?.get(argumentExpression)
+                ?.symbol
+                ?.isVararg == true
+        }
+    }
+
     private fun KtValueArgument.replaceByMultiple(expr: KtCallExpression) {
         val list = parent as KtValueArgumentList
         val arguments = expr.valueArgumentList?.arguments.orEmpty()
         if (arguments.isEmpty()) {
-            list.removeArgument(this)
+            list.deleteValueArgument(this)
         } else {
             var anchor = this
             for (argument in arguments) {
-                anchor = list.addArgumentAfter(argument, anchor)
+                anchor = list.insertValueArgumentAfter(argument, anchor)
             }
-            list.removeArgument(this)
+            list.deleteValueArgument(this)
         }
     }
 
@@ -140,10 +172,10 @@ object InlinePostProcessor: AbstractInlinePostProcessor() {
 
         result.forEachDescendantOfType<KtCallElement> { callExpression ->
             analyze(callExpression) {
-                val functionCall = callExpression.resolveToCall()?.singleFunctionCallOrNull() ?: return@forEachDescendantOfType
+                val functionCall = callExpression.tryResolveCall()?.single?.function ?: return@forEachDescendantOfType
 
-                val arguments = functionCall.argumentMapping.entries.toList()
-                val callableSymbol = functionCall.partiallyAppliedSymbol.symbol
+                val arguments = functionCall.valueArgumentMapping.entries.toList()
+                val callableSymbol = functionCall.symbol
                 val valueParameters = callableSymbol.valueParameters
                 var idx = arguments.size
                 for ((argument, param) in arguments.asReversed()) {
@@ -160,11 +192,11 @@ object InlinePostProcessor: AbstractInlinePostProcessor() {
                         var needToSubstitute = false
                         defaultValue?.forEachDescendantOfType<KtSimpleNameExpression> { ref ->
                             analyze(defaultValue) {
-                                val symbol = ref.mainReference.resolveToSymbol()
+                                val symbol = ref.resolveSuccessfulSymbol()
                                 if (symbol is KaValueParameterSymbol && symbol in valueParameters) {
                                     ref.putCopyableUserData(
                                         key,
-                                        functionCall.argumentMapping.entries.firstOrNull { it.value.symbol == symbol }?.key
+                                        functionCall.valueArgumentMapping.entries.firstOrNull { it.value.symbol == symbol }?.key
                                     )
                                     needToSubstitute = true
                                 }
@@ -210,7 +242,7 @@ object InlinePostProcessor: AbstractInlinePostProcessor() {
 
         for (argument in argumentsToDrop) {
             val argumentList = argument.parent as KtValueArgumentList
-            argumentList.removeArgument(argument)
+            argumentList.deleteValueArgument(argument)
             if (argumentList.arguments.isEmpty()) {
                 val callExpression = argumentList.parent as KtCallElement
                 if (callExpression.lambdaArguments.isNotEmpty()) {
@@ -234,18 +266,15 @@ object InlinePostProcessor: AbstractInlinePostProcessor() {
         val replacementMap = mutableMapOf<KtValueArgument, KtValueArgument>()
         analyze(element) {
             for (callExpression in callsToProcess) {
-                val resolvedCall = callExpression.resolveToCall()?.successfulFunctionCallOrNull() ?: return
-
-                val argumentsToMakeNamed = callExpression.valueArguments.dropWhile { it.getCopyableUserData(MAKE_ARGUMENT_NAMED_KEY) == null }
-                for (argument in argumentsToMakeNamed) {
+                val firstArgument = callExpression.valueArguments.firstOrNull { it.getCopyableUserData(MAKE_ARGUMENT_NAMED_KEY) != null }
+                    ?: continue
+                val argumentNames = NamedArgumentUtils.associateArgumentNamesStartingAt(callExpression, firstArgument) ?: continue
+                for ((argumentPointer, name) in argumentNames) {
+                    val argument = argumentPointer.element ?: continue
                     if (argument.isNamed()) continue
                     if (argument is KtLambdaArgument) continue
                     val argumentExpression = argument.getArgumentExpression() ?: continue
-                    val name = resolvedCall.argumentMapping[argumentExpression]?.symbol?.let { symbol ->
-                        symbol.name.takeIf { symbol.psi is KtElement }
-                    }
-                    //TODO: not always correct for vararg's
-                    val newArgument = psiFactory.createArgument(argument.getArgumentExpression()!!, name, argument.getSpreadElement() != null)
+                    val newArgument = psiFactory.createArgument(argumentExpression, name, argument.getSpreadElement() != null)
 
                     if (argument.getCopyableUserData(DEFAULT_PARAMETER_VALUE_KEY) != null) {
                         newArgument.putCopyableUserData(DEFAULT_PARAMETER_VALUE_KEY, Unit)

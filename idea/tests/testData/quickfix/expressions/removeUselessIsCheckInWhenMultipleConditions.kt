@@ -1,4 +1,5 @@
 // "Remove redundant 'is' check" "true"
+// K2_ERROR: IMPOSSIBLE_IS_CHECK_ERROR
 open class A
 class B: A()
 class C: A()
@@ -16,4 +17,4 @@ fun test(a: A) {
 }
 
 
-// FUS_K2_QUICKFIX_NAME: org.jetbrains.kotlin.idea.quickfix.RemoveUselessIsCheckFixForWhen
+// FUS_QUICKFIX_NAME: org.jetbrains.kotlin.idea.quickfix.RemoveUselessIsCheckFixForWhen

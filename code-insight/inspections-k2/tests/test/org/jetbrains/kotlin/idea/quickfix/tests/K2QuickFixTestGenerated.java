@@ -148,6 +148,11 @@ public abstract class K2QuickFixTestGenerated extends AbstractK2QuickFixTest {
             runTest("../../../idea/tests/testData/quickfix/changeSignature/addConstructorParameterForValueClass.kt");
         }
 
+        @TestMetadata("addContextParameterWithAnnotation.kt")
+        public void testAddContextParameterWithAnnotation() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/changeSignature/addContextParameterWithAnnotation.kt");
+        }
+
         @TestMetadata("addEnumConstructorParameter.kt")
         public void testAddEnumConstructorParameter() throws Exception {
             runTest("../../../idea/tests/testData/quickfix/changeSignature/addEnumConstructorParameter.kt");
@@ -201,6 +206,11 @@ public abstract class K2QuickFixTestGenerated extends AbstractK2QuickFixTest {
         @TestMetadata("addFunctionParameterAndChangeTypes.kt")
         public void testAddFunctionParameterAndChangeTypes() throws Exception {
             runTest("../../../idea/tests/testData/quickfix/changeSignature/addFunctionParameterAndChangeTypes.kt");
+        }
+
+        @TestMetadata("addFunctionParameterAndChangeTypesWithContextParameter.kt")
+        public void testAddFunctionParameterAndChangeTypesWithContextParameter() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/changeSignature/addFunctionParameterAndChangeTypesWithContextParameter.kt");
         }
 
         @TestMetadata("addFunctionParameterAndChangeTypesWithReceiver.kt")
@@ -266,6 +276,16 @@ public abstract class K2QuickFixTestGenerated extends AbstractK2QuickFixTest {
         @TestMetadata("addFunctionParameterForTypeMismatch5.kt")
         public void testAddFunctionParameterForTypeMismatch5() throws Exception {
             runTest("../../../idea/tests/testData/quickfix/changeSignature/addFunctionParameterForTypeMismatch5.kt");
+        }
+
+        @TestMetadata("addFunctionParameterForTypeMismatchWithContextParameter.kt")
+        public void testAddFunctionParameterForTypeMismatchWithContextParameter() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/changeSignature/addFunctionParameterForTypeMismatchWithContextParameter.kt");
+        }
+
+        @TestMetadata("addFunctionParameterForTypeMismatchWithContextParameterAndReceiver.kt")
+        public void testAddFunctionParameterForTypeMismatchWithContextParameterAndReceiver() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/changeSignature/addFunctionParameterForTypeMismatchWithContextParameterAndReceiver.kt");
         }
 
         @TestMetadata("addFunctionParameterForTypeMismatchWithLambdaArgument.kt")
@@ -481,6 +501,11 @@ public abstract class K2QuickFixTestGenerated extends AbstractK2QuickFixTest {
         @TestMetadata("removeFunctionFirstParameter.kt")
         public void testRemoveFunctionFirstParameter() throws Exception {
             runTest("../../../idea/tests/testData/quickfix/changeSignature/removeFunctionFirstParameter.kt");
+        }
+
+        @TestMetadata("removeFunctionParameterWithContextParameter.kt")
+        public void testRemoveFunctionParameterWithContextParameter() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/changeSignature/removeFunctionParameterWithContextParameter.kt");
         }
 
         @TestMetadata("removeFunctionSecondParameter1.kt")
@@ -1383,6 +1408,19 @@ public abstract class K2QuickFixTestGenerated extends AbstractK2QuickFixTest {
                 runTest("../../../idea/tests/testData/quickfix/suppress/redundant/Suppressed.kt");
             }
         }
+
+        @RunWith(JUnit3RunnerWithInners.class)
+        @TestMetadata("../../../idea/tests/testData/quickfix/suppress/unused")
+        public static class Unused extends AbstractK2QuickFixTest {
+            private void runTest(String testDataFilePath) throws Exception {
+                KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+            }
+
+            @TestMetadata("unusedParameter.kt")
+            public void testUnusedParameter() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/suppress/unused/unusedParameter.kt");
+            }
+        }
     }
 
     @RunWith(JUnit3RunnerWithInners.class)
@@ -2227,6 +2265,11 @@ public abstract class K2QuickFixTestGenerated extends AbstractK2QuickFixTest {
                 runTest("../../../idea/tests/testData/quickfix/optIn/nonTopLevelAnnotation2.kt");
             }
 
+            @TestMetadata("optInOnPrimaryConstructorFromInitBlock.kt")
+            public void testOptInOnPrimaryConstructorFromInitBlock() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/optIn/optInOnPrimaryConstructorFromInitBlock.kt");
+            }
+
             @TestMetadata("optInUnused.kt")
             public void testOptInUnused() throws Exception {
                 runTest("../../../idea/tests/testData/quickfix/optIn/optInUnused.kt");
@@ -2280,6 +2323,31 @@ public abstract class K2QuickFixTestGenerated extends AbstractK2QuickFixTest {
             @TestMetadata("propagateOptIn8Fir.kt")
             public void testPropagateOptIn8Fir() throws Exception {
                 runTest("../../../idea/tests/testData/quickfix/optIn/propagateOptIn8Fir.kt");
+            }
+
+            @TestMetadata("propagateRequiresOptInToPrimaryConstructor.kt")
+            public void testPropagateRequiresOptInToPrimaryConstructor() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/optIn/propagateRequiresOptInToPrimaryConstructor.kt");
+            }
+
+            @TestMetadata("propagateRequiresOptInToPrimaryConstructorFixAllFromExplicit.kt")
+            public void testPropagateRequiresOptInToPrimaryConstructorFixAllFromExplicit() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/optIn/propagateRequiresOptInToPrimaryConstructorFixAllFromExplicit.kt");
+            }
+
+            @TestMetadata("propagateRequiresOptInToPrimaryConstructorFixAllFromImplicit.kt")
+            public void testPropagateRequiresOptInToPrimaryConstructorFixAllFromImplicit() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/optIn/propagateRequiresOptInToPrimaryConstructorFixAllFromImplicit.kt");
+            }
+
+            @TestMetadata("propagateRequiresOptInToPrimaryConstructorFromInitBlock.kt")
+            public void testPropagateRequiresOptInToPrimaryConstructorFromInitBlock() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/optIn/propagateRequiresOptInToPrimaryConstructorFromInitBlock.kt");
+            }
+
+            @TestMetadata("propagateRequiresOptInToPrimaryConstructorFromSuperInterface.kt")
+            public void testPropagateRequiresOptInToPrimaryConstructorFromSuperInterface() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/optIn/propagateRequiresOptInToPrimaryConstructorFromSuperInterface.kt");
             }
 
             @TestMetadata("propagateSubclassOptInMultipleMarkers1.kt")
@@ -2407,6 +2475,21 @@ public abstract class K2QuickFixTestGenerated extends AbstractK2QuickFixTest {
         @TestMetadata("protected2.kt")
         public void testProtected2() throws Exception {
             runTest("../../../idea/tests/testData/quickfix/protectedInFinal/protected2.kt");
+        }
+
+        @TestMetadata("protectedInDataClass.kt")
+        public void testProtectedInDataClass() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/protectedInFinal/protectedInDataClass.kt");
+        }
+
+        @TestMetadata("protectedInEnumClass.kt")
+        public void testProtectedInEnumClass() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/protectedInFinal/protectedInEnumClass.kt");
+        }
+
+        @TestMetadata("protectedInValueClass.kt")
+        public void testProtectedInValueClass() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/protectedInFinal/protectedInValueClass.kt");
         }
     }
 
@@ -2573,6 +2656,11 @@ public abstract class K2QuickFixTestGenerated extends AbstractK2QuickFixTest {
             runTest("../../../idea/tests/testData/quickfix/unsupportedFeature/ExplicitBackingFields_2_3.kt");
         }
 
+        @TestMetadata("IntrinsicConstEvaluation_2_4_Increase_Version.kt")
+        public void testIntrinsicConstEvaluation_2_4_Increase_Version() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/unsupportedFeature/IntrinsicConstEvaluation_2_4_Increase_Version.kt");
+        }
+
         @TestMetadata("MultiDollarInterpolation_2_0.kt")
         public void testMultiDollarInterpolation_2_0() throws Exception {
             runTest("../../../idea/tests/testData/quickfix/unsupportedFeature/MultiDollarInterpolation_2_0.kt");
@@ -2601,6 +2689,11 @@ public abstract class K2QuickFixTestGenerated extends AbstractK2QuickFixTest {
         @TestMetadata("NestedTypeAlias_2_2.kt")
         public void testNestedTypeAlias_2_2() throws Exception {
             runTest("../../../idea/tests/testData/quickfix/unsupportedFeature/NestedTypeAlias_2_2.kt");
+        }
+
+        @TestMetadata("UnnamedLocalVariables_2_4_Increase_Version.kt")
+        public void testUnnamedLocalVariables_2_4_Increase_Version() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/unsupportedFeature/UnnamedLocalVariables_2_4_Increase_Version.kt");
         }
 
         @TestMetadata("WhenGuards_2_0.kt")

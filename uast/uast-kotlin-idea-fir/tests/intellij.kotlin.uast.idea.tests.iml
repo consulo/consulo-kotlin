@@ -9,11 +9,11 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="intellij.platform.core" scope="TEST" />
     <orderEntry type="module" module-name="intellij.platform.core.impl" scope="TEST" />
-    <orderEntry type="module" module-name="kotlin.plugin.k2" />
+    <orderEntry type="module" module-name="intellij.kotlin.plugin.community.main" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.libraries.junit4" scope="TEST" />
-    <orderEntry type="library" name="kotlinc.kotlin-compiler-common" level="project" />
-    <orderEntry type="library" scope="TEST" name="kotlin-test" level="project" />
-    <orderEntry type="module" module-name="intellij.platform.uast" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinc.kotlin.compiler.common" scope="TEST" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlinTest" scope="TEST" />
+    <orderEntry type="module" module-name="intellij.platform.uast" scope="TEST" />
     <orderEntry type="module" module-name="intellij.platform.uast.testFramework" scope="TEST" />
     <orderEntry type="module" module-name="intellij.java.testFramework" scope="TEST" />
     <orderEntry type="module" module-name="intellij.kotlin.base.testFramework" scope="TEST" />
@@ -23,6 +23,16 @@
     <orderEntry type="module" module-name="intellij.kotlin.uast.idea.base.tests" scope="TEST" />
     <orderEntry type="module" module-name="intellij.kotlin.base.plugin" scope="TEST" />
     <orderEntry type="module" module-name="intellij.platform.testFramework" scope="TEST" />
+    <orderEntry type="module" module-name="intellij.xml.plugin" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.properties.plugin" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.platform.structureView.plugin" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.java.aetherDependencyResolver.plugin" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.platform.structuralSearch.plugin" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.platform.testRunner.plugin" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.platform.vcs.plugin" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.platform.monolith.main" scope="RUNTIME" />
+    <orderEntry type="module" module-name="intellij.idea.community.customization" scope="RUNTIME" />
     <orderEntry type="module" module-name="intellij.kotlin.uast.tests" scope="TEST" />
+    <orderEntry type="module" module-name="intellij.platform.scratch.plugin" scope="TEST" />
   </component>
 </module>

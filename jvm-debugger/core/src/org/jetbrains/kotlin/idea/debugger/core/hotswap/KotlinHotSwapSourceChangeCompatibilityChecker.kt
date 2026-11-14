@@ -11,19 +11,38 @@ import com.intellij.debugger.impl.hotswap.JvmBaseSourceFileChangeCompatibilityCh
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.xdebugger.impl.hotswap.SourceFileChangeCompatibilityChecker
 import org.jetbrains.annotations.ApiStatus
-import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
-import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaDanglingFileResolutionMode
+import org.jetbrains.kotlin.analysis.api.projectStructure.copyOrigin
 import org.jetbrains.kotlin.analysis.api.renderer.types.impl.KaTypeRendererForSource
+import org.jetbrains.kotlin.analysis.api.session.analyze
+import org.jetbrains.kotlin.analysis.api.session.analyzeCopy
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.symbol
+import org.jetbrains.kotlin.analysis.api.types.KaCapturedType
+import org.jetbrains.kotlin.analysis.api.types.KaClassType
+import org.jetbrains.kotlin.analysis.api.types.KaDefinitelyNotNullType
+import org.jetbrains.kotlin.analysis.api.types.KaDynamicType
+import org.jetbrains.kotlin.analysis.api.types.KaErrorType
+import org.jetbrains.kotlin.analysis.api.types.KaFlexibleType
+import org.jetbrains.kotlin.analysis.api.types.KaFunctionType
+import org.jetbrains.kotlin.analysis.api.types.KaIntersectionType
+import org.jetbrains.kotlin.analysis.api.types.KaType
+import org.jetbrains.kotlin.analysis.api.types.KaTypeParameterType
+import org.jetbrains.kotlin.analysis.api.types.type
+import org.jetbrains.kotlin.analysis.utils.printer.prettyPrint
 import org.jetbrains.kotlin.idea.KotlinFileType
+import org.jetbrains.kotlin.idea.codeinsight.utils.isInlinedArgument
 import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.lexer.KtModifierKeywordToken
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtClassBody
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtConstructor
 import org.jetbrains.kotlin.psi.KtDeclarationContainer
@@ -37,9 +56,10 @@ import org.jetbrains.kotlin.psi.KtObjectDeclaration
 import org.jetbrains.kotlin.psi.KtObjectLiteralExpression
 import org.jetbrains.kotlin.psi.KtParameter
 import org.jetbrains.kotlin.psi.KtProperty
+import org.jetbrains.kotlin.psi.KtPsiFactory
+import org.jetbrains.kotlin.psi.KtTypeAlias
 import org.jetbrains.kotlin.psi.KtTypeReference
 import org.jetbrains.kotlin.psi.KtValVarKeywordOwner
-import org.jetbrains.kotlin.types.Variance
 
 internal class KotlinHotSwapSourceChangeCompatibilityCheckerProvider : HotSwapSourceChangeCompatibilityCheckerProvider {
     override fun provideCheckersForSession(debuggerSession: DebuggerSession): List<SourceFileChangeCompatibilityChecker> {
@@ -51,6 +71,22 @@ internal class KotlinHotSwapSourceChangeCompatibilityCheckerProvider : HotSwapSo
 class KotlinHotSwapSourceChangeCompatibilityChecker(project: Project) :
     JvmBaseSourceFileChangeCompatibilityChecker(project, KotlinFileType.INSTANCE) {
 
+    override fun resolutionFingerprint(file: PsiFile): ResolutionFingerprint {
+        val ktFile = file as? KtFile ?: unknownClassShapes("Expected KtFile, got ${file::class.java.name}")
+        val typeNames = hashSetOf<String>()
+        PsiTreeUtil.collectElementsOfType(ktFile, KtClassOrObject::class.java).mapNotNullTo(typeNames) { it.fqName?.asString() }
+        PsiTreeUtil.collectElementsOfType(ktFile, KtTypeAlias::class.java).mapNotNullTo(typeNames) { it.fqName?.asString() }
+        return ResolutionFingerprint(ktFile.packageFqName.asString(), ktFile.importList?.text.orEmpty(), typeNames)
+    }
+
+    override fun createOldPsiFile(currentFile: PsiFile, oldContent: CharSequence): PsiFile? {
+        val ktFile = currentFile as? KtFile ?: return null
+        return KtPsiFactory.contextual(ktFile, markGenerated = false)
+            .createFile(ktFile.name, oldContent.toString())
+            .also { it.putUserData(PsiFileFactory.ORIGINAL_FILE, ktFile) }
+    }
+
+    context(_: Context)
     override fun buildClassShapes(file: PsiFile): Map<String, HotSwapClassShape> {
         val ktFile = file as? KtFile ?: unknownClassShapes("Expected KtFile, got ${file::class.java.name}")
         val fileClass = ktFile.fileClassSnapshot()
@@ -58,6 +94,7 @@ class KotlinHotSwapSourceChangeCompatibilityChecker(project: Project) :
         return (fileClass + declaredClasses).associateByTo(linkedMapOf()) { it.name }
     }
 
+    context(_: Context)
     private fun KtFile.fileClassSnapshot(): List<HotSwapClassShape> {
         val className = buildFileClassName()
         val innerClasses = sourceAnonymousClasses()
@@ -69,7 +106,7 @@ class KotlinHotSwapSourceChangeCompatibilityChecker(project: Project) :
             innerClasses.mapTo(hashSetOf()) { "$className.${it.name}" },
             sourceFields().associatePropertyShapes(),
             sourceMethods().associateFunctionShapes() +
-                    sourceLambdas().mapIndexed { index, lambda -> lambda.snapshot(index) },
+                    sourceLambdasAffectingShape().mapIndexed { index, lambda -> lambda.snapshot(index) },
         )
         return listOf(shape) + innerClasses.flatMap { it.classOrObject.snapshot("$className.", it.name, it.isAnonymous) }
     }
@@ -80,6 +117,7 @@ class KotlinHotSwapSourceChangeCompatibilityChecker(project: Project) :
         return if (packageName.isEmpty()) fileClassName else "$packageName.$fileClassName"
     }
 
+    context(_: Context)
     private fun KtClassOrObject.snapshot(
         prefix: String = "",
         syntheticName: String? = null,
@@ -93,14 +131,12 @@ class KotlinHotSwapSourceChangeCompatibilityChecker(project: Project) :
                 capturedFields(anonymous)
         val methods = sourceMethods().associateFunctionShapes() +
                 sourceConstructors().associateConstructorShapes() +
-                sourceLambdas().mapIndexed { index, lambda -> lambda.snapshot(index) }
+                sourceLambdasAffectingShape().mapIndexed { index, lambda -> lambda.snapshot(index) }
         val shape = HotSwapClassShape(
             className,
             kind(anonymous),
             modifiers(CLASS_MODIFIERS),
-            superTypeListEntries.mapTo(hashSetOf()) {
-                it.resolvedTypeSignature(it.typeReference, "Kotlin supertype '${it.text.filterNot { char -> char.isWhitespace() }}'")
-            },
+            superTypeSignatures(),
             innerClasses.mapTo(hashSetOf()) { "$className.${it.name}" },
             fields,
             methods,
@@ -108,8 +144,20 @@ class KotlinHotSwapSourceChangeCompatibilityChecker(project: Project) :
         return listOf(shape) + innerClasses.flatMap { it.classOrObject.snapshot("$className.", it.name, it.isAnonymous) }
     }
 
-    private fun KtClassOrObject.className(): String =
-        fqName?.asString() ?: name ?: unknownClassShapes("Cannot determine Kotlin class name in ${containingKtFile.name}")
+    context(_: Context)
+    private fun KtClassOrObject.superTypeSignatures(): Set<String> {
+        val list = superTypeListEntries.firstOrNull()?.parent ?: return emptySet()
+        return cached(list, "superTypeList") {
+            superTypeListEntries.mapTo(hashSetOf()) {
+                it.resolvedTypeSignature(it.typeReference, "Kotlin supertype '${it.text.filterNot { char -> char.isWhitespace() }}'")
+            }
+        }
+    }
+
+    private fun KtClassOrObject.className(qualified: Boolean = true): String =
+        (if (qualified) fqName?.asString() else name)
+            ?: name
+            ?: unknownClassShapes("Cannot determine Kotlin class name in ${containingKtFile.name}")
 
     private fun KtDeclarationContainer.sourceFields(): List<KtProperty> = declarations.filterIsInstance<KtProperty>()
 
@@ -125,7 +173,7 @@ class KotlinHotSwapSourceChangeCompatibilityChecker(project: Project) :
 
     private fun KtClassOrObject.sourceInnerClasses(): List<SourceInnerClass> {
         val namedClasses = declarations.filterIsInstance<KtClassOrObject>()
-            .map { SourceInnerClass(it, it.className(), false) }
+            .map { SourceInnerClass(it, it.className(qualified = false), false) }
         return namedClasses + sourceAnonymousClasses()
     }
 
@@ -139,89 +187,152 @@ class KotlinHotSwapSourceChangeCompatibilityChecker(project: Project) :
     private fun KtObjectLiteralExpression.toAnonymousSourceClass(index: Int): SourceInnerClass =
         SourceInnerClass(objectDeclaration, "anonymous$index", true)
 
-    private fun PsiElement.sourceLambdas(): List<KtLambdaExpression> {
+    context(_: Context)
+    private fun PsiElement.sourceLambdasAffectingShape(): List<KtLambdaExpression> {
         val enclosingClass = this as? KtClassOrObject
         return PsiTreeUtil.collectElementsOfType(this, KtLambdaExpression::class.java)
             .filter { it.enclosingSourceClass() == enclosingClass }
+            .filterNot { it.isInlineArgument() }
+    }
+
+    context(_: Context)
+    private fun KtLambdaExpression.isInlineArgument(): Boolean {
+        return cached(this, "inlineArgument", dependency = enclosingTopLevelMember()) {
+            analyzeInContext { isInlinedArgument(functionLiteral, allowCrossinline = false) }
+        }
     }
 
     private fun PsiElement.enclosingSourceClass(): KtClassOrObject? = PsiTreeUtil.getParentOfType(this, KtClassOrObject::class.java, true)
 
+    /**
+     * The innermost member (function, property, initializer) of a static class/object boundary or of
+     * the file that encloses this element, skipping object literals and local classes. Captured variables
+     * of a lambda or anonymous object may be declared anywhere in that member, so hashing its text detects
+     * any change to a captured variable's type even when the lambda's own text (and PSI identity) is unchanged.
+     */
+    private fun PsiElement.enclosingTopLevelMember(): PsiElement {
+        var element: PsiElement = this
+        var parent: PsiElement? = element.parent
+        while (parent != null) {
+            if (parent is KtFile) return element
+            val owner = (parent as? KtClassBody)?.parent
+            if (owner is KtClassOrObject && owner.isStaticCaptureBoundary()) return element
+            element = parent
+            parent = element.parent
+        }
+        return element
+    }
+
+    private fun KtClassOrObject.isStaticCaptureBoundary(): Boolean {
+        if (parent is KtFile) return true
+        if (parent !is KtClassBody) return false
+        return this !is KtClass || !hasModifier(KtTokens.INNER_KEYWORD)
+    }
+
+    context(_: Context)
     private fun List<KtProperty>.associatePropertyShapes(): Map<String, HotSwapFieldShape> {
         val result = linkedMapOf<String, HotSwapFieldShape>()
         for (property in this) {
             val name = property.name ?: unknownClassShapes("Cannot determine Kotlin property name")
-            val type = property.resolvedTypeSignature("type for Kotlin property '$name'")
-            result[name] = HotSwapFieldShape(type, property.fieldModifiers())
+            result[name] = cached(property, "property") {
+                val type = property.resolvedTypeSignature("type for Kotlin property '$name'")
+                HotSwapFieldShape(type, property.fieldModifiers())
+            }
         }
         return result
     }
 
+    context(_: Context)
     private fun List<KtParameter>.associateParameterPropertyShapes(): Map<String, HotSwapFieldShape> {
         val result = linkedMapOf<String, HotSwapFieldShape>()
         for (parameter in this) {
             val name = parameter.name ?: unknownClassShapes("Cannot determine Kotlin parameter property name")
-            val type = parameter.resolvedTypeSignature("type for Kotlin parameter property '$name'")
-            result[name] = HotSwapFieldShape(type, parameter.fieldModifiers())
+            result[name] = cached(parameter, "parameter") {
+                HotSwapFieldShape(parameter.resolvedTypeSignature("type for Kotlin parameter property '$name'"), parameter.fieldModifiers())
+            }
         }
         return result
     }
 
+    context(_: Context)
     private fun List<KtNamedFunction>.associateFunctionShapes(): Map<HotSwapMethodId, HotSwapMethodShape> {
         val result = linkedMapOf<HotSwapMethodId, HotSwapMethodShape>()
         for (function in this) {
             val name = function.name ?: unknownClassShapes("Cannot determine Kotlin function name")
-            val parameterTypes = function.valueParameters.map {
-                it.resolvedTypeSignature("type for Kotlin function parameter '${it.name.orEmpty()}'")
+            val (id, shape) = cached(function, "function") {
+                val parameterTypes = function.valueParameters.map {
+                    it.resolvedTypeSignature("type for Kotlin function parameter '${it.name.orEmpty()}'")
+                }
+                val returnType = function.resolvedTypeSignature("return type for Kotlin function '$name'")
+                HotSwapMethodId(name, false, parameterTypes) to HotSwapMethodShape(returnType, function.modifiers(METHOD_MODIFIERS))
             }
-            val returnType = function.resolvedTypeSignature("return type for Kotlin function '$name'")
-            val id = HotSwapMethodId(name, false, parameterTypes)
-            result[id] = HotSwapMethodShape(returnType, function.modifiers(METHOD_MODIFIERS))
+            result[id] = shape
         }
         return result
     }
 
+    context(_: Context)
     private fun List<KtConstructor<*>>.associateConstructorShapes(): Map<HotSwapMethodId, HotSwapMethodShape> {
         val result = linkedMapOf<HotSwapMethodId, HotSwapMethodShape>()
         for (constructor in this) {
-            val parameterTypes = constructor.valueParameters.map {
-                it.resolvedTypeSignature("type for Kotlin constructor parameter '${it.name.orEmpty()}'")
+            val (id, shape) = cached(constructor, "constructor") {
+                val parameterTypes = constructor.valueParameters.map {
+                    it.resolvedTypeSignature("type for Kotlin constructor parameter '${it.name.orEmpty()}'")
+                }
+                HotSwapMethodId("<init>", true, parameterTypes) to HotSwapMethodShape(null, constructor.modifiers(METHOD_MODIFIERS))
             }
-            result[HotSwapMethodId("<init>", true, parameterTypes)] = HotSwapMethodShape(null, constructor.modifiers(METHOD_MODIFIERS))
+            result[id] = shape
         }
         return result
     }
 
+    context(_: Context)
     private fun KtLambdaExpression.snapshot(index: Int): Pair<HotSwapMethodId, HotSwapMethodShape> {
-        val (declaredParameters, returnType) = signature()
-        val capturedParameters = capturedVariables().map { it.capturedSignature() }
-        val id = HotSwapMethodId("lambda$index", false, capturedParameters + declaredParameters)
+        val enclosingMember = enclosingTopLevelMember()
+        val (parameters, returnType) = cached(this, "lambda", dependency = enclosingMember) {
+            val (declaredParameters, lambdaReturnType) = signature()
+            val capturedParameters = capturedVariables(enclosingMember).map { it.capturedSignature() }
+            (capturedParameters + declaredParameters) to lambdaReturnType
+        }
+        val id = HotSwapMethodId("lambda$index", false, parameters)
         return id to HotSwapMethodShape(returnType, emptySet())
     }
 
+    context(_: Context)
     private fun KtClassOrObject.capturedFields(anonymous: Boolean): Map<String, HotSwapFieldShape> {
         if (!anonymous) return emptyMap()
-        return capturedVariables().mapIndexed { index, declaration ->
-            val type = declaration.resolvedTypeSignature("type for captured Kotlin variable '${declaration.name.orEmpty()}'")
-            "capture$index${declaration.name.orEmpty()}" to HotSwapFieldShape(type, emptySet())
-        }.toMap()
+        val enclosingMember = enclosingTopLevelMember()
+        return cached(this, "object", dependency = enclosingMember) {
+            capturedVariables(enclosingMember).mapIndexed { index, declaration ->
+                val type = declaration.resolvedTypeSignature("type for captured Kotlin variable '${declaration.name.orEmpty()}'")
+                "capture$index${declaration.name.orEmpty()}" to HotSwapFieldShape(type, emptySet())
+            }.toMap()
+        }
     }
 
     private fun KtCallableDeclaration.capturedSignature(): String =
         resolvedTypeSignature("type for captured Kotlin variable '${name.orEmpty()}'")
 
-    private fun KtElement.capturedVariables(): List<KtCallableDeclaration> {
+    private fun KtElement.capturedVariables(enclosingMember: PsiElement): List<KtCallableDeclaration> {
+        val capturableVariables = enclosingMember.capturableVariables()
+        if (capturableVariables.isEmpty()) return emptyList()
         val declarations = linkedSetOf<KtCallableDeclaration>()
         PsiTreeUtil.processElements(this) { element ->
-            if (element is KtNameReferenceExpression) {
-                val declaration = element.mainReference.resolve() as? KtCallableDeclaration
-                if (declaration != null && !PsiTreeUtil.isAncestor(this, declaration, false) && declaration.isCapturableVariable()) {
-                    declarations.add(declaration)
-                }
+            if (element !is KtNameReferenceExpression) return@processElements true
+            if (element.getReferencedName() !in capturableVariables) return@processElements true
+            val declaration = element.mainReference.resolve() as? KtCallableDeclaration
+            if (declaration != null && !PsiTreeUtil.isAncestor(this, declaration, false) && declaration.isCapturableVariable()) {
+                declarations.add(declaration)
             }
             true
         }
         return declarations.sortedBy { it.textOffset }
+    }
+
+    private fun PsiElement.capturableVariables(): Set<String> {
+        return PsiTreeUtil.collectElementsOfType(this, KtCallableDeclaration::class.java).asSequence()
+            .filter { it.isCapturableVariable() }
+            .mapNotNullTo(hashSetOf()) { it.name }
     }
 
     private fun KtCallableDeclaration.isCapturableVariable(): Boolean = when (this) {
@@ -230,13 +341,14 @@ class KotlinHotSwapSourceChangeCompatibilityChecker(project: Project) :
         else -> false
     }
 
-    @OptIn(KaExperimentalApi::class)
-    private fun KtLambdaExpression.signature(): Pair<List<String>, String> = analyze(this) {
+    private fun KtLambdaExpression.signature(): Pair<List<String>, String> = analyzeInContext {
         val symbol = functionLiteral.symbol
-        val parameterTypes = listOfNotNull(symbol.receiverParameter?.returnType)
-            .plus(symbol.valueParameters.map { it.returnType })
-            .map { it.render(TYPE_RENDERER, position = Variance.INVARIANT) }
-        val returnType = symbol.returnType.render(TYPE_RENDERER, position = Variance.INVARIANT)
+        val receiverType = symbol.receiverParameter?.returnType?.renderTypeSignature("type for Kotlin lambda receiver")
+        val parameterTypes = listOfNotNull(receiverType)
+            .plus(symbol.valueParameters.map {
+                it.returnType.renderTypeSignature("type for Kotlin lambda parameter '${it.name.asString()}'")
+            })
+        val returnType = symbol.returnType.renderTypeSignature("return type for Kotlin lambda")
         parameterTypes to returnType
     }
 
@@ -261,20 +373,54 @@ class KotlinHotSwapSourceChangeCompatibilityChecker(project: Project) :
 
     private fun KtValVarKeywordOwner.isMutableProperty(): Boolean = valOrVarKeyword?.node?.elementType == KtTokens.VAR_KEYWORD
 
-    @OptIn(KaExperimentalApi::class)
-    private fun KtCallableDeclaration.resolvedTypeSignature(typeDescription: String): String = analyze(this) {
-        (symbol as? KaCallableSymbol)?.returnType?.render(TYPE_RENDERER, position = Variance.INVARIANT)
+    private fun KtCallableDeclaration.resolvedTypeSignature(typeDescription: String): String = analyzeInContext {
+        (symbol as? KaCallableSymbol)?.returnType?.renderTypeSignature(typeDescription)
     } ?: unknownClassShapes("Cannot resolve $typeDescription")
 
-    @OptIn(KaExperimentalApi::class)
-    private fun KtElement.resolvedTypeSignature(typeReference: KtTypeReference?, typeDescription: String): String = analyze(this) {
-        typeReference?.type?.render(TYPE_RENDERER, position = Variance.INVARIANT)
+    private fun KtElement.resolvedTypeSignature(typeReference: KtTypeReference?, typeDescription: String): String = analyzeInContext {
+        typeReference?.type?.renderTypeSignature(typeDescription)
     } ?: unknownClassShapes("Cannot resolve $typeDescription")
+
+    private inline fun <R> KtElement.analyzeInContext(crossinline action: context(KaSession) () -> R): R {
+        return if (containingKtFile.copyOrigin == null) {
+            analyze(this, action)
+        } else {
+            analyzeCopy(this, KaDanglingFileResolutionMode.PREFER_SELF, action)
+        }
+    }
+
+    context(session: KaSession)
+    private fun KaType.renderTypeSignature(typeDescription: String): String {
+        val errorType = findErrorType()
+        if (errorType != null) {
+            val reason = errorType.errorMessage.ifBlank { errorType.presentableText.orEmpty() }
+            val reasonSuffix = reason.takeIf { it.isNotBlank() }?.let { ": $it" }.orEmpty()
+            unknownClassShapes("Cannot resolve $typeDescription$reasonSuffix")
+        }
+        return prettyPrint { TYPE_RENDERER.renderType(session, this@renderTypeSignature, this) }
+    }
+
+    context(_: KaSession)
+    private fun KaType.findErrorType(): KaErrorType? = when (this) {
+        is KaErrorType -> this
+        is KaFunctionType -> {
+            receiverType?.findErrorType()
+                ?: returnType.findErrorType()
+                ?: parameterTypes.firstNotNullOfOrNull { it.findErrorType() }
+                ?: typeArguments.firstNotNullOfOrNull { it.type?.findErrorType() }
+        }
+
+        is KaClassType -> typeArguments.firstNotNullOfOrNull { it.type?.findErrorType() }
+        is KaDefinitelyNotNullType -> original.findErrorType()
+        is KaFlexibleType -> lowerBound.findErrorType() ?: upperBound.findErrorType()
+        is KaIntersectionType -> conjuncts.firstNotNullOfOrNull { it.findErrorType() }
+        is KaTypeParameterType, is KaCapturedType, is KaDynamicType -> null
+        else -> null
+    }
 }
 
 private data class SourceInnerClass(val classOrObject: KtClassOrObject, val name: String, val isAnonymous: Boolean)
 
-@OptIn(KaExperimentalApi::class)
 private val TYPE_RENDERER = KaTypeRendererForSource.WITH_QUALIFIED_NAMES_WITHOUT_PARAMETER_NAMES
 
 private val CLASS_MODIFIERS = arrayOf(

@@ -3,13 +3,14 @@
 package org.jetbrains.kotlin.idea.references.impl
 
 import com.intellij.psi.PsiElement
-import org.jetbrains.kotlin.analysis.api.KaIdeApi
 import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.components.resolveToSymbols
 import org.jetbrains.kotlin.analysis.api.resolution.KaResolvableReferenceBridge
 import org.jetbrains.kotlin.analysis.api.symbols.KaBackingFieldSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolOrigin
+import org.jetbrains.kotlin.analysis.api.symbols.intersectionOverriddenSymbols
 import org.jetbrains.kotlin.idea.references.KtReference
 import org.jetbrains.kotlin.idea.references.isConstructorOf
 import org.jetbrains.kotlin.idea.references.mainReference
@@ -22,21 +23,19 @@ import org.jetbrains.kotlin.psi.KtObjectDeclaration
 import org.jetbrains.kotlin.psi.KtSimpleNameExpression
 import org.jetbrains.kotlin.psi.psiUtil.getNonStrictParentOfType
 
-@OptIn(KtImplementationDetail::class, KaIdeApi::class)
+@OptIn(KtImplementationDetail::class)
 internal sealed interface KaBaseReference : KtReference, KaResolvableReferenceBridge {
     override fun KaSession.resolveToSymbols(): Collection<KaSymbol>
 
-    fun getResolvedToPsi(analysisSession: KaSession, referenceTargetSymbols: Collection<KaSymbol>): Collection<PsiElement> =
-        with(analysisSession) {
-            referenceTargetSymbols.flatMap { symbol ->
-                getPsiDeclarations(symbol)
-            }
+    context(session: KaSession)
+    fun getResolvedToPsi(referenceTargetSymbols: Collection<KaSymbol>): Collection<PsiElement> =
+        referenceTargetSymbols.flatMap { symbol ->
+            symbol.getPsiDeclarations()
         }
 
-    fun getResolvedToPsi(analysisSession: KaSession): Collection<PsiElement> =
-        with(analysisSession) {
-            getResolvedToPsi(analysisSession, resolveToSymbols())
-        }
+    context(session: KaSession)
+    fun getResolvedToPsi(): Collection<PsiElement> =
+        getResolvedToPsi(resolveToSymbols())
 
     override val resolver get() = KaBaseReferenceResolver
 
@@ -68,16 +67,21 @@ internal sealed interface KaBaseReference : KtReference, KaResolvableReferenceBr
     }
 }
 
-internal fun KaSession.getPsiDeclarations(symbol: KaSymbol): Collection<PsiElement> {
+context(_: KaSession)
+internal fun KaSymbol.getPsiDeclarations(): Collection<PsiElement> {
     val intersectionOverriddenSymbolsOrSingle = when {
-        symbol.origin == KaSymbolOrigin.INTERSECTION_OVERRIDE && symbol is KaCallableSymbol -> symbol.intersectionOverriddenSymbols
-        else -> listOf(symbol)
+        origin == KaSymbolOrigin.INTERSECTION_OVERRIDE && this is KaCallableSymbol -> intersectionOverriddenSymbols
+        else -> listOf(this)
     }
 
     return intersectionOverriddenSymbolsOrSingle.mapNotNull { it.unwrapPsi() }
 }
 
-private fun KaSymbol.unwrapPsi(): PsiElement? = when (this) {
-    is KaBackingFieldSymbol -> owningProperty.unwrapPsi()
-    else -> psi
+context(_: KaSession)
+private fun KaSymbol.unwrapPsi(): PsiElement? = when {
+    this is KaBackingFieldSymbol -> this.owningProperty.unwrapPsi()
+
+    else -> this.psi
+        // TODO: Use anchorPsi only for COMPILER_PLUGIN origin after the Kotlin Lombok compiler plugin stops yielding JAVA_SOURCE origin
+        ?: this.anchorPsi
 }

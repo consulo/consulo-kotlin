@@ -37,6 +37,17 @@ class KotlinChangeInfo(
         return oldNameToParameterIndex[oldParameterName]
     }
 
+    override fun isValueParameterRemoved(): Boolean {
+        val receiverShift = if (oldReceiverInfo != null) 1 else 0
+        return parametersToRemove.drop(receiverShift).any { it }
+    }
+
+    override fun isValueParameterRetyped(): Boolean = newParameters.any {
+        !it.isNewParameter && !it.isContextParameter && !it.wasContextParameter &&
+                it != receiverParameterInfo && it != oldReceiverInfo &&
+                it.currentType.text != it.originalType.text
+    }
+
     private val newParameters = parameterInfos.toMutableList()
     override fun addParameter(
         parameterInfo: KotlinParameterInfo,
@@ -116,7 +127,7 @@ class KotlinChangeInfo(
             if (value != null && value !in newParameters) {
                 newParameters.add(value)
             }
-            if (value == null && method is KtValVarKeywordOwner && field in newParameters) {
+            if (value == null && method is KtValVarKeywordOwner && field in newParameters && field?.isContextParameter != true) {
                 newParameters.remove(field)
             }
             field = value

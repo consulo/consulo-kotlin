@@ -259,6 +259,34 @@ public abstract class KotlinFirJoinLinesTestGenerated extends AbstractKotlinFirJ
     }
 
     @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../idea/tests/testData/joinLines/kDoc")
+    public static class KDoc extends AbstractKotlinFirJoinLinesTest {
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+        }
+
+        @TestMetadata("JoinContentLineWithEnd.kt")
+        public void testJoinContentLineWithEnd() throws Exception {
+            runTest("../../idea/tests/testData/joinLines/kDoc/JoinContentLineWithEnd.kt");
+        }
+
+        @TestMetadata("JoinStartLineWithContent.kt")
+        public void testJoinStartLineWithContent() throws Exception {
+            runTest("../../idea/tests/testData/joinLines/kDoc/JoinStartLineWithContent.kt");
+        }
+
+        @TestMetadata("JoinStartLineWithTwoContentLines.kt")
+        public void testJoinStartLineWithTwoContentLines() throws Exception {
+            runTest("../../idea/tests/testData/joinLines/kDoc/JoinStartLineWithTwoContentLines.kt");
+        }
+
+        @TestMetadata("JoinToSingleLine.kt")
+        public void testJoinToSingleLine() throws Exception {
+            runTest("../../idea/tests/testData/joinLines/kDoc/JoinToSingleLine.kt");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../idea/tests/testData/joinLines/nestedIfs")
     public static class NestedIfs extends AbstractKotlinFirJoinLinesTest {
         private void runTest(String testDataFilePath) throws Exception {
@@ -333,6 +361,11 @@ public abstract class KotlinFirJoinLinesTestGenerated extends AbstractKotlinFirJ
             runTest("../../idea/tests/testData/joinLines/removeBraces/Else.kt");
         }
 
+        @TestMetadata("ElseWithLambda.kt")
+        public void testElseWithLambda() throws Exception {
+            runTest("../../idea/tests/testData/joinLines/removeBraces/ElseWithLambda.kt");
+        }
+
         @TestMetadata("For.kt")
         public void testFor() throws Exception {
             runTest("../../idea/tests/testData/joinLines/removeBraces/For.kt");
@@ -363,6 +396,11 @@ public abstract class KotlinFirJoinLinesTestGenerated extends AbstractKotlinFirJ
             runTest("../../idea/tests/testData/joinLines/removeBraces/IfWithElseBlockInAssignment.kt");
         }
 
+        @TestMetadata("IfWithLambda.kt")
+        public void testIfWithLambda() throws Exception {
+            runTest("../../idea/tests/testData/joinLines/removeBraces/IfWithLambda.kt");
+        }
+
         @TestMetadata("IfWithPostfixAfterElseBlock.kt")
         public void testIfWithPostfixAfterElseBlock() throws Exception {
             runTest("../../idea/tests/testData/joinLines/removeBraces/IfWithPostfixAfterElseBlock.kt");
@@ -391,6 +429,21 @@ public abstract class KotlinFirJoinLinesTestGenerated extends AbstractKotlinFirJ
         @TestMetadata("WhenEntry.kt")
         public void testWhenEntry() throws Exception {
             runTest("../../idea/tests/testData/joinLines/removeBraces/WhenEntry.kt");
+        }
+
+        @TestMetadata("WhenEntryWithLabeledLambda.kt")
+        public void testWhenEntryWithLabeledLambda() throws Exception {
+            runTest("../../idea/tests/testData/joinLines/removeBraces/WhenEntryWithLabeledLambda.kt");
+        }
+
+        @TestMetadata("WhenEntryWithLambda.kt")
+        public void testWhenEntryWithLambda() throws Exception {
+            runTest("../../idea/tests/testData/joinLines/removeBraces/WhenEntryWithLambda.kt");
+        }
+
+        @TestMetadata("WhenEntryWithLambdaCall.kt")
+        public void testWhenEntryWithLambdaCall() throws Exception {
+            runTest("../../idea/tests/testData/joinLines/removeBraces/WhenEntryWithLambdaCall.kt");
         }
 
         @TestMetadata("While.kt")
@@ -489,6 +542,11 @@ public abstract class KotlinFirJoinLinesTestGenerated extends AbstractKotlinFirJ
             runTest("../../idea/tests/testData/joinLines/stringTemplate/firstLineVariable.kt");
         }
 
+        @TestMetadata("higherPrecedenceOperatorBeforePlus.kt")
+        public void testHigherPrecedenceOperatorBeforePlus() throws Exception {
+            runTest("../../idea/tests/testData/joinLines/stringTemplate/higherPrecedenceOperatorBeforePlus.kt");
+        }
+
         @TestMetadata("lineWithMultiStringLiteral.kt")
         public void testLineWithMultiStringLiteral() throws Exception {
             runTest("../../idea/tests/testData/joinLines/stringTemplate/lineWithMultiStringLiteral.kt");
@@ -497,6 +555,21 @@ public abstract class KotlinFirJoinLinesTestGenerated extends AbstractKotlinFirJ
         @TestMetadata("lineWithMultiStringLiteralAndVariable.kt")
         public void testLineWithMultiStringLiteralAndVariable() throws Exception {
             runTest("../../idea/tests/testData/joinLines/stringTemplate/lineWithMultiStringLiteralAndVariable.kt");
+        }
+
+        @TestMetadata("minusBeforePlus.kt")
+        public void testMinusBeforePlus() throws Exception {
+            runTest("../../idea/tests/testData/joinLines/stringTemplate/minusBeforePlus.kt");
+        }
+
+        @TestMetadata("parenthesizedMinusBeforePlus.kt")
+        public void testParenthesizedMinusBeforePlus() throws Exception {
+            runTest("../../idea/tests/testData/joinLines/stringTemplate/parenthesizedMinusBeforePlus.kt");
+        }
+
+        @TestMetadata("plusChainAfterMinus.kt")
+        public void testPlusChainAfterMinus() throws Exception {
+            runTest("../../idea/tests/testData/joinLines/stringTemplate/plusChainAfterMinus.kt");
         }
 
         @TestMetadata("secondLineVariable.kt")
