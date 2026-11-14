@@ -1,5 +1,10 @@
 name: Sync upstream plugins/kotlin
 
+# Keeps the upstream-sync branch equal to `git subtree split` of plugins/kotlin
+# from intellij-community master, with full history. The split is
+# deterministic, so each run only fast-forwards the branch and it can be
+# merged into master from time to time.
+
 on:
   schedule:
     - cron: '0 4 * * *'        # daily 04:00 UTC
@@ -15,6 +20,7 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 180
     env:
       UPSTREAM_URL: https://github.com/JetBrains/intellij-community.git
       UPSTREAM_BRANCH: master
@@ -22,51 +28,64 @@ jobs:
       SYNC_BRANCH: upstream-sync
 
     steps:
-      - name: Checkout consulo-kotlin
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0        # full history so we can fast-forward
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Restore upstream cache
-        id: cache
-        uses: actions/cache@v4
-        with:
-          path: .cache/upstream
-          key: upstream-${{ env.UPSTREAM_BRANCH }}-${{ github.run_id }}
-          restore-keys: |
-            upstream-${{ env.UPSTREAM_BRANCH }}-
-
-      - name: Sync
+      - name: Clone upstream
         run: |
           set -euo pipefail
-          SCRATCH="$PWD/.cache/upstream"
+          df -h "$RUNNER_TEMP"
+          # Full history of one branch: the split walks every commit and the
+          # push needs every blob (a partial clone breaks the push).
+          # No checkout: the split reads commits only, which saves GBs of disk.
+          git clone --single-branch --branch "$UPSTREAM_BRANCH" --no-tags --no-checkout \
+              "$UPSTREAM_URL" "$RUNNER_TEMP/upstream"
+          git -C "$RUNNER_TEMP/upstream" commit-graph write --reachable
+          df -h "$RUNNER_TEMP"
 
-          # 1. Maintain a full clone of the monorepo. A partial clone
-          #    (--filter=blob:none) breaks `git push` when JetBrains's
-          #    promisor can't serve a historical blob referenced by the
-          #    subtree split.
-          if [ ! -d "$SCRATCH/.git" ]; then
-              git clone "$UPSTREAM_URL" "$SCRATCH"
+      - name: Split
+        id: split
+        working-directory: ${{ runner.temp }}/upstream
+        run: |
+          set -euo pipefail
+          # Older git-subtree checks the prefix against the working tree.
+          mkdir -p "$SUBPATH"
+          # Progress is printed with \r, so the log would show it as one huge
+          # line; keep every 20000th progress line and all other messages.
+          head=$(git subtree split --prefix="$SUBPATH" "origin/$UPSTREAM_BRANCH" \
+              2> >(tr '\r' '\n' | awk '!/^[0-9]+\/[0-9]+ / || NR % 20000 == 0 { print; fflush() }' >&2))
+          echo "Split head: $head"
+          echo "head=$head" >> "$GITHUB_OUTPUT"
+
+      - name: Push
+        working-directory: ${{ runner.temp }}/upstream
+        env:
+          NEW_HEAD: ${{ steps.split.outputs.head }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          origin="https://github.com/${GITHUB_REPOSITORY}.git"
+          old=$(git ls-remote "$origin" "refs/heads/$SYNC_BRANCH" | cut -f1)
+
+          if [ "$old" = "$NEW_HEAD" ]; then
+              echo "$SYNC_BRANCH is up to date at $old" | tee -a "$GITHUB_STEP_SUMMARY"
+              exit 0
           fi
-          git -C "$SCRATCH" fetch origin "$UPSTREAM_BRANCH"
-          git -C "$SCRATCH" checkout -B "$UPSTREAM_BRANCH" "origin/$UPSTREAM_BRANCH"
 
-          # 2. Deterministic subtree split — same upstream SHAs → same split SHAs,
-          #    so re-runs extend the branch instead of diverging.
-          git -C "$SCRATCH" subtree split --prefix="$SUBPATH" -b extracted-head
+          # Same upstream commits give the same split commits, so the published
+          # branch must be an ancestor of the new head. If it is not, the split
+          # changed (e.g. a git-subtree update) and pushing would break merges.
+          if [ -n "$old" ] && ! git merge-base --is-ancestor "$old" "$NEW_HEAD" 2>/dev/null; then
+              echo "::error::$SYNC_BRANCH ($old) is not an ancestor of the new split $NEW_HEAD, refusing to push"
+              exit 1
+          fi
 
-          # 3. Bring the split branch in and push it.
-          git config user.name  'consulo-sync-bot'
-          git config user.email 'consulo-sync-bot@users.noreply.github.com'
-          git remote remove upstream 2>/dev/null || true
-          git remote add upstream "$SCRATCH"
-          git fetch upstream "extracted-head:refs/heads/${SYNC_BRANCH}"
-          git push origin "${SYNC_BRANCH}"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+              "$NEW_HEAD:refs/heads/$SYNC_BRANCH"
 
-      - name: Save upstream cache
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: .cache/upstream
-          key: upstream-${{ env.UPSTREAM_BRANCH }}-${{ github.run_id }}
+          {
+              echo "### $SYNC_BRANCH: \`${old:0:12}\` → \`${NEW_HEAD:0:12}\`"
+              if [ -n "$old" ]; then
+                  echo "$(git rev-list --count "$old..$NEW_HEAD") new commits"
+                  echo '```'
+                  git log --oneline --no-decorate -50 "$old..$NEW_HEAD"
+                  echo '```'
+              fi
+          } >> "$GITHUB_STEP_SUMMARY"
