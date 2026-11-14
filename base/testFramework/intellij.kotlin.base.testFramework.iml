@@ -23,12 +23,14 @@
     <orderEntry type="module" module-name="intellij.platform.projectModel" />
     <orderEntry type="module" module-name="intellij.platform.testFramework" />
     <orderEntry type="module" module-name="intellij.platform.util.ui" />
-    <orderEntry type="module" module-name="kotlin.base.frontend-agnostic" />
     <orderEntry type="module" module-name="intellij.kotlin.base.plugin" />
     <orderEntry type="module" module-name="intellij.java.testFramework" />
     <orderEntry type="module" module-name="intellij.junit.rt" exported="" />
     <orderEntry type="library" name="slf4j-api" level="project" />
     <orderEntry type="module" module-name="intellij.java.rt" />
-    <orderEntry type="module" module-name="intellij.kotlin.base.plugin.testFramework" />
+    <orderEntry type="module" module-name="intellij.platform.codeStyle" />
+    <orderEntry type="module" module-name="intellij.kotlin.formatter.minimal" />
+    <orderEntry type="module" module-name="intellij.libraries.junit4" scope="PROVIDED" />
+    <orderEntry type="module" module-name="intellij.libraries.junit5" scope="PROVIDED" />
   </component>
 </module>

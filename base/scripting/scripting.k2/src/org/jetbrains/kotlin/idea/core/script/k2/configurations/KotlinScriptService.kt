@@ -4,11 +4,11 @@ package org.jetbrains.kotlin.idea.core.script.k2.configurations
 import com.intellij.codeInsight.daemon.impl.analysis.HighlightingSettingsPerFile
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
-import com.intellij.openapi.application.smartReadAction
+import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.io.relativizeToClosestAncestor
 import com.intellij.openapi.util.io.toNioPathOrNull
 import com.intellij.openapi.vfs.StandardFileSystems
@@ -21,11 +21,13 @@ import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.eel.provider.utils.asNio
 import com.intellij.platform.ide.progress.withBackgroundProgress
 import com.intellij.platform.workspace.storage.EntitySource
+import com.intellij.platform.workspace.storage.ImmutableEntityStorage
 import com.intellij.platform.workspace.storage.VersionedStorageChange
 import com.intellij.util.application
 import com.intellij.util.concurrency.ThreadingAssertions
 import com.intellij.util.io.URLUtil
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import org.jetbrains.kotlin.analysis.api.KaPlatformInterface
 import org.jetbrains.kotlin.analysis.api.platform.modification.publishGlobalModuleStateModificationEvent
 import org.jetbrains.kotlin.analysis.api.platform.modification.publishGlobalScriptModuleStateModificationEvent
@@ -39,6 +41,9 @@ import org.jetbrains.kotlin.idea.core.script.k2.modules.KotlinScriptLibraryEntit
 import org.jetbrains.kotlin.idea.core.script.k2.modules.modifyKotlinScriptLibraryEntity
 import org.jetbrains.kotlin.idea.core.script.shared.KotlinBaseScriptingBundle
 import org.jetbrains.kotlin.idea.core.script.shared.KotlinScriptProcessingFilter
+import org.jetbrains.kotlin.idea.core.script.shared.definition.javaHomePath
+import org.jetbrains.kotlin.idea.core.script.shared.definition.jdkSupplier
+import org.jetbrains.kotlin.idea.core.script.shared.smartRefineScriptCompilationConfiguration
 import org.jetbrains.kotlin.idea.core.script.v1.ScriptDependenciesModificationTracker
 import org.jetbrains.kotlin.idea.core.script.v1.awaitExternalSystemInitialization
 import org.jetbrains.kotlin.idea.core.script.v1.scriptingDebugLog
@@ -47,9 +52,6 @@ import org.jetbrains.kotlin.scripting.definitions.findScriptDefinition
 import org.jetbrains.kotlin.scripting.resolve.ScriptCompilationConfigurationResult
 import org.jetbrains.kotlin.scripting.resolve.ScriptCompilationConfigurationWrapper
 import org.jetbrains.kotlin.scripting.resolve.VirtualFileScriptSource
-import org.jetbrains.kotlin.scripting.resolve.refineScriptCompilationConfiguration
-import org.jetbrains.kotlin.utils.topologicalSort
-import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.isDirectory
 import kotlin.io.path.isRegularFile
@@ -114,6 +116,19 @@ class KotlinScriptService(val project: Project, val coroutineScope: CoroutineSco
         load(virtualFile)
     }
 
+    /**
+     * Drops all entities contributed under [KotlinScriptEntitySource], then rebuilds only the currently open `.kts` files.
+     * Precise owner-specific entities survive because they use a different entity source.
+     * Closed generic scripts are restored lazily on the next editor-driven load.
+     */
+    fun scheduleReloadOpenScripts(): Job = coroutineScope.launchTracked {
+        invalidateAll()
+        ScriptDefinitionsModificationTracker.getInstance(project).incModificationCount()
+        for (openFile in collectOpenScriptFiles(project)) {
+            load(openFile)
+        }
+    }
+
     private suspend fun update(virtualFile: VirtualFile, definition: ScriptDefinition) {
         if (KotlinScriptEntityProvider.provide(project, virtualFile) != null) return
 
@@ -130,7 +145,7 @@ class KotlinScriptService(val project: Project, val coroutineScope: CoroutineSco
                 )
             }) {
                 this.valueOrNull()?.importedScripts.orEmpty().map {
-                    refineScriptCompilationConfiguration(it, definition, project)
+                    smartRefineScriptCompilationConfiguration(it, definition, project, null)
                 }
             }.reversed()
 
@@ -222,16 +237,20 @@ class KotlinScriptService(val project: Project, val coroutineScope: CoroutineSco
         virtualFile: VirtualFile,
         definition: ScriptDefinition,
     ): ScriptCompilationConfigurationResult {
-        val projectSdk = ProjectRootManager.getInstance(project).projectSdk?.homePath
-        val configuration = definition.compilationConfiguration.with {
-            projectSdk?.let { jvm.jdkHome(File(it)) }
-        }
+        val configuration = definition.compilationConfiguration.withUpdatedJdkHome(virtualFile)
         val scriptSource = VirtualFileScriptSource(virtualFile)
         return withBackgroundProgress(
             project, title = KotlinBaseScriptingBundle.message("progress.title.dependency.resolution", virtualFile.name)
         ) {
-            smartReadAction(project) {
-                refineScriptCompilationConfiguration(scriptSource, definition, project, configuration)
+            smartRefineScriptCompilationConfiguration(scriptSource, definition, project, configuration)
+        }
+    }
+
+    fun ScriptCompilationConfiguration.withUpdatedJdkHome(virtualFile: VirtualFile): ScriptCompilationConfiguration {
+        return with {
+            val jdk = get(ide.jdkSupplier)?.invoke(virtualFile) ?: project.javaHomePath
+            if (jdk != null) {
+                jvm.jdkHome(jdk)
             }
         }
     }
@@ -242,6 +261,12 @@ class KotlinScriptService(val project: Project, val coroutineScope: CoroutineSco
             .getVirtualFileUrlIndex().findEntitiesByUrl(url)
             .filterIsInstance<KotlinScriptEntity>().singleOrNull() ?: return
         project.workspaceModel.update("removing .kts modules") { it.removeEntity(entity) }
+    }
+
+    private suspend fun invalidateAll() {
+        project.workspaceModel.update("removing all .kts entities") { storage ->
+            storage.replaceBySource({ it == KotlinScriptEntitySource }, ImmutableEntityStorage.empty())
+        }
     }
 
     private fun VirtualFile.findScriptDefinition(): ScriptDefinition {
@@ -276,7 +301,45 @@ class KotlinScriptService(val project: Project, val coroutineScope: CoroutineSco
             project.publishGlobalModuleStateModificationEvent()
             project.publishGlobalScriptModuleStateModificationEvent()
         }
+
+        private suspend fun collectOpenScriptFiles(project: Project): List<VirtualFile> {
+            return readAction {
+                FileEditorManager.getInstance(project).openFiles
+                    .filter { it.name.endsWith(KotlinFileType.DOT_SCRIPT_EXTENSION) }
+            }
+        }
     }
+}
+
+/**
+ * suspendable version of [org.jetbrains.kotlin.utils.topologicalSort]
+ */
+private suspend fun <A> topologicalSort(
+    nodes: Iterable<A>,
+    reportCycle: (A) -> Nothing = { throw IllegalStateException("Cannot compute a topological sort: The node $it is in a cycle.") },
+    dependencies: suspend A.() -> Iterable<A>,
+): List<A> {
+    val visiting = mutableSetOf<A>()
+    val visited = mutableSetOf<A>()
+
+    suspend fun visit(node: A) {
+        if (node in visited) return
+        if (node in visiting) reportCycle(node)
+
+        // Keeping track of the nodes that are being visited allows the algorithm to throw an exception in case of a cycle. The input should
+        // never be cyclic, but this approach gives some additional safety in case of bugs.
+        visiting.add(node)
+        node.dependencies().forEach { visit(it) }
+        visiting.remove(node)
+
+        visited.add(node)
+    }
+
+    nodes.forEach { visit(it) }
+
+    // The paper algorithm inserts nodes at the head of the result list. Because our `visited` set remembers elements in their order of
+    // insertion, the result needs to be reversed.
+    return visited.toMutableList()
 }
 
 object KotlinScriptEntitySource : EntitySource

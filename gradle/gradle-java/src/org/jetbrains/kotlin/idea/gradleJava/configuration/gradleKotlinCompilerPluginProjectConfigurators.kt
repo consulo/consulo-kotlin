@@ -8,9 +8,11 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.util.ThrowableComputable
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiManager
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.util.indexing.DumbModeAccessType
 import com.intellij.util.indexing.FileBasedIndex
+import org.jetbrains.kotlin.allopen.AllOpenPluginNames
 import org.jetbrains.kotlin.idea.base.platforms.KotlinJvmStdlibDetectorFacility
 import org.jetbrains.kotlin.idea.compiler.configuration.IdeKotlinVersion
 import org.jetbrains.kotlin.idea.configuration.ChangedConfiguratorFiles
@@ -19,13 +21,15 @@ import org.jetbrains.kotlin.idea.configuration.KotlinCompilerPluginProjectConfig
 import org.jetbrains.kotlin.idea.configuration.KotlinDependencyProvider
 import org.jetbrains.kotlin.idea.framework.ui.ConfigureDialogWithModulesAndVersion.Companion.defaultKotlinVersion
 import org.jetbrains.kotlin.idea.gradle.KotlinIdeaGradleBundle
+import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleBuildScriptManipulator
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleBuildScriptSupport
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.getBuildScriptPsiFile
+import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.getBuildScriptSettingsPsiFile
 import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.getTopLevelBuildScriptPsiFile
+import org.jetbrains.kotlin.idea.gradleCodeInsightCommon.getTopLevelBuildScriptSettingsPsiFile
 import org.jetbrains.kotlin.idea.util.application.executeWriteCommand
 import org.jetbrains.kotlin.idea.vfilefinder.KotlinStdlibIndex
 import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.utils.PathUtil
 
 abstract class AbstractGradleKotlinCompilerPluginProjectConfigurator : KotlinCompilerPluginProjectConfigurator {
     override fun isApplicable(module: Module): Boolean =
@@ -37,8 +41,27 @@ abstract class AbstractGradleKotlinCompilerPluginProjectConfigurator : KotlinCom
         val moduleFile = module.getBuildScriptPsiFile().takeIf { it != topLevelFile }
 
         project.executeWriteCommand(KotlinIdeaGradleBundle.message("command.name.configure.0", topLevelFile.name), null) {
-            topLevelFile.add(addVersion = true, sourceModule = module, changedFiles = configurationResultBuilder.changedFiles)
-            moduleFile?.add(addVersion = false, sourceModule = module, changedFiles = configurationResultBuilder.changedFiles)
+            if (moduleFile == null) {
+                topLevelFile.add(addVersion = true, sourceModule = module, changedFiles = configurationResultBuilder.changedFiles)
+                topLevelFile.addCustomization(addVersion = true, sourceModule = module, changedFiles = configurationResultBuilder.changedFiles)
+            }
+            else {
+                val settingsFile = module.getBuildScriptSettingsPsiFile()
+                    ?: module.getTopLevelBuildScriptSettingsPsiFile()
+                    ?: topLevelFile.findSiblingSettingsFile()
+                if (settingsFile != null) {
+                    settingsFile.addPluginVersionDeclarations(sourceModule = module, changedFiles = configurationResultBuilder.changedFiles)
+                }
+                else {
+                    topLevelFile.addPluginVersionDeclarations(
+                        sourceModule = module,
+                        changedFiles = configurationResultBuilder.changedFiles,
+                        applyFalse = true
+                    )
+                }
+                moduleFile.add(addVersion = false, sourceModule = module, changedFiles = configurationResultBuilder.changedFiles)
+                moduleFile.addCustomization(addVersion = false, sourceModule = module, changedFiles = configurationResultBuilder.changedFiles)
+            }
             configurationResultBuilder.configuredModule(module)
         }
     }
@@ -53,12 +76,27 @@ abstract class AbstractGradleKotlinCompilerPluginProjectConfigurator : KotlinCom
             val changedFiles = ChangedConfiguratorFiles()
             val moduleBuildScriptPsiFile = module.getBuildScriptPsiFile()
             val moduleFile = moduleBuildScriptPsiFile.takeIf { it != topLevelFile }?.let(updater::getWritable)
-            writablePomFile.add(addVersion = true, sourceModule = module, changedFiles = changedFiles)
-            moduleFile?.add(addVersion = false, sourceModule = module, changedFiles = changedFiles)
+            if (moduleFile == null) {
+                writablePomFile.add(addVersion = true, sourceModule = module, changedFiles = changedFiles)
+                writablePomFile.addCustomization(addVersion = true, sourceModule = module, changedFiles = changedFiles)
+            }
+            else {
+                val settingsFile = (module.getBuildScriptSettingsPsiFile()
+                    ?: module.getTopLevelBuildScriptSettingsPsiFile()
+                    ?: topLevelFile.findSiblingSettingsFile())?.let(updater::getWritable)
+                if (settingsFile != null) {
+                    settingsFile.addPluginVersionDeclarations(sourceModule = module, changedFiles = changedFiles)
+                }
+                else {
+                    writablePomFile.addPluginVersionDeclarations(sourceModule = module, changedFiles = changedFiles, applyFalse = true)
+                }
+                moduleFile.add(addVersion = false, sourceModule = module, changedFiles = changedFiles)
+                moduleFile.addCustomization(addVersion = false, sourceModule = module, changedFiles = changedFiles)
+            }
         }.andThen(KotlinDependencyProvider.syncModCommand(topLevelFile))
     }
 
-    private fun PsiFile.add(addVersion: Boolean, sourceModule: Module, changedFiles: ChangedConfiguratorFiles) {
+    protected fun PsiFile.manipulatorAndVersion(sourceModule: Module): Pair<GradleBuildScriptManipulator<*>, IdeKotlinVersion> {
         val manipulator = GradleBuildScriptSupport.getManipulator(this)
 
         val version =
@@ -66,15 +104,63 @@ abstract class AbstractGradleKotlinCompilerPluginProjectConfigurator : KotlinCom
                 ?: GradleBuildScriptSupport.findKotlinPluginManagementVersion(sourceModule)?.parsedVersion
                 ?: detectKotlinStdlibVersion(sourceModule)
                 ?: defaultKotlinVersion
+        return manipulator to version
+    }
+
+    protected fun PsiFile.add(addVersion: Boolean, sourceModule: Module, changedFiles: ChangedConfiguratorFiles) {
+        val (manipulator, version) = manipulatorAndVersion(sourceModule)
+
         manipulator.configureBuildScripts(
             "kotlin.$kotlinCompilerPluginId",
             getKotlinPluginExpression(this is KtFile),
-            PathUtil.KOTLIN_JAVA_STDLIB_NAME,
             addVersion = addVersion,
             version = version,
             jvmTarget = null,
             changedFiles = changedFiles
         )
+    }
+
+    protected open fun PsiFile.addPluginVersionDeclarations(
+        sourceModule: Module,
+        changedFiles: ChangedConfiguratorFiles,
+        applyFalse: Boolean = false
+    ) {
+        addPluginVersionDeclaration(getKotlinPluginExpression(this is KtFile), sourceModule, changedFiles, applyFalse)
+    }
+
+    protected fun PsiFile.addPluginVersionDeclaration(
+        kotlinPluginExpression: String,
+        sourceModule: Module,
+        changedFiles: ChangedConfiguratorFiles,
+        applyFalse: Boolean = false
+    ) {
+        val (manipulator, version) = manipulatorAndVersion(sourceModule)
+        if (applyFalse) {
+            manipulator.configurePluginInPluginsGroup(
+                kotlinPluginExpression = kotlinPluginExpression,
+                addVersion = true,
+                version = version,
+                applyFalse = true,
+                changedFiles = changedFiles
+            )
+        }
+        else {
+            changedFiles.storeOriginalFileContent(this)
+            manipulator.configureSettingsFile(kotlinPluginExpression, version)
+        }
+    }
+
+    protected fun PsiFile.findKotlinVersion(sourceModule: Module): IdeKotlinVersion =
+        manipulatorAndVersion(sourceModule).second
+
+    private fun PsiFile.findSiblingSettingsFile(): PsiFile? {
+        val settingsFile = virtualFile.parent?.findChild("settings.gradle.kts")
+            ?: virtualFile.parent?.findChild("settings.gradle")
+            ?: return null
+        return PsiManager.getInstance(project).findFile(settingsFile)
+    }
+
+    protected open fun PsiFile.addCustomization(addVersion: Boolean, sourceModule: Module, changedFiles: ChangedConfiguratorFiles) {
     }
 
     fun detectKotlinStdlibVersion(module: Module): IdeKotlinVersion? {
@@ -122,6 +208,11 @@ class LombokGradleKotlinCompilerPluginProjectConfigurator : AbstractGradleKotlin
 
     override fun getKotlinPluginExpression(forKotlinDsl: Boolean): String =
         if (forKotlinDsl) "kotlin(\"plugin.lombok\")" else "id \"org.jetbrains.kotlin.plugin.lombok\""
+
+    override fun PsiFile.addCustomization(addVersion: Boolean, sourceModule: Module, changedFiles: ChangedConfiguratorFiles) {
+        configureKotlinLombokConfigIfNeeded(sourceModule, changedFiles)
+        configureKaptForLombokIfNeeded(sourceModule, changedFiles)
+    }
 }
 
 class JpaGradleKotlinCompilerPluginProjectConfigurator : AbstractGradleKotlinCompilerPluginProjectConfigurator() {
@@ -129,4 +220,41 @@ class JpaGradleKotlinCompilerPluginProjectConfigurator : AbstractGradleKotlinCom
 
     override fun getKotlinPluginExpression(forKotlinDsl: Boolean): String =
         if (forKotlinDsl) "kotlin(\"plugin.jpa\")" else "id \"org.jetbrains.kotlin.plugin.jpa\""
+
+    override fun PsiFile.addPluginVersionDeclarations(
+        sourceModule: Module,
+        changedFiles: ChangedConfiguratorFiles,
+        applyFalse: Boolean
+    ) {
+        addPluginVersionDeclaration(getKotlinPluginExpression(this is KtFile), sourceModule, changedFiles, applyFalse)
+        val version = findKotlinVersion(sourceModule)
+        if (version.kotlinVersion.isAtLeast(2, 3, 20)) return
+
+        addPluginVersionDeclaration(
+            "kotlin(\"plugin.allopen\")".takeIf { this is KtFile } ?: "id \"org.jetbrains.kotlin.plugin.allopen\"",
+            sourceModule,
+            changedFiles,
+            applyFalse
+        )
+    }
+
+    override fun PsiFile.addCustomization(addVersion: Boolean, sourceModule: Module, changedFiles: ChangedConfiguratorFiles) {
+        val (manipulator, version) = manipulatorAndVersion(sourceModule)
+        if (version.kotlinVersion.isAtLeast(2, 3, 20)) return
+
+        manipulator.configureBuildScripts(
+            "kotlin.$kotlinCompilerPluginId",
+            "kotlin(\"plugin.allopen\")".takeIf { this is KtFile } ?: "id \"org.jetbrains.kotlin.plugin.allopen\"",
+            addVersion = addVersion,
+            version = version,
+            jvmTarget = null,
+            changedFiles = changedFiles
+        )
+
+        val opts = (AllOpenPluginNames.SUPPORTED_PRESETS[kotlinCompilerPluginId] ?: return).map {
+            "${AllOpenPluginNames.ANNOTATION_OPTION_NAME}(\"$it\")"
+        }.toTypedArray()
+
+        manipulator.configurePluginOptions("allOpen", changedFiles, *opts)
+    }
 }

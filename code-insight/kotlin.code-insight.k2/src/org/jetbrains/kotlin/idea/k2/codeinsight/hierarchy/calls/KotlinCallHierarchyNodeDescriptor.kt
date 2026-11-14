@@ -6,7 +6,6 @@ import com.intellij.ide.IdeBundle
 import com.intellij.ide.hierarchy.HierarchyNodeDescriptor
 import com.intellij.ide.hierarchy.ReferenceAwareNodeDescriptor
 import com.intellij.ide.hierarchy.call.CallHierarchyNodeDescriptor
-import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.roots.ui.util.CompositeAppearance
 import com.intellij.openapi.util.Comparing
 import com.intellij.openapi.util.Iconable
@@ -41,7 +40,6 @@ import org.jetbrains.kotlin.psi.KtObjectDeclaration
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.KtPsiUtil
 import org.jetbrains.kotlin.types.Variance
-import java.awt.Font
 
 class KotlinCallHierarchyNodeDescriptor(
     parentDescriptor: HierarchyNodeDescriptor?,
@@ -112,11 +110,7 @@ class KotlinCallHierarchyNodeDescriptor(
             elementIcon
         }
 
-        val mainTextAttributes: TextAttributes? = if (myColor != null) {
-            TextAttributes(myColor, null, null, null, Font.PLAIN)
-        } else {
-            null
-        }
+        val mainTextAttributes = textAttributesFor(targetElement)
 
         myHighlightedText = CompositeAppearance()
         myHighlightedText.ending.addText(elementText, mainTextAttributes)
@@ -130,7 +124,7 @@ class KotlinCallHierarchyNodeDescriptor(
         @NlsSafe
         val packageName = KtPsiUtil.getPackageName(targetElement as KtElement) ?: ""
 
-        myHighlightedText.ending.addText("  ($packageName)", getPackageNameAttributes())
+        myHighlightedText.ending.addText(" ($packageName)", getPackageNameAttributes())
         myName = myHighlightedText.text
 
         if (!(Comparing.equal(myHighlightedText, oldText) && Comparing.equal(icon, oldIcon))) {
@@ -153,8 +147,8 @@ class KotlinCallHierarchyNodeDescriptor(
     }
 
     companion object {
-        context(_: KaSession)
         @NlsSafe
+        context(_: KaSession)
         private fun renderElement(element: KtElement): String? {
             when (element) {
                 is KtFile -> {
@@ -216,8 +210,8 @@ class KotlinCallHierarchyNodeDescriptor(
             }
         }
 
-        context(_: KaSession)
         @OptIn(KaExperimentalApi::class)
+        context(_: KaSession)
         fun renderNamedFunction(symbol: KaFunctionSymbol): String? {
             val name = ((symbol as? KaNamedFunctionSymbol)?.name ?: ((symbol as? KaConstructorSymbol)?.containingDeclaration as? KaClassSymbol)?.name)?.asString() ?: return null
             val paramTypes =

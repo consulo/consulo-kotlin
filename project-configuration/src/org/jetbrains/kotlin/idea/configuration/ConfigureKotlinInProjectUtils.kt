@@ -3,7 +3,6 @@
 package org.jetbrains.kotlin.idea.configuration
 
 import com.intellij.externalSystem.JavaModuleData
-import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.smartReadAction
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil
@@ -38,7 +37,6 @@ import org.jetbrains.kotlin.config.LanguageVersionSettingsImpl
 import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.idea.base.facet.isMultiPlatformModule
 import org.jetbrains.kotlin.idea.base.facet.platform.platform
-import org.jetbrains.kotlin.idea.base.indices.KotlinPackageIndexUtils
 import org.jetbrains.kotlin.idea.base.platforms.KotlinCommonLibraryKind
 import org.jetbrains.kotlin.idea.base.platforms.KotlinJavaScriptLibraryKind
 import org.jetbrains.kotlin.idea.base.platforms.KotlinNativeLibraryKind
@@ -65,7 +63,6 @@ import org.jetbrains.kotlin.idea.util.application.isDispatchThread
 import org.jetbrains.kotlin.idea.util.application.isUnitTestMode
 import org.jetbrains.kotlin.idea.vfilefinder.IdeVirtualFileFinder
 import org.jetbrains.kotlin.idea.vfilefinder.KlibMetaFileIndex
-import org.jetbrains.kotlin.idea.vfilefinder.KotlinJavaScriptMetaFileIndex
 import org.jetbrains.kotlin.idea.vfilefinder.hasSomethingInPackage
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.platform.isCommon
@@ -122,7 +119,6 @@ fun DependencyScope.toGradleCompileScope(isAndroidModule: Boolean): String = whe
     DependencyScope.TEST -> if (isAndroidModule) "implementation" else "testImplementation"
     DependencyScope.RUNTIME -> "runtime"
     DependencyScope.PROVIDED -> "implementation"
-    else -> "implementation"
 }
 
 fun DependencyScope.toGradleCompileScope(targetModule: Module? = null): String = when (this) {
@@ -130,7 +126,6 @@ fun DependencyScope.toGradleCompileScope(targetModule: Module? = null): String =
     DependencyScope.TEST -> if (targetModule?.isMultiPlatformModule == true) "implementation" else "testImplementation"
     DependencyScope.RUNTIME -> "runtime"
     DependencyScope.PROVIDED -> "implementation"
-    else -> "implementation"
 }
 
 fun RepositoryDescription.toGroovyRepositorySnippet(): String = "maven { url '$url' }"
@@ -379,7 +374,6 @@ fun hasAnyKotlinRuntimeInScope(module: Module): Boolean {
         val scope = module.getModuleWithDependenciesAndLibrariesScope(true)
         DumbModeAccessType.RELIABLE_DATA_ONLY.ignoreDumbMode(ThrowableComputable {
             scope.hasKotlinJvmRuntime(module.project)
-                    || runReadAction { hasKotlinJsKjsmFile(LibraryKindSearchScope(module, scope, KotlinJavaScriptLibraryKind)) }
                     || hasKotlinCommonRuntimeInScope(module)
                     || hasKotlinCommonLegacyRuntimeInScope(scope, module.project)
                     || hasKotlinJsRuntimeInScope(module)
@@ -389,10 +383,6 @@ fun hasAnyKotlinRuntimeInScope(module: Module): Boolean {
                     || hasKotlinNativeRuntimeInScope(module)
         })
     }
-}
-
-fun isStdlibModule(module: Module): Boolean {
-    return KotlinPackageIndexUtils.packageExists(FqName("kotlin"), module.moduleProductionSourceScope)
 }
 
 fun getPlatform(module: Module): String {
@@ -412,7 +402,7 @@ fun getPlatform(module: Module): String {
 
         module.platform.isJs() && hasKotlinJsRuntimeInScope(module) -> "js"
         module.platform.isCommon() -> "common"
-        module.platform.isNative() -> "native." + (module.platform?.componentPlatforms?.first()?.targetName ?: "unknown")
+        module.platform.isNative() -> "native." + module.platform.componentPlatforms.first().targetName
         else -> "unknown"
     }
 }
@@ -433,15 +423,6 @@ fun hasKotlinJvmRuntimeInScope(module: Module): Boolean {
         val scope = module.getModuleWithDependenciesAndLibrariesScope(true)
         DumbModeAccessType.RELIABLE_DATA_ONLY.ignoreDumbMode<Boolean, Throwable> {
             scope.hasKotlinJvmRuntime(module.project)
-        }
-    }
-}
-
-fun hasKotlinJsLegacyRuntimeInScope(module: Module): Boolean {
-    return syncNonBlockingReadAction(module.project) {
-        val scope = module.getModuleWithDependenciesAndLibrariesScope(true)
-        runReadAction {
-            hasKotlinJsKjsmFile(LibraryKindSearchScope(module, scope, KotlinJavaScriptLibraryKind))
         }
     }
 }
@@ -616,10 +597,6 @@ private val KOTLIN_WASM_JS_FQ_NAME = FqName("kotlin.wasm.js")
 private val KOTLIN_WASM_WASI_FQ_NAME = FqName("kotlin.wasm.wasi")
 
 private val KOTLIN_NATIVE_FQ_NAME = FqName("kotlin.native")
-
-private fun hasKotlinJsKjsmFile(scope: GlobalSearchScope): Boolean {
-    return hasSomethingInPackage(KotlinJavaScriptMetaFileIndex.NAME, KOTLIN_JS_FQ_NAME, scope)
-}
 
 class LibraryKindSearchScope(
     val module: Module,

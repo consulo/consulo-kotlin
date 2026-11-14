@@ -36,23 +36,49 @@ class DefinedKotlinPluginManagementVersion(
     val parsedVersion: IdeKotlinVersion?
 )
 
+const val COMPILER_OPTIONS: String = "compilerOptions"
+
 interface GradleBuildScriptManipulator<out Psi : PsiFile> {
     fun isApplicable(file: PsiFile): Boolean
 
     val scriptFile: Psi
     val preferNewSyntax: Boolean
 
+    fun usesOldSyntax(kotlinPluginName: String): Boolean
     fun isConfiguredWithOldSyntax(kotlinPluginName: String): Boolean
     fun isConfigured(kotlinPluginExpression: String): Boolean
+
+    /**
+     * Returns true if the Kotlin plugin is applied with the "apply false" argument, for example:
+     * ```
+     * plugins {
+     *    kotlin("jvm") apply false
+     * }
+     * ```
+     */
+    fun hasKotlinPluginApplyFalse(): Boolean
 
     fun configureBuildScripts(
         kotlinPluginName: String,
         kotlinPluginExpression: String,
-        stdlibArtifactName: String,
         addVersion: Boolean,
         version: IdeKotlinVersion,
         jvmTarget: String?,
         changedFiles: ChangedConfiguratorFiles
+    )
+
+    fun configurePluginInPluginsGroup(
+        kotlinPluginExpression: String,
+        addVersion: Boolean,
+        version: IdeKotlinVersion,
+        applyFalse: Boolean,
+        changedFiles: ChangedConfiguratorFiles
+    )
+
+    fun configurePluginOptions(
+        kotlinPluginName: String,
+        changedFiles: ChangedConfiguratorFiles,
+        vararg options: String
     )
 
     fun configureProjectBuildScript(kotlinPluginName: String, version: IdeKotlinVersion): Boolean
@@ -88,21 +114,6 @@ interface GradleBuildScriptManipulator<out Psi : PsiFile> {
         scope: DependencyScope,
         libraryDescriptor: ExternalLibraryDescriptor
     ): ModCommand = ModCommand.nop()
-
-    fun getKotlinStdlibVersion(): String?
-
-    fun addJdkSpec(
-        jvmTarget: String,
-        version: IdeKotlinVersion,
-        gradleVersion: GradleVersionInfo,
-        applySpec: (
-            useToolchain: Boolean,
-            useToolchainHelper: Boolean,
-            targetVersionNumber: String
-        ) -> Unit
-    ) {
-
-    }
 
     /**
      * Finds a "parent" block containing the current element with the [name] – be it a closure block or the whole line containing the [name].
@@ -227,7 +238,7 @@ fun GradleBuildScriptManipulator<*>.useNewSyntax(kotlinPluginName: String, gradl
 
     if (gradleVersion < GradleVersionProvider.getVersion(MIN_GRADLE_VERSION_FOR_NEW_PLUGIN_SYNTAX.version)) return false
 
-    if (isConfiguredWithOldSyntax(kotlinPluginName)) return false
+    if (usesOldSyntax(kotlinPluginName)) return false
 
     val fileText = runReadAction { scriptFile.text }
     val hasOldApply = fileText.contains("apply plugin:")

@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.analysis.api.components.createUseSiteVisibilityCheck
 import org.jetbrains.kotlin.analysis.api.components.defaultType
 import org.jetbrains.kotlin.analysis.api.components.expandedSymbol
 import org.jetbrains.kotlin.analysis.api.components.expressionType
+import org.jetbrains.kotlin.analysis.api.components.isMarkedNullable
 import org.jetbrains.kotlin.analysis.api.components.isSubtypeOf
 import org.jetbrains.kotlin.analysis.api.components.resolveToCall
 import org.jetbrains.kotlin.analysis.api.components.resolveToCallCandidates
@@ -35,7 +36,6 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaTypeAliasSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.markers.KaAnnotatedSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.symbol
 import org.jetbrains.kotlin.analysis.api.types.KaType
-import org.jetbrains.kotlin.analysis.api.types.KaTypeNullability
 import org.jetbrains.kotlin.builtins.StandardNames
 import org.jetbrains.kotlin.idea.references.KtReference
 import org.jetbrains.kotlin.idea.references.mainReference
@@ -57,8 +57,8 @@ import org.jetbrains.kotlin.utils.exceptions.errorWithAttachment
 import org.jetbrains.kotlin.utils.exceptions.withPsiEntry
 
 // Analogous to Call.resolveCandidates() in plugins/kotlin/core/src/org/jetbrains/kotlin/idea/core/Utils.kt
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 fun collectCallCandidates(callElement: KtElement): List<KaCallCandidateInfo> {
     val (candidates, explicitReceiver) = when (callElement) {
         is KtCallElement -> {
@@ -76,8 +76,8 @@ fun collectCallCandidates(callElement: KtElement): List<KaCallCandidateInfo> {
     return candidates.filter { filterCandidate(it, callElement, explicitReceiver, visibilityChecker) }
 }
 
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 private fun filterCandidate(
     candidateInfo: KaCallCandidateInfo,
     callElement: KtElement,
@@ -90,8 +90,8 @@ private fun filterCandidate(
     return filterCandidateByReceiverTypeAndVisibility(signature, callElement, explicitReceiver, visibilityChecker)
 }
 
-context(_: KaSession)
 @OptIn(KaExperimentalApi::class)
+context(_: KaSession)
 fun filterCandidateByReceiverTypeAndVisibility(
     signature: KaFunctionSignature<KaFunctionSymbol>,
     callElement: KtElement,
@@ -126,7 +126,7 @@ fun filterCandidateByReceiverTypeAndVisibility(
     val candidateReceiverType = signature.receiverType
     if (candidateReceiverType != null && receiverTypes.none {
             it.isSubtypeOf(candidateReceiverType, subtypingErrorTypePolicy) ||
-                    it.nullability != KaTypeNullability.NON_NULLABLE && it.withNullability(false)
+                    it.isMarkedNullable && it.withNullability(false)
                         .isSubtypeOf(candidateReceiverType, subtypingErrorTypePolicy)
         }
     ) return false

@@ -1,11 +1,13 @@
 <idea-plugin visibility="internal" package="org.jetbrains.kotlin.idea.gradle">
+  <!-- region Generated dependencies - run `Generate Product Layouts` to regenerate -->
   <dependencies>
     <module name="intellij.kotlin.gradle.tooling"/>
-    <!-- region Generated dependencies - run `Generate Product Layouts` to regenerate -->
     <module name="intellij.gradle"/>
     <module name="intellij.gradle.toolingExtension.impl"/>
-    <!-- endregion -->
+    <module name="intellij.java.execution.impl"/>
+    <module name="intellij.java.ui"/>
   </dependencies>
+  <!-- endregion -->
 
   <extensionPoints>
     <extensionPoint qualifiedName="org.jetbrains.kotlin.gradleModelFacade"
@@ -62,6 +64,8 @@
     <statistics.counterUsagesCollector implementationClass="org.jetbrains.kotlin.idea.gradle.statistics.v2.flow.KotlinBuildToolFusFlowCollector"/>
     <statistics.projectUsagesCollector implementation="org.jetbrains.kotlin.idea.gradle.statistics.ComposeLibraryUsagesCollector"/>
     <statistics.projectUsagesCollector implementation="org.jetbrains.kotlin.idea.gradle.statistics.KotlinJsLibraryUsagesCollector"/>
+    <projectSettings service="org.jetbrains.kotlin.idea.gradle.ui.IdeResolveModulePerSourceSetComponent"/>
+    <projectSettings service="org.jetbrains.kotlin.idea.gradle.statistics.KotlinGradleFUSSettings"/>
   </extensions>
   <resource-bundle>messages.KotlinBundle</resource-bundle>
 </idea-plugin>

@@ -4,18 +4,16 @@ package org.jetbrains.kotlin.idea.fir.editor
 import com.intellij.psi.codeStyle.CodeStyleSettings
 import com.intellij.testFramework.EditorTestUtil
 import org.jetbrains.kotlin.idea.KotlinLanguage
-import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
+import org.jetbrains.kotlin.idea.base.test.configureCodeStyleAndRun
 import org.jetbrains.kotlin.idea.editor.KotlinEditorOptions
 import org.jetbrains.kotlin.idea.formatter.KotlinObsoleteStyleGuide
 import org.jetbrains.kotlin.idea.formatter.kotlinCommonSettings
 import org.jetbrains.kotlin.idea.test.KotlinLightCodeInsightFixtureTestCase
-import org.jetbrains.kotlin.idea.test.configureCodeStyleAndRun
 import org.junit.internal.runners.JUnit38ClassRunner
 import org.junit.runner.RunWith
 
 @RunWith(JUnit38ClassRunner::class)
 class K2TypeHandlerTest : KotlinLightCodeInsightFixtureTestCase() {
-    override val pluginMode: KotlinPluginMode = KotlinPluginMode.K2
 
     private val dollar = '$'
 
@@ -1046,7 +1044,9 @@ class K2TypeHandlerTest : KotlinLightCodeInsightFixtureTestCase() {
     }
 
     private fun doTypeTest(text: String, beforeText: String, afterText: String, settingsModifier: ((CodeStyleSettings) -> Unit) = { }) {
-        configureCodeStyleAndRun(project, configurator = { settingsModifier(it) }) {
+        configureCodeStyleAndRun(
+            project,
+            configurator = { settingsModifier(it) }) {
             myFixture.configureByText("a.kt", beforeText.trimMargin())
             for (ch in text) {
                 myFixture.type(ch)

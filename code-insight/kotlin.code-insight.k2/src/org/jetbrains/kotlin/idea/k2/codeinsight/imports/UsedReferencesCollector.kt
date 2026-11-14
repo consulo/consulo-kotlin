@@ -55,8 +55,8 @@ internal class UsedReferencesCollector(private val file: KtFile) {
         return Result(usedDeclarations, unresolvedNames, importableSymbolPointers, references)
     }
 
-    private context(_: KaSession)
-    fun collectReferencesFrom(element: KtElement) {
+    context(_: KaSession)
+    private fun collectReferencesFrom(element: KtElement) {
         if (element.ignoreReferencesDuringImportOptimization) return
 
         if (element is KtLabelReferenceExpression) return
@@ -83,7 +83,7 @@ internal class UsedReferencesCollector(private val file: KtFile) {
             val symbols = usedReference.resolveToReferencedSymbols()
 
             for (symbol in symbols) {
-                if (!symbol.isResolvedWithImport()) continue
+                if (!symbol.needsImportsToResolve()) continue
 
                 val importableName = symbol.computeImportableName() ?: continue
 

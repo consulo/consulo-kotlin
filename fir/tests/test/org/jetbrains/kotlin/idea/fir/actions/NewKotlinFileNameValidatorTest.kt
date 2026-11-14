@@ -4,24 +4,18 @@ package org.jetbrains.kotlin.idea.fir.actions
 
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import org.jetbrains.kotlin.idea.actions.NewKotlinFileNameValidator
-import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
-import org.jetbrains.kotlin.idea.test.ExpectedPluginModeProvider
-import org.jetbrains.kotlin.idea.test.setUpWithKotlinPlugin
 import org.junit.internal.runners.JUnit38ClassRunner
 import org.junit.runner.RunWith
 
 @RunWith(JUnit38ClassRunner::class)
-class NewKotlinFileNameValidatorTest : LightJavaCodeInsightFixtureTestCase(), ExpectedPluginModeProvider {
+class NewKotlinFileNameValidatorTest : LightJavaCodeInsightFixtureTestCase() {
     companion object {
         private const val EMPTY_PARTS_ERROR = "Name can't have empty parts"
         private const val EMPTY_ERROR = "Name can't be empty"
+        private const val UNDERSCORE_ERROR = "Name can't consist only of underscores"
     }
 
-    override fun setUp() {
-        setUpWithKotlinPlugin { super.setUp() }
-    }
-
-    override val pluginMode: KotlinPluginMode = KotlinPluginMode.K2
+    
 
     fun testEmptyName() {
         validateName("", EMPTY_ERROR)
@@ -57,6 +51,25 @@ class NewKotlinFileNameValidatorTest : LightJavaCodeInsightFixtureTestCase(), Ex
 
     fun testSimpleFileWithPath() {
         validateName("a/bb\\some", null)
+    }
+
+    fun testUnderscore() {
+        validateName("_", UNDERSCORE_ERROR)
+        validateName("__", UNDERSCORE_ERROR)
+        validateName("___", UNDERSCORE_ERROR)
+    }
+
+    fun testUnderscoreInQualified() {
+        validateName("a._.b", UNDERSCORE_ERROR)
+        validateName("a.__.b", UNDERSCORE_ERROR)
+        validateName("a.___.b", UNDERSCORE_ERROR)
+    }
+
+    fun testValidNamesWithUnderscores() {
+        validateName("_a", null)
+        validateName("a_", null)
+        validateName("a_b", null)
+        validateName("a._b.c", null)
     }
 
     private fun validateName(name: String, errorMessage: String?) {

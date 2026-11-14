@@ -1,12 +1,12 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.kotlin.idea.k2.codeinsight.fixes
 
+import com.intellij.codeInsight.intention.PriorityAction
 import com.intellij.codeInspection.util.IntentionName
 import com.intellij.modcommand.ActionContext
 import com.intellij.modcommand.ModCommandAction
 import com.intellij.modcommand.ModPsiUpdater
 import com.intellij.modcommand.Presentation
-import com.intellij.modcommand.PsiUpdateModCommandAction
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.containers.addIfNotNull
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
@@ -17,7 +17,7 @@ import org.jetbrains.kotlin.analysis.api.components.allOverriddenSymbols
 import org.jetbrains.kotlin.analysis.api.components.commonSupertype
 import org.jetbrains.kotlin.analysis.api.components.expressionType
 import org.jetbrains.kotlin.analysis.api.components.isUnitType
-import org.jetbrains.kotlin.analysis.api.components.targetSymbol
+import org.jetbrains.kotlin.analysis.api.components.resolveSymbol
 import org.jetbrains.kotlin.analysis.api.components.typeCreator
 import org.jetbrains.kotlin.analysis.api.diagnostics.KaDiagnosticWithPsi
 import org.jetbrains.kotlin.analysis.api.fir.diagnostics.KaFirDiagnostic
@@ -38,10 +38,10 @@ import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.analysis.api.types.KaErrorType
 import org.jetbrains.kotlin.analysis.api.types.KaFunctionType
 import org.jetbrains.kotlin.analysis.api.types.KaType
-import org.jetbrains.kotlin.analysis.api.types.KaTypeNullability
 import org.jetbrains.kotlin.config.LanguageVersion
 import org.jetbrains.kotlin.idea.base.projectStructure.languageVersionSettings
 import org.jetbrains.kotlin.idea.base.resources.KotlinBundle
+import org.jetbrains.kotlin.idea.codeinsight.api.applicable.intentions.KotlinPsiUpdateModCommandAction
 import org.jetbrains.kotlin.idea.codeinsight.api.applicators.fixes.KotlinQuickFixFactory
 import org.jetbrains.kotlin.idea.codeinsights.impl.base.CallableReturnTypeUpdaterUtils
 import org.jetbrains.kotlin.idea.codeinsights.impl.base.CallableReturnTypeUpdaterUtils.updateType
@@ -72,7 +72,6 @@ import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.KtPropertyAccessor
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtPsiUtil
-import org.jetbrains.kotlin.psi.KtReferenceExpression
 import org.jetbrains.kotlin.psi.KtReturnExpression
 import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
@@ -92,10 +91,20 @@ internal object ChangeTypeQuickFixFactories {
         target: E,
         private val targetType: TargetType,
         private val typeInfo: CallableReturnTypeUpdaterUtils.TypeInfo,
-    ) : PsiUpdateModCommandAction<E>(target) {
+    ) : KotlinPsiUpdateModCommandAction.ElementContextless<E>(target) {
         override fun getFamilyName(): String = KotlinBundle.message("fix.change.return.type.family")
-        override fun getPresentation(context: ActionContext, element: E): Presentation =
-            Presentation.of(getActionName(element, targetType, typeInfo))
+
+        override fun getActionPresentation(context: ActionContext, element: E): Presentation {
+            val name = getActionName(element, targetType, typeInfo)
+            val priority =
+                when(targetType) {
+                    TargetType.BASE_DECLARATION,
+                    TargetType.ENCLOSING_DECLARATION,
+                    TargetType.CURRENT_DECLARATION -> PriorityAction.Priority.HIGH
+                    else -> PriorityAction.Priority.NORMAL
+                }
+            return Presentation.of(name).withPriority(priority)
+        }
 
         override fun invoke(context: ActionContext, element: E, updater: ModPsiUpdater) =
             updateType(element, typeInfo, context.project)
@@ -122,6 +131,7 @@ internal object ChangeTypeQuickFixFactories {
         return ktType.toFunctionType() ?: with(session) { ktType.approximateToDenotableSupertypeOrSelf(position) } ?: ktType
     }
 
+    @OptIn(KaExperimentalApi::class)
     context(_: KaSession)
     private fun KtElement.returnType(candidateType: KaType): KaType {
         val (initializers, functionOrGetter) = when (this) {
@@ -133,7 +143,7 @@ internal object ChangeTypeQuickFixFactories {
         val returnedExpressions = if (functionOrGetter != null) {
             val declarationSymbol = functionOrGetter.symbol
             functionOrGetter
-                .collectDescendantsOfType<KtReturnExpression> { it.targetSymbol == declarationSymbol }
+                .collectDescendantsOfType<KtReturnExpression> { it.resolveSymbol() == declarationSymbol }
                 .mapNotNull { it.returnedExpression }
                 .plus(initializers)
         } else {
@@ -302,14 +312,15 @@ internal object ChangeTypeQuickFixFactories {
         return registerVariableTypeFixes(calledVariable, getActualType(actualType, expression), expectedType)
     }
 
+    @OptIn(KaExperimentalApi::class)
     val returnTypeNullableTypeMismatch =
         KotlinQuickFixFactory.ModCommandBased { diagnostic: KaFirDiagnostic.NullForNonnullType ->
             val returnExpr = diagnostic.psi.parentOfType<KtReturnExpression>()
                 ?: return@ModCommandBased emptyList()
-            val declaration = returnExpr.targetSymbol?.psi as? KtCallableDeclaration
+            val declaration = returnExpr.resolveSymbol()?.psi as? KtCallableDeclaration
                 ?: return@ModCommandBased emptyList()
 
-            val withNullability = diagnostic.expectedType.withNullability(KaTypeNullability.NULLABLE)
+            val withNullability = diagnostic.expectedType.withNullability(isMarkedNullable = true)
             listOf(
                 UpdateTypeQuickFix(
                     declaration,
@@ -379,7 +390,7 @@ internal object ChangeTypeQuickFixFactories {
             }
 
             val actualType = getActualType(diagnostic.actualType, expression)
-            val type = if (declaration.initializer?.isNull() == true) actualType.withNullability(KaTypeNullability.NULLABLE) else actualType
+            val type = if (declaration.initializer?.isNull() == true) actualType.withNullability(isMarkedNullable = true) else actualType
             buildList {
                 if (declaration.typeReference == null) {
                     add(UpdateTypeQuickFix(declaration, TargetType.VARIABLE, createTypeInfo(declaration.returnType(type))))
@@ -430,12 +441,7 @@ internal object ChangeTypeQuickFixFactories {
             val actualType = getActualType(diagnostic.actualType, expression)
             val expectedType = diagnostic.expectedType
             if (actualType.semanticallyEquals(expectedType)) {
-                return@ModCommandBased emptyList()
-            }
-
-            val property = (expression as? KtReferenceExpression)?.mainReference?.resolve() as? KtProperty
-            if (property != null) {
-                registerVariableTypeFixes(property, actualType, expectedType)
+                emptyList()
             } else {
                 registerExpressionTypeFixes(expression, expectedType, actualType)
             }
@@ -589,7 +595,7 @@ internal object ChangeTypeQuickFixFactories {
 
             TargetType.VARIABLE -> {
                 val containerName = declaration.parentOfType<KtClassOrObject>()?.nameAsName?.takeUnless { it.isSpecial }?.asString()
-                return "'${containerName?.let { "$containerName." } ?: ""}${declaration.name}'"
+                "'${containerName?.let { "$containerName." } ?: ""}${declaration.name}'"
             }
         }
     }
@@ -623,7 +629,7 @@ internal object ChangeTypeQuickFixFactories {
 @OptIn(KaExperimentalApi::class)
 private fun KaSession.isValReassignment(assignment: KtBinaryExpression): Boolean {
     val left = assignment.left ?: return false
-    return left.diagnostics(KaDiagnosticCheckerFilter.ONLY_COMMON_CHECKERS).any {
+    return left.directDiagnostics(KaDiagnosticCheckerFilter.ONLY_COMMON_CHECKERS).any {
         it is KaFirDiagnostic.ValReassignment
     }
 }

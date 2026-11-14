@@ -3,7 +3,6 @@
 package org.jetbrains.kotlin.idea.k2.codeinsight.fixes;
 
 import com.intellij.testFramework.TestDataPath;
-import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode;
 import org.jetbrains.kotlin.idea.base.test.TestRoot;
 import org.jetbrains.kotlin.idea.test.JUnit3RunnerWithInners;
 import org.jetbrains.kotlin.idea.test.KotlinTestUtils;
@@ -25,12 +24,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/autoImports/callableReference")
         public static class CallableReference extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -124,12 +117,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/autoImports/callablesDeclaredInClasses")
         public static class CallablesDeclaredInClasses extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -166,12 +153,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
             @RunWith(JUnit3RunnerWithInners.class)
             @TestMetadata("../../../idea/tests/testData/quickfix/autoImports/innerClass/typealiased")
             public static class Typealiased extends AbstractHighLevelQuickFixMultiFileTest {
-                @java.lang.Override
-                @org.jetbrains.annotations.NotNull
-                public final KotlinPluginMode getPluginMode() {
-                    return KotlinPluginMode.K2;
-                }
-
                 private void runTest(String testDataFilePath) throws Exception {
                     KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
                 }
@@ -265,12 +246,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
             @RunWith(JUnit3RunnerWithInners.class)
             @TestMetadata("../../../idea/tests/testData/quickfix/autoImports/innerClass")
             public static class Uncategorized extends AbstractHighLevelQuickFixMultiFileTest {
-                @java.lang.Override
-                @org.jetbrains.annotations.NotNull
-                public final KotlinPluginMode getPluginMode() {
-                    return KotlinPluginMode.K2;
-                }
-
                 private void runTest(String testDataFilePath) throws Exception {
                     KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
                 }
@@ -310,12 +285,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/autoImports/invisible")
         public static class Invisible extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -325,9 +294,19 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
                 runTest("../../../idea/tests/testData/quickfix/autoImports/invisible/annotation.before.Main.kt");
             }
 
-            @TestMetadata("assignmentOperator.before.Main.kt")
-            public void testAssignmentOperator() throws Exception {
-                runTest("../../../idea/tests/testData/quickfix/autoImports/invisible/assignmentOperator.before.Main.kt");
+            @TestMetadata("assignmentOperatorK1.before.Main.kt")
+            public void testAssignmentOperatorK1() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/autoImports/invisible/assignmentOperatorK1.before.Main.kt");
+            }
+
+            @TestMetadata("assignmentOperatorK2.before.Main.kt")
+            public void testAssignmentOperatorK2() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/autoImports/invisible/assignmentOperatorK2.before.Main.kt");
+            }
+
+            @TestMetadata("assignmentOperatorK2PluginDisabled.before.Main.kt")
+            public void testAssignmentOperatorK2PluginDisabled() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/autoImports/invisible/assignmentOperatorK2PluginDisabled.before.Main.kt");
             }
 
             @TestMetadata("class.before.Main.kt")
@@ -349,12 +328,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/autoImports/invoke")
         public static class Invoke extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -438,12 +411,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/autoImports/kt21515")
         public static class Kt21515 extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -460,12 +427,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
             @RunWith(JUnit3RunnerWithInners.class)
             @TestMetadata("../../../idea/tests/testData/quickfix/autoImports/mismatchingArgs/inapplicable")
             public static class Inapplicable extends AbstractHighLevelQuickFixMultiFileTest {
-                @java.lang.Override
-                @org.jetbrains.annotations.NotNull
-                public final KotlinPluginMode getPluginMode() {
-                    return KotlinPluginMode.K2;
-                }
-
                 private void runTest(String testDataFilePath) throws Exception {
                     KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
                 }
@@ -504,12 +465,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
             @RunWith(JUnit3RunnerWithInners.class)
             @TestMetadata("../../../idea/tests/testData/quickfix/autoImports/mismatchingArgs")
             public static class Uncategorized extends AbstractHighLevelQuickFixMultiFileTest {
-                @java.lang.Override
-                @org.jetbrains.annotations.NotNull
-                public final KotlinPluginMode getPluginMode() {
-                    return KotlinPluginMode.K2;
-                }
-
                 private void runTest(String testDataFilePath) throws Exception {
                     KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
                 }
@@ -614,12 +569,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/autoImports")
         public static class Uncategorized extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -1324,6 +1273,11 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
                 runTest("../../../idea/tests/testData/quickfix/autoImports/operatorAssignPlusAssign.test");
             }
 
+            @TestMetadata("operatorAssignPlusAssignJavaSyntheticProperty.test")
+            public void testOperatorAssignPlusAssignJavaSyntheticProperty() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/autoImports/operatorAssignPlusAssignJavaSyntheticProperty.test");
+            }
+
             @TestMetadata("operatorAssignPlusTwoVariantsDifferentPackages.test")
             public void testOperatorAssignPlusTwoVariantsDifferentPackages() throws Exception {
                 runTest("../../../idea/tests/testData/quickfix/autoImports/operatorAssignPlusTwoVariantsDifferentPackages.test");
@@ -1432,14 +1386,168 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
     }
 
     @RunWith(JUnit3RunnerWithInners.class)
-    @TestMetadata("../../../idea/tests/testData/quickfix/makeUpperBoundNonNullable")
-    public static class MakeUpperBoundNonNullable extends AbstractHighLevelQuickFixMultiFileTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
+    @TestMetadata("../../../idea/tests/testData/quickfix/typeMismatch")
+    public abstract static class TypeMismatch extends AbstractHighLevelQuickFixMultiFileTest {
+        @RunWith(JUnit3RunnerWithInners.class)
+        @TestMetadata("../../../idea/tests/testData/quickfix/typeMismatch/definitelyNonNullableTypes")
+        public static class DefinitelyNonNullableTypes extends AbstractHighLevelQuickFixMultiFileTest {
+            private void runTest(String testDataFilePath) throws Exception {
+                KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
+            }
+
+            @TestMetadata("changeParameterTypeIsDisabledWhenDnnFeatureIsOff.test")
+            public void testChangeParameterTypeIsDisabledWhenDnnFeatureIsOff() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/typeMismatch/definitelyNonNullableTypes/changeParameterTypeIsDisabledWhenDnnFeatureIsOff.test");
+            }
         }
 
+        @RunWith(JUnit3RunnerWithInners.class)
+        @TestMetadata("../../../idea/tests/testData/quickfix/typeMismatch/genericVarianceViolation")
+        public static class GenericVarianceViolation extends AbstractHighLevelQuickFixMultiFileTest {
+            private void runTest(String testDataFilePath) throws Exception {
+                KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
+            }
+
+            @TestMetadata("basicMultiple.before.Main.kt")
+            public void testBasicMultiple() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/typeMismatch/genericVarianceViolation/basicMultiple.before.Main.kt");
+            }
+        }
+
+        @RunWith(JUnit3RunnerWithInners.class)
+        @TestMetadata("../../../idea/tests/testData/quickfix/typeMismatch")
+        public static class Uncategorized extends AbstractHighLevelQuickFixMultiFileTest {
+            private void runTest(String testDataFilePath) throws Exception {
+                KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
+            }
+
+            @TestMetadata("addArrayOfTypeForJavaAnnotation.before.Main.kt")
+            public void testAddArrayOfTypeForJavaAnnotation() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/typeMismatch/addArrayOfTypeForJavaAnnotation.before.Main.kt");
+            }
+
+            @TestMetadata("paramTypeInOverrides.before.Main.kt")
+            public void testParamTypeInOverrides() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/typeMismatch/paramTypeInOverrides.before.Main.kt");
+            }
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/quickfix/addSpreadOperatorForArrayAsVarargAfterSam")
+    public static class AddSpreadOperatorForArrayAsVarargAfterSam extends AbstractHighLevelQuickFixMultiFileTest {
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
+        }
+
+        @TestMetadata("noSam.test")
+        public void testNoSam() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/addSpreadOperatorForArrayAsVarargAfterSam/noSam.test");
+        }
+
+        @TestMetadata("withError.test")
+        public void testWithError() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/addSpreadOperatorForArrayAsVarargAfterSam/withError.test");
+        }
+
+        @TestMetadata("withWarning.test")
+        public void testWithWarning() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/addSpreadOperatorForArrayAsVarargAfterSam/withWarning.test");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/quickfix/when")
+    public abstract static class When extends AbstractHighLevelQuickFixMultiFileTest {
+        @RunWith(JUnit3RunnerWithInners.class)
+        @TestMetadata("../../../idea/tests/testData/quickfix/when/contextSensitiveResolution")
+        public static class ContextSensitiveResolution extends AbstractHighLevelQuickFixMultiFileTest {
+            private void runTest(String testDataFilePath) throws Exception {
+                KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
+            }
+
+            @TestMetadata("addRemainingBranchesEnumAnotherPackage.before.Main.kt")
+            public void testAddRemainingBranchesEnumAnotherPackage() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/when/contextSensitiveResolution/addRemainingBranchesEnumAnotherPackage.before.Main.kt");
+            }
+        }
+
+        @RunWith(JUnit3RunnerWithInners.class)
+        @TestMetadata("../../../idea/tests/testData/quickfix/when")
+        public static class Uncategorized extends AbstractHighLevelQuickFixMultiFileTest {
+            private void runTest(String testDataFilePath) throws Exception {
+                KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
+            }
+
+            @TestMetadata("addRemainingBranchesAnotherPackage.before.Main.kt")
+            public void testAddRemainingBranchesAnotherPackage() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/when/addRemainingBranchesAnotherPackage.before.Main.kt");
+            }
+
+            @TestMetadata("addRemainingBranchesAnotherPackageAll.before.Main.kt")
+            public void testAddRemainingBranchesAnotherPackageAll() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/when/addRemainingBranchesAnotherPackageAll.before.Main.kt");
+            }
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/quickfix/specifySuperExplicitly")
+    public static class SpecifySuperExplicitly extends AbstractHighLevelQuickFixMultiFileTest {
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
+        }
+
+        @TestMetadata("abstractSuperCall4.before.Main.kt")
+        public void testAbstractSuperCall4() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/specifySuperExplicitly/abstractSuperCall4.before.Main.kt");
+        }
+
+        @TestMetadata("abstractSuperCallWithExplicitSuper3.before.Main.kt")
+        public void testAbstractSuperCallWithExplicitSuper3() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/specifySuperExplicitly/abstractSuperCallWithExplicitSuper3.before.Main.kt");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/quickfix/migration/conflictingExtension")
+    public static class ConflictingExtension extends AbstractHighLevelQuickFixMultiFileTest {
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
+        }
+
+        @TestMetadata("removeImports.before.Main.kt")
+        public void testRemoveImports() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/migration/conflictingExtension/removeImports.before.Main.kt");
+        }
+
+        @TestMetadata("removeImportsOverloads.before.Main.kt")
+        public void testRemoveImportsOverloads() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/migration/conflictingExtension/removeImportsOverloads.before.Main.kt");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/quickfix/moveToSealedParent")
+    public static class MoveToSealedParent extends AbstractHighLevelQuickFixMultiFileTest {
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
+        }
+
+        @TestMetadata("nestedDeclarationToSealed.test")
+        public void testNestedDeclarationToSealed() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/moveToSealedParent/nestedDeclarationToSealed.test");
+        }
+
+        @TestMetadata("topLevelDeclarationToSealed.test")
+        public void testTopLevelDeclarationToSealed() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/moveToSealedParent/topLevelDeclarationToSealed.test");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/quickfix/makeUpperBoundNonNullable")
+    public static class MakeUpperBoundNonNullable extends AbstractHighLevelQuickFixMultiFileTest {
         private void runTest(String testDataFilePath) throws Exception {
             KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
         }
@@ -1468,12 +1576,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/quickfix/surroundWithNullCheck")
     public static class SurroundWithNullCheck extends AbstractHighLevelQuickFixMultiFileTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         private void runTest(String testDataFilePath) throws Exception {
             KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
         }
@@ -1495,17 +1597,29 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
     }
 
     @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction")
+    public static class ReplaceWithSafeCallForScopeFunction extends AbstractHighLevelQuickFixMultiFileTest {
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
+        }
+
+        @TestMetadata("javaReceiverNullabilityAlso.test")
+        public void testJavaReceiverNullabilityAlso() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/javaReceiverNullabilityAlso.test");
+        }
+
+        @TestMetadata("javaReceiverNullabilityRunExplicitThis.test")
+        public void testJavaReceiverNullabilityRunExplicitThis() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/replaceWithSafeCallForScopeFunction/javaReceiverNullabilityRunExplicitThis.test");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/quickfix/modifiers")
     public abstract static class Modifiers extends AbstractHighLevelQuickFixMultiFileTest {
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/modifiers/addOpenToClassDeclaration")
         public static class AddOpenToClassDeclaration extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -1529,12 +1643,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/modifiers")
         public static class Uncategorized extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -1554,12 +1662,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/quickfix/addGenericUpperBound")
     public static class AddGenericUpperBound extends AbstractHighLevelQuickFixMultiFileTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         private void runTest(String testDataFilePath) throws Exception {
             KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
         }
@@ -1573,12 +1675,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/quickfix/migration/javaAnnotationPositionedArguments")
     public static class JavaAnnotationPositionedArguments extends AbstractHighLevelQuickFixMultiFileTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         private void runTest(String testDataFilePath) throws Exception {
             KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
         }
@@ -1602,12 +1698,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/imports")
     public static class Imports extends AbstractHighLevelQuickFixMultiFileTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         private void runTest(String testDataFilePath) throws Exception {
             KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
         }
@@ -1667,6 +1757,21 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
             runTest("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/imports/changeImports.before.Main.kt");
         }
 
+        @TestMetadata("conflictingImports.before.Main.kt")
+        public void testConflictingImports() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/imports/conflictingImports.before.Main.kt");
+        }
+
+        @TestMetadata("conflictingImportsClass.before.Main.kt")
+        public void testConflictingImportsClass() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/imports/conflictingImportsClass.before.Main.kt");
+        }
+
+        @TestMetadata("conflictingImportsObject.before.Main.kt")
+        public void testConflictingImportsObject() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/imports/conflictingImportsObject.before.Main.kt");
+        }
+
         @TestMetadata("rootPackage.before.Main.kt")
         public void testRootPackage() throws Exception {
             runTest("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/imports/rootPackage.before.Main.kt");
@@ -1686,12 +1791,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/classUsages/wholeProject")
     public static class WholeProject extends AbstractHighLevelQuickFixMultiFileTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         private void runTest(String testDataFilePath) throws Exception {
             KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
         }
@@ -1723,12 +1822,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createVariable/parameter")
         public static class Parameter extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -1752,12 +1845,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createVariable/primaryParameter")
         public static class PrimaryParameter extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -1779,12 +1866,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
             @RunWith(JUnit3RunnerWithInners.class)
             @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createVariable/property/extension")
             public static class Extension extends AbstractHighLevelQuickFixMultiFileTest {
-                @java.lang.Override
-                @org.jetbrains.annotations.NotNull
-                public final KotlinPluginMode getPluginMode() {
-                    return KotlinPluginMode.K2;
-                }
-
                 private void runTest(String testDataFilePath) throws Exception {
                     KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
                 }
@@ -1813,12 +1894,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
             @RunWith(JUnit3RunnerWithInners.class)
             @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createVariable/property/fieldFromJava")
             public static class FieldFromJava extends AbstractHighLevelQuickFixMultiFileTest {
-                @java.lang.Override
-                @org.jetbrains.annotations.NotNull
-                public final KotlinPluginMode getPluginMode() {
-                    return KotlinPluginMode.K2;
-                }
-
                 private void runTest(String testDataFilePath) throws Exception {
                     KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
                 }
@@ -1852,12 +1927,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
             @RunWith(JUnit3RunnerWithInners.class)
             @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createVariable/property")
             public static class Uncategorized extends AbstractHighLevelQuickFixMultiFileTest {
-                @java.lang.Override
-                @org.jetbrains.annotations.NotNull
-                public final KotlinPluginMode getPluginMode() {
-                    return KotlinPluginMode.K2;
-                }
-
                 private void runTest(String testDataFilePath) throws Exception {
                     KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
                 }
@@ -1916,12 +1985,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createClass/annotationEntry")
         public static class AnnotationEntry extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -1948,12 +2011,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
             @RunWith(JUnit3RunnerWithInners.class)
             @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createClass/callExpression/typeArguments")
             public static class TypeArguments extends AbstractHighLevelQuickFixMultiFileTest {
-                @java.lang.Override
-                @org.jetbrains.annotations.NotNull
-                public final KotlinPluginMode getPluginMode() {
-                    return KotlinPluginMode.K2;
-                }
-
                 private void runTest(String testDataFilePath) throws Exception {
                     KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
                 }
@@ -1987,12 +2044,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
             @RunWith(JUnit3RunnerWithInners.class)
             @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createClass/callExpression")
             public static class Uncategorized extends AbstractHighLevelQuickFixMultiFileTest {
-                @java.lang.Override
-                @org.jetbrains.annotations.NotNull
-                public final KotlinPluginMode getPluginMode() {
-                    return KotlinPluginMode.K2;
-                }
-
                 private void runTest(String testDataFilePath) throws Exception {
                     KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
                 }
@@ -2057,12 +2108,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createClass/delegationSpecifier")
         public static class DelegationSpecifier extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -2091,12 +2136,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createClass/importDirective")
         public static class ImportDirective extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -2140,12 +2179,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createClass/referenceExpression")
         public static class ReferenceExpression extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -2199,12 +2232,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createClass/typeReference")
         public static class TypeReference extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -2244,12 +2271,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createSecondaryConstructor")
     public static class CreateSecondaryConstructor extends AbstractHighLevelQuickFixMultiFileTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         private void runTest(String testDataFilePath) throws Exception {
             KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
         }
@@ -2284,12 +2305,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
             @RunWith(JUnit3RunnerWithInners.class)
             @TestMetadata("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/classUsages")
             public static class Uncategorized extends AbstractHighLevelQuickFixMultiFileTest {
-                @java.lang.Override
-                @org.jetbrains.annotations.NotNull
-                public final KotlinPluginMode getPluginMode() {
-                    return KotlinPluginMode.K2;
-                }
-
                 private void runTest(String testDataFilePath) throws Exception {
                     KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
                 }
@@ -2303,12 +2318,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
             @RunWith(JUnit3RunnerWithInners.class)
             @TestMetadata("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/classUsages/wholeProject")
             public static class WholeProject extends AbstractHighLevelQuickFixMultiFileTest {
-                @java.lang.Override
-                @org.jetbrains.annotations.NotNull
-                public final KotlinPluginMode getPluginMode() {
-                    return KotlinPluginMode.K2;
-                }
-
                 private void runTest(String testDataFilePath) throws Exception {
                     KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
                 }
@@ -2338,12 +2347,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/imports")
         public static class Imports extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -2403,6 +2406,21 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
                 runTest("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/imports/changeImports.before.Main.kt");
             }
 
+            @TestMetadata("conflictingImports.before.Main.kt")
+            public void testConflictingImports() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/imports/conflictingImports.before.Main.kt");
+            }
+
+            @TestMetadata("conflictingImportsClass.before.Main.kt")
+            public void testConflictingImportsClass() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/imports/conflictingImportsClass.before.Main.kt");
+            }
+
+            @TestMetadata("conflictingImportsObject.before.Main.kt")
+            public void testConflictingImportsObject() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/imports/conflictingImportsObject.before.Main.kt");
+            }
+
             @TestMetadata("rootPackage.before.Main.kt")
             public void testRootPackage() throws Exception {
                 runTest("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/imports/rootPackage.before.Main.kt");
@@ -2425,12 +2443,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
             @RunWith(JUnit3RunnerWithInners.class)
             @TestMetadata("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/typeAliases/wholeProject")
             public static class WholeProject extends AbstractHighLevelQuickFixMultiFileTest {
-                @java.lang.Override
-                @org.jetbrains.annotations.NotNull
-                public final KotlinPluginMode getPluginMode() {
-                    return KotlinPluginMode.K2;
-                }
-
                 private void runTest(String testDataFilePath) throws Exception {
                     KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
                 }
@@ -2445,12 +2457,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/typeArguments")
         public static class TypeArguments extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -2464,12 +2470,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage")
         public static class Uncategorized extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -2493,12 +2493,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/deprecatedSymbolUsage/wholeProject")
         public static class WholeProject extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -2518,12 +2512,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/quickfix/override/overriddenJavaAccessor")
     public static class OverriddenJavaAccessor extends AbstractHighLevelQuickFixMultiFileTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         private void runTest(String testDataFilePath) throws Exception {
             KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
         }
@@ -2558,12 +2546,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
             @RunWith(JUnit3RunnerWithInners.class)
             @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/call/extension")
             public static class Extension extends AbstractHighLevelQuickFixMultiFileTest {
-                @java.lang.Override
-                @org.jetbrains.annotations.NotNull
-                public final KotlinPluginMode getPluginMode() {
-                    return KotlinPluginMode.K2;
-                }
-
                 private void runTest(String testDataFilePath) throws Exception {
                     KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
                 }
@@ -2597,12 +2579,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
             @RunWith(JUnit3RunnerWithInners.class)
             @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/call/member")
             public static class Member extends AbstractHighLevelQuickFixMultiFileTest {
-                @java.lang.Override
-                @org.jetbrains.annotations.NotNull
-                public final KotlinPluginMode getPluginMode() {
-                    return KotlinPluginMode.K2;
-                }
-
                 private void runTest(String testDataFilePath) throws Exception {
                     KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
                 }
@@ -2646,12 +2622,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
             @RunWith(JUnit3RunnerWithInners.class)
             @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/call/simple")
             public static class Simple extends AbstractHighLevelQuickFixMultiFileTest {
-                @java.lang.Override
-                @org.jetbrains.annotations.NotNull
-                public final KotlinPluginMode getPluginMode() {
-                    return KotlinPluginMode.K2;
-                }
-
                 private void runTest(String testDataFilePath) throws Exception {
                     KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
                 }
@@ -2666,12 +2636,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/fromJava")
         public static class FromJava extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -2705,12 +2669,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../../idea/tests/testData/quickfix/createFromUsage/createFunction/fromKotlinToJava")
         public static class FromKotlinToJava extends AbstractHighLevelQuickFixMultiFileTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             private void runTest(String testDataFilePath) throws Exception {
                 KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
             }
@@ -2730,12 +2688,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/quickfix/memberVisibilityCanBePrivate")
     public static class MemberVisibilityCanBePrivate extends AbstractHighLevelQuickFixMultiFileTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         private void runTest(String testDataFilePath) throws Exception {
             KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
         }
@@ -2749,12 +2701,6 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../../idea/tests/testData/quickfix/addTypeAnnotationToValueParameter")
     public static class AddTypeAnnotationToValueParameter extends AbstractHighLevelQuickFixMultiFileTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         private void runTest(String testDataFilePath) throws Exception {
             KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
         }
@@ -2762,6 +2708,130 @@ public abstract class HighLevelQuickFixMultiFileTestGenerated extends AbstractHi
         @TestMetadata("platformType.before.Main.kt")
         public void testPlatformType() throws Exception {
             runTest("../../../idea/tests/testData/quickfix/addTypeAnnotationToValueParameter/platformType.before.Main.kt");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/quickfix/wrapWithSafeLetCall")
+    public static class WrapWithSafeLetCall extends AbstractHighLevelQuickFixMultiFileTest {
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
+        }
+
+        @TestMetadata("javaNullabilityMismatchArgument.test")
+        public void testJavaNullabilityMismatchArgument() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/wrapWithSafeLetCall/javaNullabilityMismatchArgument.test");
+        }
+
+        @TestMetadata("javaNullabilityMismatchArgument2.test")
+        public void testJavaNullabilityMismatchArgument2() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/wrapWithSafeLetCall/javaNullabilityMismatchArgument2.test");
+        }
+
+        @TestMetadata("javaNullabilityMismatchDoNotWrapNull.test")
+        public void testJavaNullabilityMismatchDoNotWrapNull() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/wrapWithSafeLetCall/javaNullabilityMismatchDoNotWrapNull.test");
+        }
+
+        @TestMetadata("javaReceiverNullabilityInvoke.test")
+        public void testJavaReceiverNullabilityInvoke() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/wrapWithSafeLetCall/javaReceiverNullabilityInvoke.test");
+        }
+
+        @TestMetadata("javaReceiverNullabilityInvoke2.test")
+        public void testJavaReceiverNullabilityInvoke2() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/wrapWithSafeLetCall/javaReceiverNullabilityInvoke2.test");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/quickfix/override")
+    public abstract static class Override extends AbstractHighLevelQuickFixMultiFileTest {
+        @RunWith(JUnit3RunnerWithInners.class)
+        @TestMetadata("../../../idea/tests/testData/quickfix/override/nothingToOverride")
+        public static class NothingToOverride extends AbstractHighLevelQuickFixMultiFileTest {
+            private void runTest(String testDataFilePath) throws Exception {
+                KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
+            }
+
+            @TestMetadata("import.before.Main.kt")
+            public void testImport() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/override/nothingToOverride/import.before.Main.kt");
+            }
+
+            @TestMetadata("overrideJavaMethodWithAnnotation.test")
+            public void testOverrideJavaMethodWithAnnotation() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/override/nothingToOverride/overrideJavaMethodWithAnnotation.test");
+            }
+
+            @TestMetadata("twoPackages.before.Main.kt")
+            public void testTwoPackages() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/override/nothingToOverride/twoPackages.before.Main.kt");
+            }
+        }
+
+        @RunWith(JUnit3RunnerWithInners.class)
+        @TestMetadata("../../../idea/tests/testData/quickfix/override/overriddenJavaAccessor")
+        public static class OverriddenJavaAccessor extends AbstractHighLevelQuickFixMultiFileTest {
+            private void runTest(String testDataFilePath) throws Exception {
+                KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
+            }
+
+            @TestMetadata("getterWithDifferentType.test")
+            public void testGetterWithDifferentType() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/override/overriddenJavaAccessor/getterWithDifferentType.test");
+            }
+
+            @TestMetadata("notAGetterSignature.test")
+            public void testNotAGetterSignature() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/override/overriddenJavaAccessor/notAGetterSignature.test");
+            }
+
+            @TestMetadata("nothingToOverride.test")
+            public void testNothingToOverride() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/override/overriddenJavaAccessor/nothingToOverride.test");
+            }
+
+            @TestMetadata("simpleGetter.test")
+            public void testSimpleGetter() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/override/overriddenJavaAccessor/simpleGetter.test");
+            }
+        }
+
+        @RunWith(JUnit3RunnerWithInners.class)
+        @TestMetadata("../../../idea/tests/testData/quickfix/override/wrongNullabilityForJavaOverride")
+        public static class WrongNullabilityForJavaOverride extends AbstractHighLevelQuickFixMultiFileTest {
+            private void runTest(String testDataFilePath) throws Exception {
+                KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
+            }
+
+            @TestMetadata("makeArgumentNonNullable.test")
+            public void testMakeArgumentNonNullable() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/override/wrongNullabilityForJavaOverride/makeArgumentNonNullable.test");
+            }
+
+            @TestMetadata("makeArgumentNullable.test")
+            public void testMakeArgumentNullable() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/override/wrongNullabilityForJavaOverride/makeArgumentNullable.test");
+            }
+
+            @TestMetadata("makeReturnValueNonNullable.test")
+            public void testMakeReturnValueNonNullable() throws Exception {
+                runTest("../../../idea/tests/testData/quickfix/override/wrongNullabilityForJavaOverride/makeReturnValueNonNullable.test");
+            }
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../../idea/tests/testData/quickfix/createContextParameterFromNamedArugment/multiFile")
+    public static class MultiFile extends AbstractHighLevelQuickFixMultiFileTest {
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTestWithExtraFile, this, testDataFilePath);
+        }
+
+        @TestMetadata("crossFile.before.Main.kt")
+        public void testCrossFile() throws Exception {
+            runTest("../../../idea/tests/testData/quickfix/createContextParameterFromNamedArugment/multiFile/crossFile.before.Main.kt");
         }
     }
 }

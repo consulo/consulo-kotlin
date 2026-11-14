@@ -39,10 +39,8 @@ import org.jetbrains.kotlin.idea.k2.codeinsight.fixes.imprt.factories.Unresolved
 import org.jetbrains.kotlin.idea.quickfix.AutoImportVariant
 import org.jetbrains.kotlin.idea.quickfix.ImportFixHelper
 import org.jetbrains.kotlin.idea.quickfix.ImportPrioritizer
-import org.jetbrains.kotlin.idea.util.ClassImportFilter
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.KtElement
-import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.ImportPath
 import javax.swing.Icon
 
@@ -87,8 +85,8 @@ object ImportQuickFixProvider : KotlinQuickFixFactory.IntentionBased<KaDiagnosti
     context(_: KaSession)
     private fun getIconFor(candidate: ImportCandidate): Icon? = getIconFor(candidate.symbol)
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun renderCandidate(candidate: ImportCandidate): String = prettyPrint {
         val fqName = candidate.getFqName()
         if (
@@ -121,9 +119,8 @@ object ImportQuickFixProvider : KotlinQuickFixFactory.IntentionBased<KaDiagnosti
         position: KtElement,
         importCandidates: List<ImportCandidate>,
     ): ImportData? {
+        if (importCandidates.isEmpty()) return null
         val containingKtFile = position.containingKtFile
-        val filteredImportCandidates = importCandidates.filter { it !is ClassLikeImportCandidate || it.isAllowedByClassImportFilter(containingKtFile) }
-        if (filteredImportCandidates.isEmpty()) return null
 
         val defaultImports = containingKtFile.getDefaultImports(useSiteModule)
 
@@ -138,7 +135,7 @@ object ImportQuickFixProvider : KotlinQuickFixFactory.IntentionBased<KaDiagnosti
         val importPrioritizer = ImportPrioritizer(containingKtFile, isImported)
         val expressionImportWeigher = ExpressionImportWeigher.createWeigher(position)
 
-        val sortedImportCandidatesWithPriorities = filteredImportCandidates
+        val sortedImportCandidatesWithPriorities = importCandidates
             .map { it to createPriorityForImportCandidate(importPrioritizer, expressionImportWeigher, it) }
             .sortedBy { (_, priority) -> priority }
 
@@ -178,21 +175,6 @@ object ImportQuickFixProvider : KotlinQuickFixFactory.IntentionBased<KaDiagnosti
         val importsInfo:  List<ImportFixHelper.ImportInfo<ImportPrioritizer.Priority>>,
         val uniqueFqNameSortedImportCandidates: List<Pair<ImportCandidate, ImportPrioritizer.Priority>>
     )
-
-    context(_: KaSession)
-    private fun ClassLikeImportCandidate.isAllowedByClassImportFilter(contextFile: KtFile): Boolean {
-        val classSymbol = symbol as? KaNamedClassSymbol ?: return true
-        val classId = classId ?: return true
-
-        return ClassImportFilter.allowClassImport(
-            classId.asSingleFqName(),
-            classSymbol.classKind,
-            classSymbol.modality,
-            classSymbol.visibility,
-            classId.isNestedClass,
-            contextFile,
-        )
-    }
 
     context(_: KaSession)
     private fun ImportCandidate.doNotImportOnTheFly(doNotImportCallablesOnFly: Boolean): Boolean = when (this) {
@@ -251,8 +233,8 @@ object ImportQuickFixProvider : KotlinQuickFixFactory.IntentionBased<KaDiagnosti
     private fun ImportCandidate.getFqName(): FqName =
         fqName ?: error("Unexpected null for fully-qualified name of importable symbol")
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun createPriorityForImportCandidate(
         prioritizer: ImportPrioritizer,
         expressionImportWeigher: ExpressionImportWeigher,
@@ -262,7 +244,7 @@ object ImportQuickFixProvider : KotlinQuickFixFactory.IntentionBased<KaDiagnosti
             declaration = candidate.psi,
             // TODO consider passing whole candidate to avoid loosing information 
             statisticsInfo = K2StatisticsInfoProvider.forDeclarationSymbol(candidate.symbol),
-            isDeprecated = candidate.deprecationStatus != null,
+            isDeprecated = candidate.isDeprecated,
             fqName = candidate.getFqName(),
             // TODO consider passing whole candidate to avoid loosing information 
             expressionWeight = expressionImportWeigher.weigh(candidate.symbol),

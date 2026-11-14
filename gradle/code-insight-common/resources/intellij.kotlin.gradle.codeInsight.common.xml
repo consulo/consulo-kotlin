@@ -6,7 +6,8 @@
     <module name="intellij.gradle.java"/>
     <module name="intellij.java.psi"/>
     <module name="intellij.kotlin.gradle.gradle"/>
-    <module name="kotlin.code-insight.inspections.shared"/>
+    <module name="intellij.platform.smRunner"/>
+    <module name="intellij.platform.testRunner"/>
   </dependencies>
   <!-- endregion -->
 
@@ -34,6 +35,5 @@
 
   <extensions defaultExtensionNs="org.jetbrains.kotlin">
     <buildSystemDependencyManager implementation="org.jetbrains.kotlin.idea.gradleCodeInsightCommon.GradleKotlinBuildSystemDependencyManager"/>
-    <projectConfigurator implementation="org.jetbrains.kotlin.idea.gradleCodeInsightCommon.native.KotlinNativeGradleConfigurator"/>
   </extensions>
 </idea-plugin>

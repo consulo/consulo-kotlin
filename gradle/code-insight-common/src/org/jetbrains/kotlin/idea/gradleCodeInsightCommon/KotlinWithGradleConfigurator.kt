@@ -7,14 +7,12 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.extensions.Extensions
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.module.Module
-import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.project.modules
 import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.roots.DependencyScope
 import com.intellij.openapi.roots.ExternalLibraryDescriptor
-import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.psi.PsiElement
@@ -44,13 +42,13 @@ import org.jetbrains.kotlin.idea.configuration.buildSystemType
 import org.jetbrains.kotlin.idea.configuration.getJvmTargetNumber
 import org.jetbrains.kotlin.idea.configuration.getRootModule
 import org.jetbrains.kotlin.idea.configuration.getTargetBytecodeVersionFromModule
+import org.jetbrains.kotlin.idea.configuration.hasKotlinNativeRuntimeInScope
 import org.jetbrains.kotlin.idea.configuration.hasKotlinPluginEnabled
 import org.jetbrains.kotlin.idea.extensions.gradle.KotlinGradleConstants.GRADLE_PLUGIN_ID
 import org.jetbrains.kotlin.idea.extensions.gradle.KotlinGradleConstants.GROUP_ID
 import org.jetbrains.kotlin.idea.facet.getRuntimeLibraryVersion
 import org.jetbrains.kotlin.idea.facet.getRuntimeLibraryVersionOrDefault
 import org.jetbrains.kotlin.idea.gradle.KotlinIdeaGradleBundle
-import org.jetbrains.kotlin.idea.projectConfiguration.getJvmStdlibArtifactId
 import org.jetbrains.kotlin.idea.quickfix.AbstractChangeFeatureSupportLevelFix
 import org.jetbrains.kotlin.idea.statistics.KotlinProjectConfigurationError.ADDING_KOTLIN_VERSION_TO_TOP_LEVEL_BUILD_SCRIPT_FAILED
 import org.jetbrains.kotlin.idea.statistics.KotlinProjectConfigurationError.BUILD_SCRIPT_FOR_MODULE_IS_ABSENT_OR_NOT_WRITABLE
@@ -69,19 +67,23 @@ abstract class KotlinWithGradleConfigurator : BaseKotlinProjectConfigurator() {
         if (status != ConfigureKotlinStatus.CAN_BE_CONFIGURED) return status
 
         val module = moduleSourceRootGroup.baseModule
-        val (projectBuildFile, topLevelBuildFile) = runReadAction {
+        val (moduleBuildFile, topLevelBuildFile) = runReadAction {
             module.getBuildScriptPsiFile() to module.project.getTopLevelBuildScriptPsiFile()
         }
 
-        if (projectBuildFile == null && topLevelBuildFile == null) {
+        if (moduleBuildFile == null && topLevelBuildFile == null || isKotlinNativeRuntimeInScope(moduleSourceRootGroup)) {
             return ConfigureKotlinStatus.NON_APPLICABLE
         }
 
-        if (projectBuildFile?.isConfiguredByAnyGradleConfigurator() == true) {
+        if (moduleBuildFile?.isConfiguredByAnyGradleConfigurator() == true) {
             return ConfigureKotlinStatus.BROKEN
         }
 
         return ConfigureKotlinStatus.CAN_BE_CONFIGURED
+    }
+
+    private fun isKotlinNativeRuntimeInScope(moduleSourceRootGroup: ModuleSourceRootGroup): Boolean {
+        return moduleSourceRootGroup.sourceRootModules.any(::hasKotlinNativeRuntimeInScope)
     }
 
     private fun PsiFile.isConfiguredByAnyGradleConfigurator(): Boolean {
@@ -392,19 +394,15 @@ abstract class KotlinWithGradleConfigurator : BaseKotlinProjectConfigurator() {
         jvmTarget: String?,
         changedFiles: ChangedConfiguratorFiles
     ) {
-        val sdk = ModuleUtil.findModuleForPsiElement(file)?.let { ModuleRootManager.getInstance(it).sdk }
         GradleBuildScriptSupport.getManipulator(file).configureBuildScripts(
             kotlinPluginName,
             getKotlinPluginExpression(file.isKtDsl()),
-            getStdlibArtifactName(sdk, version),
             addVersion,
             version,
             jvmTarget,
             changedFiles
         )
     }
-
-    protected open fun getStdlibArtifactName(sdk: Sdk?, version: IdeKotlinVersion): String = getJvmStdlibArtifactId(sdk, version)
 
     protected open fun getJvmTarget(sdk: Sdk?, version: IdeKotlinVersion): String? = null
 
@@ -620,10 +618,6 @@ abstract class KotlinWithGradleConfigurator : BaseKotlinProjectConfigurator() {
             ?.let {
                 it.project.executeWriteCommand(KotlinIdeaGradleBundle.message("change.build.gradle.configuration"), null) { body(it) }
             }
-
-        fun getKotlinStdlibVersion(module: Module): String? = module.getBuildScriptPsiFile()?.let {
-            GradleBuildScriptSupport.getManipulator(it).getKotlinStdlibVersion()
-        }
 
         private fun showErrorMessage(project: Project, @Nls message: String?) {
             ApplicationManager.getApplication().invokeLater(Runnable {

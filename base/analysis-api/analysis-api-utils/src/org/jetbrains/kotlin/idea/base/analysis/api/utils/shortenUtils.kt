@@ -11,10 +11,12 @@ import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.components.ShortenStrategy
 import org.jetbrains.kotlin.analysis.api.components.collectPossibleReferenceShortenings
 import org.jetbrains.kotlin.analysis.api.components.collectPossibleReferenceShorteningsInElement
+import org.jetbrains.kotlin.analysis.api.components.containingSymbol
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisFromWriteAction
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassLikeSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaEnumEntrySymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedClassSymbol
@@ -36,10 +38,6 @@ import org.jetbrains.kotlin.resolve.calls.util.getCalleeExpressionIfAny
 /**
  * Shorten references in the given [element]. See [shortenReferencesInRange] for more details.
  */
-@OptIn(
-    KaAllowAnalysisFromWriteAction::class,
-    KaAllowAnalysisOnEdt::class,
-)
 fun shortenReferences(
     element: KtElement,
     shortenOptions: ShortenOptionsForIde = ShortenOptionsForIde.DEFAULT,
@@ -82,10 +80,6 @@ fun deprecatedShortenReferences(
  * Here `pack.A` should be shortened and processed first because it can be shortened without adding imports. It is generally prefered to use
  * this API instead of calling `shortenReferences` multiple times on individual references.
  */
-@OptIn(
-    KaAllowAnalysisFromWriteAction::class,
-    KaAllowAnalysisOnEdt::class,
-)
 fun shortenReferences(
     elements: Iterable<KtElement>,
     shortenOptions: ShortenOptionsForIde = ShortenOptionsForIde.DEFAULT,
@@ -122,10 +116,6 @@ fun shortenReferences(
  * [org.jetbrains.kotlin.analysis.api.components.KtReferenceShortenerMixIn] in a background thread to perform the analysis and then
  * modify PSI on the EDT thread by invoking [invokeShortening] on the resulting [ShortenCommandForIde].
  */
-@OptIn(
-    KaAllowAnalysisFromWriteAction::class,
-    KaAllowAnalysisOnEdt::class,
-)
 fun shortenReferencesInRange(
     file: KtFile,
     selection: TextRange = file.textRange,
@@ -257,6 +247,30 @@ private fun ((KaClassLikeSymbol) -> ShortenStrategy).respectClassImportFilter(co
         }
     }
 
+context(_: KaSession)
+private fun ((KaCallableSymbol) -> ShortenStrategy).respectClassImportFilterForConstructors(contextFile: KtFile): (KaCallableSymbol) -> ShortenStrategy =
+    fun(callableSymbol: KaCallableSymbol): ShortenStrategy {
+        val strategy = this(callableSymbol)
+        val constructorSymbol = callableSymbol as? KaConstructorSymbol ?: return strategy
+        val classId = constructorSymbol.containingClassId ?: return strategy
+        val classSymbol = constructorSymbol.containingSymbol as? KaClassSymbol ?: return strategy
+
+        return when (strategy) {
+            ShortenStrategy.SHORTEN_AND_IMPORT, ShortenStrategy.SHORTEN_AND_STAR_IMPORT -> {
+                val allowClassImport = ClassImportFilter.allowClassImport(
+                    classId.asSingleFqName(),
+                    classSymbol.classKind,
+                    constructorSymbol.modality,
+                    constructorSymbol.visibility,
+                    classId.isNestedClass,
+                    contextFile
+                )
+                if (allowClassImport) strategy else ShortenStrategy.SHORTEN_IF_ALREADY_IMPORTED
+            }
+            else -> strategy
+        }
+    }
+
 /**
  * Collects possible references to shorten.
  *
@@ -265,14 +279,15 @@ private fun ((KaClassLikeSymbol) -> ShortenStrategy).respectClassImportFilter(co
  *
  * [classShortenStrategy] is adjusted to respect [ClassImportFilter]: if the strategy would add an import for a class rejected by the filter,
  * that class is shortened only if it is already imported.
+ * [callableShortenStrategy] is also adjusted, so the constructor calls respect the rules based on containing classes.
  *
  * In the IDE, this function should be preferred to [collectPossibleReferenceShortenings] due to better defaults.
  *
  * Overall, consider using more simple and straighforward [shortenReferences] functions,
  * or [org.jetbrains.kotlin.idea.base.codeInsight.ShortenReferencesFacility] if you need to support both K1 and K2 Modes.
  */
-context(_: KaSession)
 @ApiStatus.Internal
+context(_: KaSession)
 fun collectPossibleReferenceShorteningsForIde(
     file: KtFile,
     selection: TextRange = file.textRange,
@@ -285,7 +300,7 @@ fun collectPossibleReferenceShorteningsForIde(
         selection,
         shortenOptions.toShortenOptions(),
         classShortenStrategy.respectClassImportFilter(file),
-        callableShortenStrategy
+        callableShortenStrategy.respectClassImportFilterForConstructors(file)
     )
 
     val companionReferencesToShorten = collectPossibleCompanionReferenceShortenings(file, selection, shortenOptions)
@@ -302,14 +317,15 @@ fun collectPossibleReferenceShorteningsForIde(
  *
  * [classShortenStrategy] is adjusted to respect [ClassImportFilter]: if the strategy would add an import for a class rejected by the filter,
  * that class is shortened only if it is already imported.
+ * [callableShortenStrategy] is also adjusted, so the constructor calls respect the rules based on containing classes.
  *
  * In the IDE, this function should be preferred to [collectPossibleReferenceShorteningsInElement] due to better defaults.
  *
  * Overall, consider using more simple and straighforward [shortenReferences] functions,
  * or [org.jetbrains.kotlin.idea.base.codeInsight.ShortenReferencesFacility] if you need to support both K1 and K2 Modes.
  */
-context(_: KaSession)
 @ApiStatus.Internal
+context(_: KaSession)
 fun collectPossibleReferenceShorteningsInElementForIde(
     element: KtElement,
     shortenOptions: ShortenOptionsForIde = ShortenOptionsForIde.DEFAULT,
@@ -321,7 +337,7 @@ fun collectPossibleReferenceShorteningsInElementForIde(
         element,
         shortenOptions.toShortenOptions(),
         classShortenStrategy.respectClassImportFilter(file),
-        callableShortenStrategy,
+        callableShortenStrategy.respectClassImportFilterForConstructors(file),
     )
 
     val companionReferencesToShorten = collectPossibleCompanionReferenceShorteningsInElement(element, shortenOptions)

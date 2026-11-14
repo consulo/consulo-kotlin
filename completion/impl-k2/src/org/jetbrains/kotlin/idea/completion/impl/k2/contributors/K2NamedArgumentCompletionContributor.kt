@@ -5,16 +5,18 @@
 package org.jetbrains.kotlin.idea.completion.impl.k2.contributors
 
 import com.intellij.codeInsight.completion.CompletionType
+import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyzeCopy
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaDanglingFileResolutionMode
 import org.jetbrains.kotlin.analysis.api.resolution.KaFunctionCall
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
-import org.jetbrains.kotlin.analysis.api.signatures.KaVariableSignature
-import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
 import org.jetbrains.kotlin.analysis.api.types.KaType
+import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.CallParameterInfoProvider
 import org.jetbrains.kotlin.idea.base.analysis.api.utils.collectCallCandidates
+import org.jetbrains.kotlin.idea.base.analysis.api.utils.isPossiblySubTypeOf
+import org.jetbrains.kotlin.idea.base.projectStructure.languageVersionSettings
 import org.jetbrains.kotlin.idea.completion.findValueArgument
 import org.jetbrains.kotlin.idea.completion.impl.k2.K2CompletionSectionContext
 import org.jetbrains.kotlin.idea.completion.impl.k2.K2ContributorSectionPriority
@@ -75,26 +77,45 @@ internal class K2NamedArgumentCompletionContributor : K2SimpleCompletionContribu
                 }
             }
 
+            // Local variables with the same name as any of the currently edited arguments
+            val potentiallyRelevantLocalVariables by lazy(LazyThreadSafetyMode.NONE) {
+                val scopeContext = context.completionContext.originalFile.scopeContext(callElement)
+                val namesAtCurrentIndex = namedArgumentInfos
+                    .filter { namedArgument -> namedArgument.missingParameters.any { it.isFirstUnpassedParameter } }
+                    .mapTo(mutableSetOf()) { it.name }
+                getNonImportedAvailableVariables(namesAtCurrentIndex, scopeContext)
+            }
+
             buildList {
-                for ((name, indexedTypes) in namedArgumentInfos) {
+                for ((name, missingParameters) in namedArgumentInfos) {
                     with(KotlinFirLookupElementFactory) {
                         if (completionType != CompletionType.SMART) {
                             // For smart completion, we do not want to show incomplete named argument items
-                            add(createNamedArgumentLookupElement(name, indexedTypes))
+                            add(createNamedArgumentLookupElement(name, missingParameters))
                         }
 
                         // suggest default values only for types from parameters with matching positions to not clutter completion
-                        val typesAtCurrentPosition = indexedTypes.filter { it.index == currentArgumentIndex }
+                        val typesAtCurrentPosition = missingParameters.filter { it.isFirstUnpassedParameter }
 
-                        val booleanPosition = typesAtCurrentPosition.firstOrNull { it.value.isBooleanType }
+                        val booleanPosition = typesAtCurrentPosition.firstOrNull { it.type.isBooleanType }
                         if (booleanPosition != null) {
                             add(createNamedArgumentWithValueLookupElement(name, KtTokens.TRUE_KEYWORD.value, booleanPosition.index))
                             add(createNamedArgumentWithValueLookupElement(name, KtTokens.FALSE_KEYWORD.value, booleanPosition.index))
                         }
 
-                        val nullablePosition = typesAtCurrentPosition.firstOrNull { it.value.isMarkedNullable }
+                        val nullablePosition = typesAtCurrentPosition.firstOrNull { it.type.isMarkedNullable }
                         if (nullablePosition != null) {
                             add(createNamedArgumentWithValueLookupElement(name, KtTokens.NULL_KEYWORD.value, nullablePosition.index))
+                        }
+
+                        // We only check matching names and types if there is only a single type at the current position.
+                        val singleTypeAtPosition = typesAtCurrentPosition.singleOrNull()
+                        if (singleTypeAtPosition != null) {
+                            // Try and find a _local_ variable with the same name and matching type to prefill it
+                            val variableTypeWithSameName = potentiallyRelevantLocalVariables[name]?.returnType
+                            if (variableTypeWithSameName?.isPossiblySubTypeOf(singleTypeAtPosition.type) == true) {
+                                add(createNamedArgumentWithValueLookupElement(name, name.asString(), singleTypeAtPosition.index))
+                            }
                         }
                     }
                 }
@@ -103,12 +124,16 @@ internal class K2NamedArgumentCompletionContributor : K2SimpleCompletionContribu
             .forEach { addElement(it) }
     }
 
-    /**
-     * @property indexedTypes types of all parameter candidates that match [name] with indexes of their positions in signatures
-     */
-    private data class NamedArgumentInfo(
+    internal data class NamedParameterInfo(
         val name: Name,
-        val indexedTypes: List<IndexedValue<KaType>>
+        val missingParameters: List<MissingParameterInfo>
+    )
+
+    internal data class MissingParameterInfo(
+        val name: Name,
+        val type: KaType,
+        val isFirstUnpassedParameter: Boolean,
+        val index: Int,
     )
 
     context(_: KaSession)
@@ -116,37 +141,71 @@ internal class K2NamedArgumentCompletionContributor : K2SimpleCompletionContribu
         callElement: KtCallElement,
         argumentsBeforeCurrent: List<KtValueArgument>,
         candidates: List<KaFunctionCall<*>>,
-    ): List<NamedArgumentInfo> {
-        val nameToTypes = mutableMapOf<Name, MutableSet<IndexedValue<KaType>>>()
+    ): List<NamedParameterInfo> {
+        val nameToParameterInfo = mutableMapOf<Name, MutableSet<MissingParameterInfo>>()
 
         candidates.flatMap {
             collectNotUsedIndexedParameterCandidates(callElement, it, argumentsBeforeCurrent)
-        }.forEach { (index, parameter) ->
-            nameToTypes.getOrPut(parameter.name) { HashSet() }.add(IndexedValue(index, parameter.symbol.returnType))
+        }.forEach { parameterInfo ->
+            nameToParameterInfo.getOrPut(parameterInfo.name) { HashSet() }.add(parameterInfo)
         }
-        return nameToTypes.map { (name, types) ->
-            NamedArgumentInfo(name, types.toList())
+        return nameToParameterInfo.map { (name, types) ->
+            NamedParameterInfo(name, types.toList())
         }
     }
 
+    @OptIn(KaExperimentalApi::class)
     context(_: KaSession)
     private fun collectNotUsedIndexedParameterCandidates(
         callElement: KtCallElement,
         candidate: KaFunctionCall<*>,
         argumentsBeforeCurrent: List<KtValueArgument>,
-    ): Sequence<IndexedValue<KaVariableSignature<KaValueParameterSymbol>>> {
-        val signature = candidate.partiallyAppliedSymbol.signature
-        val argumentMapping = candidate.argumentMapping
+    ): Sequence<MissingParameterInfo> {
+        val signature = candidate.signature
+        val valueArgumentMapping = candidate.valueArgumentMapping
 
-        val argumentToParameterIndex = CallParameterInfoProvider.mapArgumentsToParameterIndices(callElement, signature, argumentMapping)
-        if (argumentsBeforeCurrent.any { it.getArgumentExpression() !in argumentToParameterIndex }) return emptySequence()
+        val contextArgumentMapping = candidate.contextArgumentMapping
+        val contextParameterIndexes = signature.contextParameters.mapIndexed { index, signature -> signature to index }.toMap()
 
-        val alreadyPassedParameters = argumentsBeforeCurrent.mapNotNull { argumentMapping[it.getArgumentExpression()] }.toSet()
-        return signature.valueParameters
+        val argumentToValueParameterIndex =
+            CallParameterInfoProvider.mapArgumentsToParameterIndices(callElement, signature, valueArgumentMapping)
+
+        val argumentToContextParameterIndex = contextArgumentMapping.toList().mapNotNull { (argument, variableSignature) ->
+            val indexOfArgument = contextParameterIndexes[variableSignature] ?: return@mapNotNull null
+            argument to indexOfArgument
+        }.toMap()
+
+        if (argumentsBeforeCurrent.any {
+                it.getArgumentExpression() !in argumentToValueParameterIndex &&
+                        it.getArgumentExpression() !in argumentToContextParameterIndex
+            }) return emptySequence()
+
+        val alreadyPassedParameters = argumentsBeforeCurrent.mapNotNull {
+            valueArgumentMapping[it.getArgumentExpression()] ?: contextArgumentMapping[it.getArgumentExpression()]
+        }.toSet()
+
+        val parametersToConsider = if (callElement.languageVersionSettings.supportsFeature(LanguageFeature.ExplicitContextArguments)) {
+            // We put the context parameters after the value parameters because they are less likely to be chosen by the user
+            signature.valueParameters + signature.contextParameters
+        } else {
+            signature.valueParameters
+        }
+
+        val unpassedParametersWithIndex = parametersToConsider
             .asSequence()
             .withIndex()
             .filterNot { (_, parameter) ->
                 parameter in alreadyPassedParameters
+            }
+
+        val firstUnpassedIndex = unpassedParametersWithIndex.firstOrNull()?.index
+        return unpassedParametersWithIndex.map { (index, parameter) ->
+                MissingParameterInfo(
+                    name = parameter.name,
+                    type = parameter.returnType,
+                    isFirstUnpassedParameter = index == firstUnpassedIndex,
+                    index = index
+                )
             }
     }
 }

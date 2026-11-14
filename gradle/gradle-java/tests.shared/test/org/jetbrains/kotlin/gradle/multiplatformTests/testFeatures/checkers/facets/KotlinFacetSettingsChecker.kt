@@ -3,6 +3,8 @@ package org.jetbrains.kotlin.gradle.multiplatformTests.testFeatures.checkers.fac
 
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.module.Module
+import com.intellij.util.PathUtil.toSystemIndependentName
+import org.jetbrains.kotlin.cli.common.arguments.CommonCompilerArguments
 import org.jetbrains.kotlin.config.CompilerSettings
 import org.jetbrains.kotlin.config.IKotlinFacetSettings
 import org.jetbrains.kotlin.config.KotlinFacetSettingsProvider
@@ -15,9 +17,11 @@ import org.jetbrains.kotlin.gradle.multiplatformTests.workspace.PrinterContext
 import org.jetbrains.kotlin.gradle.multiplatformTests.workspace.WorkspaceModelChecker
 import org.jetbrains.kotlin.gradle.multiplatformTests.workspace.joinToStringWithSorting
 import org.jetbrains.kotlin.platform.TargetPlatform
+import kotlin.io.path.Path
 import kotlin.reflect.KProperty1
 
 internal typealias FacetField = KProperty1<IKotlinFacetSettings, *>
+internal typealias CompilerArgumentField = KProperty1<CommonCompilerArguments, *>
 
 object KotlinFacetSettingsChecker : WorkspaceModelChecker<KotlinFacetSettingsChecksConfiguration>(respectOrder = true) {
     override fun createDefaultConfiguration(): KotlinFacetSettingsChecksConfiguration = KotlinFacetSettingsChecksConfiguration()
@@ -34,31 +38,63 @@ object KotlinFacetSettingsChecker : WorkspaceModelChecker<KotlinFacetSettingsChe
 
         val fieldsToPrint = configuration.computeFieldsToPrint()
 
-        return fieldsToPrint.mapNotNull {
-            renderFacetField(it, it.get(facetSettings), module)?.let { ModuleReportData(it) }
+        return fieldsToPrint.flatMap { field ->
+            renderFacetField(field, field.get(facetSettings), configuration).map { ModuleReportData(it) }
         }
     }
 
-    private fun PrinterContext.renderFacetField(field: FacetField, fieldValue: Any?, module: Module): String? {
-        if (fieldValue == null || fieldValue is Collection<*> && fieldValue.isEmpty()) return null
+    private fun PrinterContext.renderFacetField(field: FacetField, fieldValue: Any?, configuration: KotlinFacetSettingsChecksConfiguration): List<String> {
+        if (fieldValue == null || fieldValue is Collection<*> && fieldValue.isEmpty()) return emptyList()
 
         return when (fieldValue) {
             is TargetPlatform ->
-                field.name + " = " + fieldValue.componentPlatforms.joinToStringWithSorting(separator = "/")
+                listOf(field.name + " = " + fieldValue.componentPlatforms.joinToStringWithSorting(separator = "/"))
 
             is LanguageVersion -> {
                 val valueSanitized = languageVersionSanitized(fieldValue)
-                "${field.name} = $valueSanitized"
+                listOf("${field.name} = $valueSanitized")
             }
 
-            is Collection<*> -> field.name + " = " + fieldValue.joinToStringWithSorting()
+            is Collection<*> -> listOf(field.name + " = " + fieldValue.joinToStringWithSorting())
 
             is CompilerSettings ->
                 fieldValue.additionalArguments.filterOutInternalArguments().let {
-                    if (it.isNotEmpty()) field.name + " = " + it else null
+                    if (it.isNotEmpty()) listOf(field.name + " = " + it) else emptyList()
                 }
 
-            else -> field.name + " = " + fieldValue
+            is CommonCompilerArguments -> {
+                require(configuration.includedCompilerArguments != null) {
+                    "Included compiler arguments cannot be null for CommonCompilerArguments field " +
+                            "e.g. use `onlyCompilerArguments(CommonCompilerArguments::pluginClasspaths)`"
+                }
+                configuration.includedCompilerArguments!!.mapNotNull { argument ->
+                    val line = when(argument) {
+                        CommonCompilerArguments::pluginClasspaths -> {
+                            val pluginClasspaths = fieldValue.pluginClasspaths
+                            pluginClasspaths.joinToString {
+                                Path(it).fileName.toString().replace(
+                                    testProperties.kotlinVersion.toString(),
+                                    "{{KGP_VERSION}}"
+                                )
+                            }
+                        }
+                        CommonCompilerArguments::pluginOptions -> {
+                            val pluginOptions = fieldValue.pluginOptions
+                            val projectRootPath = toSystemIndependentName(projectRoot.absolutePath)
+                            pluginOptions.joinToString { option ->
+                                toSystemIndependentName(option).replace(
+                                    projectRootPath,
+                                    "{{PROJECT_DIR}}"
+                                )
+                            }
+                        }
+                        else -> error("Unhandled CommonCompilerArguments field: ${argument::class.simpleName}. Add rendering for your type.")
+                    }
+                    line.ifEmpty { null }
+                }
+            }
+
+            else -> listOf(field.name + " = " + fieldValue)
         }
     }
 
@@ -72,6 +108,9 @@ object KotlinFacetSettingsChecker : WorkspaceModelChecker<KotlinFacetSettingsChe
             }
             if (configuration.skipLanguageVersionSubstitutions) {
                 add("language version substitutions are skipped")
+            }
+            if (configuration.includedCompilerArguments != null) {
+                add("showing only following compiler arguments: ${configuration.includedCompilerArguments!!.joinToString{ it.name }}")
             }
         }
     }
@@ -98,15 +137,15 @@ object KotlinFacetSettingsChecker : WorkspaceModelChecker<KotlinFacetSettingsChe
     }
 
     private fun Set<FacetField>.ensureOnlyKnownFields(): Set<FacetField> {
-        val diff = this - ALL_FACET_FIELDS_TO_PRINT
+        val diff = this - ALL_KNOWN_FACET_FIELDS
         require(diff.isEmpty()) {
             "Unknown KotlinFacetSettings fields requested: ${diff.joinToString { it.name }}\n" +
-                    "Please, add them to `KotlinFaceSettingsPrinterContributor.ALL_FACET_FIELDS_TO_PRINT"
+                    "Please, add them to `KotlinFaceSettingsPrinterContributor.ALL_KNOWN_FACET_FIELDS"
         }
         return this
     }
 
-    private val ALL_FACET_FIELDS_TO_PRINT = setOf<FacetField>(
+    private val ALL_FACET_FIELDS_TO_PRINT = setOf(
         IKotlinFacetSettings::externalProjectId,
         IKotlinFacetSettings::languageLevel,
         IKotlinFacetSettings::apiLevel,
@@ -114,8 +153,10 @@ object KotlinFacetSettingsChecker : WorkspaceModelChecker<KotlinFacetSettingsChe
         IKotlinFacetSettings::dependsOnModuleNames,
         IKotlinFacetSettings::additionalVisibleModuleNames,
         IKotlinFacetSettings::targetPlatform,
-        IKotlinFacetSettings::compilerSettings
+        IKotlinFacetSettings::compilerSettings,
     )
+
+    private val ALL_KNOWN_FACET_FIELDS = ALL_FACET_FIELDS_TO_PRINT + IKotlinFacetSettings::compilerArguments
 
     private const val CURRENT_LANGUAGE_VERSION_PLACEHOLDER = "{{LATEST_STABLE}}"
     private const val MINIMAL_SUPPORTED_LANGUAGE_VERSION_PLACEHOLDER = "{{MINIMAL_SUPPORTED}}"

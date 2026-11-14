@@ -11,9 +11,11 @@ import com.intellij.usageView.UsageInfo
 import org.jetbrains.kotlin.asJava.elements.KtLightParameter
 import org.jetbrains.kotlin.asJava.namedUnwrappedElement
 import org.jetbrains.kotlin.asJava.unwrapped
+import org.jetbrains.kotlin.idea.base.psi.isNameBased
 import org.jetbrains.kotlin.idea.base.util.or
 import org.jetbrains.kotlin.idea.refactoring.KotlinCommonRefactoringSettings
 import org.jetbrains.kotlin.idea.refactoring.conflicts.checkRedeclarationConflicts
+import org.jetbrains.kotlin.idea.references.KtDestructuringDeclarationReference
 import org.jetbrains.kotlin.psi.KtDestructuringDeclarationEntry
 import org.jetbrains.kotlin.psi.KtFunction
 import org.jetbrains.kotlin.psi.KtNamedDeclaration
@@ -23,15 +25,17 @@ import org.jetbrains.kotlin.utils.SmartList
 
 class RenameKotlinParameterProcessor : RenameKotlinPsiProcessor() {
     override fun canProcessElement(element: PsiElement): Boolean = when (val original = element.originalElement) {
-        is KtDestructuringDeclarationEntry -> true
-        is KtParameter if (original.ownerFunction is KtFunction || original.ownerFunction is KtPropertyAccessor) && !original.hasValOrVar() -> true
-
+        is KtDestructuringDeclarationEntry -> original.initializer == null
+        is KtParameter -> !original.hasValOrVar() && (
+                original.ownerDeclaration is KtFunction ||
+                original.ownerDeclaration is KtPropertyAccessor
+        )
         // rename started from java (for example by automatic renamer)
         is KtLightParameter -> true
         else -> false
     }
 
-    override fun isToSearchInComments(psiElement: PsiElement) = KotlinCommonRefactoringSettings.getInstance().RENAME_SEARCH_IN_COMMENTS_FOR_PARAMETER
+    override fun isToSearchInComments(psiElement: PsiElement): Boolean = KotlinCommonRefactoringSettings.getInstance().RENAME_SEARCH_IN_COMMENTS_FOR_PARAMETER
 
     override fun setToSearchInComments(element: PsiElement, enabled: Boolean) {
         KotlinCommonRefactoringSettings.getInstance().RENAME_SEARCH_IN_COMMENTS_FOR_PARAMETER = enabled
@@ -41,6 +45,11 @@ class RenameKotlinParameterProcessor : RenameKotlinPsiProcessor() {
         element: PsiElement,
         editor: Editor?
     ): PsiElement? {
+        if (element is KtDestructuringDeclarationEntry && element.initializer == null && element.isNameBased()) {
+            (element.reference as? KtDestructuringDeclarationReference)
+                ?.multiResolve(false)
+                ?.firstNotNullOfOrNull { it.element as? KtParameter }?.let { return it }
+        }
         return element.originalElement
     }
 

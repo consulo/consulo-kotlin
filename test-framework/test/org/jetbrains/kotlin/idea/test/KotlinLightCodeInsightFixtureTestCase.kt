@@ -29,13 +29,10 @@ import com.intellij.openapi.externalSystem.service.project.ProjectDataManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.Sdk
-import com.intellij.openapi.roots.DefaultSingleFileSourcesTracker
-import com.intellij.openapi.roots.SingleFileSourcesTracker
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VfsUtilCore
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
 import com.intellij.pom.java.LanguageLevel
 import com.intellij.psi.PsiClassOwner
@@ -43,7 +40,6 @@ import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiJavaFile
 import com.intellij.psi.PsiManager
-import com.intellij.psi.codeStyle.CodeStyleSettings
 import com.intellij.psi.codeStyle.CodeStyleSettingsManager
 import com.intellij.psi.search.FileTypeIndex
 import com.intellij.psi.search.ProjectScope
@@ -52,10 +48,8 @@ import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.LoggedErrorProcessor
 import com.intellij.testFramework.RunAll
 import com.intellij.testFramework.fixtures.JavaCodeInsightTestFixture
-import com.intellij.testFramework.registerServiceInstance
 import com.intellij.testFramework.runInEdtAndGet
 import com.intellij.testFramework.runInEdtAndWait
-import com.intellij.testFramework.unregisterService
 import com.intellij.util.ThrowableRunnable
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.config.ApiVersion
@@ -441,27 +435,12 @@ fun withRegistry(registryKey: String, value: Any, parentDisposable: Disposable, 
 fun PsiDirectory.withImplicitPackagePrefix(implicitPackagePrefix: String?, body: () -> Unit) {
     implicitPackagePrefix?.let {
         this.setImplicitPackagePrefix(FqName(implicitPackagePrefix))
-        project.registerServiceInstance(SingleFileSourcesTracker::class.java, object : SingleFileSourcesTracker {
-            override fun isSingleFileSource(file: VirtualFile): Boolean = false
-
-            override fun isSourceDirectoryInModule(
-                dir: VirtualFile,
-                module: Module
-            ): Boolean = false
-
-            override fun getSourceDirectoryIfExists(file: VirtualFile): VirtualFile? = null
-
-            override fun getPackageNameForSingleFileSource(file: VirtualFile): String? = implicitPackagePrefix
-
-        })
     }
     try {
         body()
     } finally {
         implicitPackagePrefix?.let {
             this.setImplicitPackagePrefix(null)
-            project.unregisterService(SingleFileSourcesTracker::class.java)
-            project.registerServiceInstance(SingleFileSourcesTracker::class.java, DefaultSingleFileSourcesTracker())
         }
     }
 }
@@ -534,7 +513,7 @@ private fun configureCompilerOptions(
         options.joinToString(" ") {
             if (it.contains($$"$KOTLIN_BUNDLED$") || it.contains($$"$TEST_")) {
                 val pathMacroManager = PathMacroManager.getInstance(project)
-                pathMacroManager.expandPath(it)
+                pathMacroManager.expandPathNonNull(it)
             } else {
                 it
             }
@@ -560,18 +539,6 @@ fun configureRegistryAndRun(project: Project, fileText: String, body: () -> Unit
             register.resetToDefault()
         }
     }
-}
-
-fun configureCodeStyleAndRun(
-    project: Project,
-    configurator: (CodeStyleSettings) -> Unit = { },
-    body: () -> Unit
-) {
-    val testSettings = CodeStyle.createTestSettings(CodeStyle.getSettings(project))
-    CodeStyle.doWithTemporarySettings(project, testSettings, Runnable {
-        configurator(testSettings)
-        body()
-    })
 }
 
 fun enableKotlinOfficialCodeStyle(project: Project) {

@@ -98,7 +98,6 @@ internal interface K2CompletionRunner {
         /**
          * Runs chain completion, returning true if any new results were added by chain completion.
          */
-        @OptIn(KaImplementationDetail::class)
         fun runChainCompletion(
             originalPositionContext: KotlinNameReferencePositionContext,
             completionResultSet: CompletionResultSet,
@@ -152,7 +151,6 @@ internal interface K2CompletionRunner {
                     )
 
                     // TODO: Remove once KT-79109 KaBaseIllegalPsiException is thrown incorrectly when using CodeFragments in KtCompletionExtensionCandidateChecker.create
-                    @OptIn(KaImplementationDetail::class)
                     val commonData = createCommonSectionData(newCompletionContext) ?: return@analyze
 
                     val sink = K2DelegatingLookupElementSink(completionResultSet)
@@ -205,7 +203,7 @@ private fun createWeighingContext(
                 positionContext is KotlinCallableReferencePositionContext -> null
                 nameExpression.expectedType != null -> nameExpression.expectedType
                 nameExpressionParent is KtBinaryExpression -> getEqualityExpectedType(nameExpression)
-                nameExpressionParent is KtCollectionLiteralExpression -> getAnnotationLiteralExpectedType(nameExpression)
+                nameExpressionParent is KtCollectionLiteralExpression -> getAnnotationLiteralExpectedType(nameExpressionParent)
                 nameExpressionParent is KtThrowExpression -> {
                     @OptIn(KaExperimentalApi::class)
                     typeCreator.classType(StandardClassIds.Throwable)

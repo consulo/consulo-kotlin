@@ -56,22 +56,9 @@
             area="IDEA_PROJECT"
             dynamic="true"/>
     <extensionPoint
-            qualifiedName="org.jetbrains.kotlin.idea.base.projectStructure.moduleInfoProviderExtension"
-            interface="org.jetbrains.kotlin.idea.base.projectStructure.ModuleInfoProviderExtension"
-            area="IDEA_PROJECT"
-            dynamic="true"/>
-    <extensionPoint
             qualifiedName="org.jetbrains.kotlin.failedToDownloadJpsMavenArtifactSuggestedSolutionsContributor"
             interface="org.jetbrains.kotlin.idea.compiler.configuration.FailedToDownloadJpsMavenArtifactSuggestedSolutionsContributor"
             area="IDEA_PROJECT"
-            dynamic="true"/>
-    <extensionPoint
-            qualifiedName="org.jetbrains.kotlin.ktModuleFactory"
-            interface="org.jetbrains.kotlin.idea.base.projectStructure.KaModuleFactory"
-            dynamic="true"/>
-    <extensionPoint
-            qualifiedName="org.jetbrains.kotlin.projectStructureInsightsProvider"
-            interface="org.jetbrains.kotlin.idea.base.projectStructure.ProjectStructureInsightsProvider"
             dynamic="true"/>
     <extensionPoint
             qualifiedName="org.jetbrains.kotlin.supportAvailability"
@@ -80,6 +67,11 @@
     <extensionPoint
             qualifiedName="org.jetbrains.kotlin.j2kConverterExtension"
             interface="org.jetbrains.kotlin.j2k.J2kConverterExtension"
+            dynamic="true"/>
+
+    <extensionPoint
+            qualifiedName="org.jetbrains.kotlin.j2kNullabilityInferenceExtension"
+            interface="org.jetbrains.kotlin.nj2k.J2KNullabilityInferenceExtension"
             dynamic="true"/>
     <extensionPoint
             qualifiedName="org.jetbrains.kotlin.j2kPreprocessorExtension"
@@ -135,8 +127,9 @@
 
     <applicationService serviceInterface="org.jetbrains.kotlin.analysis.decompiler.psi.BuiltinsVirtualFileProvider"
                         serviceImplementation="org.jetbrains.kotlin.idea.base.analysis.builtins.IdeBuiltInsVirtualFileProviderImpl"/>
+    <applicationService serviceInterface="org.jetbrains.kotlin.psi.KtPsiMutationService"
+                        serviceImplementation="org.jetbrains.kotlin.idea.base.psi.KtPsiMutationServiceImpl"/>
 
-    <aboutPopupDescriptionProvider implementation="org.jetbrains.kotlin.idea.base.plugin.KotlinPluginKindAboutPopupDescriptionProvider"/>
     <aboutPopupDescriptionProvider implementation="org.jetbrains.kotlin.idea.base.plugin.KotlinAnalyzerVersionAboutPopupDescriptionProvider"/>
     <applicationService serviceImplementation="org.jetbrains.kotlin.idea.codeInsight.KotlinCodeInsightSettings"/>
     <applicationService serviceImplementation="org.jetbrains.kotlin.idea.editor.KotlinEditorOptions"/>
@@ -168,6 +161,7 @@
     <pathMacroExpandableProtocol protocol="kotlin-js-meta"/>
 
     <projectPathMacroContributor implementation="org.jetbrains.kotlin.idea.macros.KotlinBundledPathMacroContributor"/>
+    <postStartupActivity implementation="org.jetbrains.kotlin.idea.macros.KotlinBundledMacroRefresher"/>
 
     <backgroundPostStartupActivity implementation="org.jetbrains.kotlin.idea.update.KotlinPluginUpdateCheckerStartActivity"/>
     <postStartupActivity implementation="org.jetbrains.kotlin.idea.macros.KotlinBundledUsageDetector$MyStartupActivity"/>
@@ -287,6 +281,8 @@
 
     <pluginSuggestionProvider order="first" implementation="org.jetbrains.kotlin.idea.suggestions.JupyterNotebookSuggestionProvider"/>
     <pluginSuggestionProvider implementation="org.jetbrains.kotlin.idea.suggestions.AmperPluginSuggestionProvider"/>
+    <applicationSettings service="org.jetbrains.kotlin.idea.codeInsight.KotlinCodeInsightSettings"/>
+    <applicationSettings service="org.jetbrains.kotlin.idea.editor.KotlinEditorOptions"/>
   </extensions>
 
   <!-- Templates -->
@@ -299,9 +295,7 @@
 
   <!-- Line markers -->
   <extensions defaultExtensionNs="com.intellij">
-    <runLineMarkerContributor
-            language="kotlin"
-            implementationClass="org.jetbrains.kotlin.idea.codeInsight.lineMarkers.shared.KotlinRunLineMarkerContributor"/>
+
   </extensions>
 
   <projectListeners>
@@ -343,7 +337,6 @@
     <binaryExtension implementation="org.jetbrains.kotlin.idea.base.projectStructure.JavaClassBinary"/>
     <binaryExtension implementation="org.jetbrains.kotlin.idea.base.projectStructure.KotlinBuiltInBinary"/>
     <binaryExtension implementation="org.jetbrains.kotlin.idea.base.projectStructure.KotlinModuleBinary"/>
-    <binaryExtension implementation="org.jetbrains.kotlin.idea.base.projectStructure.KotlinJsMetaBinary"/>
 
     <projectConfigurator implementation="org.jetbrains.kotlin.idea.configuration.KotlinJavaModuleConfigurator"/>
     <projectConfigurator implementation="org.jetbrains.kotlin.idea.configuration.KotlinJsModuleConfigurator"/>
@@ -355,6 +348,8 @@
     <runLineMarkerContributor
             language="kotlin"
             implementationClass="org.jetbrains.kotlin.idea.highlighter.KotlinTestRunLineMarkerContributor"/>
+
+    <java.class.action.suppressor implementation="org.jetbrains.kotlin.idea.core.KotlinJavaClassActionSuppressor"/>
 
     <lang.inspectionSuppressor language="kotlin" implementationClass="org.jetbrains.kotlin.idea.inspections.suppress.KotlinInspectionSuppressor"/>
     <optionController implementation="org.jetbrains.kotlin.idea.configuration.KotlinCompilerPluginProvider"/>
@@ -374,6 +369,8 @@
     <lang.surroundDescriptor
             language="kotlin"
             implementationClass="org.jetbrains.kotlin.idea.codeInsight.surroundWith.statement.KotlinStatementSurroundDescriptor"/>
+    <codeInsight.surroundWithRangeAdjuster
+            implementation="org.jetbrains.kotlin.idea.codeInsight.surroundWith.KotlinSurroundWithRangeAdjuster"/>
     <lang.unwrapDescriptor
             language="kotlin"
             implementationClass="org.jetbrains.kotlin.idea.codeInsight.unwrap.KotlinUnwrapDescriptor"/>
@@ -514,12 +511,6 @@
             key="configure.kotlin"
             bundle="messages.KotlinProjectConfigurationBundle"
     />
-    <notificationGroup
-            id="Configure K2"
-            displayType="STICKY_BALLOON"
-            key="enable.k2"
-            bundle="messages.FeedbackBundle"
-    />
   </extensions>
 
   <!-- Declaration search and Find Usages -->
@@ -558,7 +549,7 @@
     <intentionAction>
       <!--TODO move to intentions-shared after NestedLambdaShadowedImplicitParameterInspection is migrated -->
       <language>kotlin</language>
-      <className>org.jetbrains.kotlin.idea.codeInsight.intentions.fake.ReplaceItWithExplicitFunctionLiteralParamIntention</className>
+      <className>org.jetbrains.kotlin.idea.codeinsight.intentions.fake.ReplaceItWithExplicitFunctionLiteralParamIntention</className>
       <bundleName>messages.KotlinBundle</bundleName>
       <categoryKey>group.names.kotlin</categoryKey>
     </intentionAction>
@@ -578,16 +569,16 @@
 
   <actions>
     <action id="Kotlin.NewFile" class="org.jetbrains.kotlin.idea.actions.NewKotlinFileAction"
-            icon="org.jetbrains.kotlin.idea.KotlinIcons.FILE">
+            icon="icons.KotlinBaseResourcesIcons.Kotlin_file">
       <add-to-group group-id="NewGroup" anchor="after" relative-to-action="NewGroup1"/>
     </action>
 
     <action id="Kotlin.NewScript" class="org.jetbrains.kotlin.idea.actions.NewKotlinScriptAction"
-            icon="org.jetbrains.kotlin.idea.KotlinIcons.SCRIPT">
+            icon="icons.KotlinBaseResourcesIcons.Kotlin_script">
       <add-to-group group-id="NewGroup" anchor="before" relative-to-action="NewWebDevelopment"/>
     </action>
 
-    <group id="KotlinToolsGroup" popup="true" icon="org.jetbrains.kotlin.idea.KotlinIcons.SMALL_LOGO"
+    <group id="KotlinToolsGroup" popup="true" icon="icons.KotlinBaseResourcesIcons.Kotlin"
            class="org.jetbrains.kotlin.idea.actions.KotlinActionGroup">
       <add-to-group group-id="ToolsMenu" anchor="last"/>
     </group>
@@ -595,7 +586,7 @@
     <!-- Standalone action (shown when only 1 action) -->
     <action id="ConvertJavaToKotlin"
             class="org.jetbrains.kotlin.idea.actions.JavaToKotlinAction"
-            icon="org.jetbrains.kotlin.idea.KotlinIcons.J2K">
+            icon="icons.KotlinBaseResourcesIcons.ConvertJavaToKotlin">
       <keyboard-shortcut keymap="$default" first-keystroke="control alt shift K"/>
       <add-to-group group-id="CodeMenu" anchor="last"/>
       <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
@@ -605,7 +596,7 @@
     <!-- Group shown when more than 1 action -->
     <group id="ConvertJavaToKotlinGroup"
            class="org.jetbrains.kotlin.idea.actions.JavaToKotlinActionGroup"
-           icon="org.jetbrains.kotlin.idea.KotlinIcons.J2K"
+           icon="icons.KotlinBaseResourcesIcons.ConvertJavaToKotlin"
            searchable="false"
            popup="true">
       <action id="ConvertJavaToKotlinInGroup"

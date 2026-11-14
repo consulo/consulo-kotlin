@@ -59,6 +59,7 @@ Navigation item file #0: kotlin-stdlib-sources.jar!/jvmMain/generated/_ArraysJvm
       RingBuffer.class
       ShortIterator
       State.class
+      UByteValueSet
       ArraysKt
       [ArraysKt___ArraysJvmKt]
       ArraysKt___ArraysKt
@@ -127,6 +128,7 @@ Navigation item file #0: kotlin-stdlib-sources.jar!/jvmMain/generated/_ArraysJvm
      DeprecatedSinceKotlin
      DeprecationLevel
      DslMarker
+     EqualityBound
      ExperimentalContextParameters
      ExperimentalMultiplatform
      ExperimentalStdlibApi

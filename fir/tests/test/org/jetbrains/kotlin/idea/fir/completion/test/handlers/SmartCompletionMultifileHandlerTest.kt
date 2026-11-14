@@ -6,7 +6,6 @@ import com.intellij.codeInsight.completion.CompletionType
 import com.intellij.codeInsight.lookup.Lookup
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementPresentation
-import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode
 import org.jetbrains.kotlin.idea.completion.test.COMPLETION_TEST_DATA_BASE
 import org.jetbrains.kotlin.idea.completion.test.KotlinFixtureCompletionBaseTestCase
 import org.jetbrains.kotlin.platform.TargetPlatform
@@ -18,9 +17,6 @@ import java.io.File
 @RunWith(JUnit38ClassRunner::class)
 class SmartCompletionMultifileHandlerTest : KotlinFixtureCompletionBaseTestCase() {
 
-    override val pluginMode: KotlinPluginMode
-        get() = KotlinPluginMode.K2
-
     fun testImportExtensionFunction() {
         doTest()
     }
@@ -29,8 +25,7 @@ class SmartCompletionMultifileHandlerTest : KotlinFixtureCompletionBaseTestCase(
         doTest()
     }
 
-    //KTIJ-38120
-    fun _testAnonymousObjectGenericJava() {
+    fun testAnonymousObjectGenericJava() {
         doTest()
     }
 
@@ -38,9 +33,24 @@ class SmartCompletionMultifileHandlerTest : KotlinFixtureCompletionBaseTestCase(
         doTest()
     }
 
-    // KTIJ-38121
-    fun _testNestedSamAdapter() {
+    fun testNestedSamAdapter() {
         doTest(lookupString = "Nested")
+    }
+
+    fun testJavaSamDefaultStatic() {
+        doTest(lookupString = "Action")
+    }
+
+    fun testJavaSamInheritedJava() {
+        doTest(lookupString = "Sam")
+    }
+
+    fun testJavaSamObjectMethod() {
+        doTest(lookupString = "Action")
+    }
+
+    fun testJavaSamVararg() {
+        doTest(lookupString = "Action")
     }
 
     private fun doTest(lookupString: String? = null, itemText: String? = null) {

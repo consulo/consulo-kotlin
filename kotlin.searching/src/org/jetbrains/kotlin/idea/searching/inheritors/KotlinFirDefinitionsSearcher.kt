@@ -92,17 +92,18 @@ class KotlinFirDefinitionsSearcher : QueryExecutor<PsiElement, DefinitionsScoped
                 }
     }
 
-    private fun includeCommonPlatformIfNeeded(
-        scope: SearchScope,
-        element: KtDeclaration,
-        expectedDeclaration: KtDeclaration
-    ): SearchScope {
-        return runReadAction {
-            if (element != expectedDeclaration) {
-                scope.union(expectedDeclaration.useScope.intersectWith(element.resolveScope))
-            } else {
-                scope
-            }
+}
+
+fun includeCommonPlatformIfNeeded(
+    scope: SearchScope,
+    element: KtDeclaration,
+    expectedDeclaration: KtDeclaration
+): SearchScope {
+    return runReadAction {
+        if (element != expectedDeclaration) {
+            scope.union(expectedDeclaration.useScope.intersectWith(element.resolveScope))
+        } else {
+            scope
         }
     }
 }
@@ -128,7 +129,7 @@ private fun processClassImplementations(klass: KtClassOrObject, searchScope: Sea
         return processLightClassLocalImplementations(klass, searchScope, consumer)
     }
 
-    if (!KotlinFindUsagesSupport.searchInheritors(klass, searchScope).all { consumer.process(it) }) {
+    if (!klass.processAllInheritors(consumer, searchScope)) {
         return false
     }
 
@@ -149,7 +150,7 @@ private fun processLightClassLocalImplementations(
         val virtualFiles = searchScope.scope.mapTo(HashSet()) { it.containingFile.virtualFile }
         GlobalSearchScope.filesScope(ktClass.project, virtualFiles)
     }
-    return ktClass.findAllInheritors(globalScope).all { candidate ->
+    return ktClass.processAllInheritors( { candidate ->
         val candidateOrigin = candidate.unwrapped ?: candidate
         val inScope = runReadAction { candidateOrigin in searchScope }
         if (inScope) {
@@ -157,7 +158,7 @@ private fun processLightClassLocalImplementations(
         } else {
             true
         }
-    }
+    }, globalScope)
 }
 
 private fun processFunctionImplementations(
@@ -165,7 +166,7 @@ private fun processFunctionImplementations(
     scope: SearchScope,
     consumer: Processor<PsiElement>,
 ): Boolean {
-    if (!function.findAllOverridings(scope).all { consumer.process(it) }) return false
+    if (!function.processAllOverridings(consumer, scope)) return false
 
     val method = runReadAction { function.toPossiblyFakeLightMethods().firstOrNull() } ?: return true
     return FunctionalExpressionSearch.search(method, scope).forEach(consumer)
@@ -175,8 +176,8 @@ private fun processPropertyImplementations(
     declaration: KtCallableDeclaration,
     scope: SearchScope,
     consumer: Processor<PsiElement>
-): Boolean = declaration.findAllOverridings(scope).all { implementation ->
-    if (isDelegated(implementation)) return@all true
+): Boolean = declaration.processAllOverridings(Processor processor@{ implementation ->
+    if (isDelegated(implementation)) return@processor true
 
     val elementToProcess = runReadAction {
         when (val mirrorElement = (implementation as? KtLightMethod)?.kotlinOrigin) {
@@ -187,10 +188,9 @@ private fun processPropertyImplementations(
     }
 
     consumer.process(elementToProcess)
-}
+}, scope)
 
 private fun processActualDeclarations(declaration: KtDeclaration, consumer: Processor<PsiElement>): Boolean = runReadAction {
     if (!declaration.isExpectDeclaration()) true
     else declaration.actualsForExpect().all(consumer::process)
 }
-

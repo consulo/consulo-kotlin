@@ -1,7 +1,7 @@
 // FIR_IDENTICAL
-// IGNORE_K1
+
 // HIGHLIGHT_WARNINGS
-// TOOL: org.jetbrains.kotlin.idea.k2.codeinsight.inspections.kdoc.KDocUnresolvedReferenceInspection
+// TOOL: org.jetbrains.kotlin.idea.codeInsight.inspections.kdoc.KDocUnresolvedReferenceInspection
 
 class A {}
 
@@ -20,3 +20,9 @@ fun partiallyResolved(){}
  * [unresolvedLink]
  */
 fun unresolved() {}
+
+/**
+ * @sample samples
+ * @sample someRandomName
+ */
+fun samples() {}

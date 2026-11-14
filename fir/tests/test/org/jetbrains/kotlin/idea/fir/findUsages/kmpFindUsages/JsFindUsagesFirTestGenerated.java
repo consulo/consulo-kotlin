@@ -3,7 +3,6 @@
 package org.jetbrains.kotlin.idea.fir.findUsages.kmpFindUsages;
 
 import com.intellij.testFramework.TestDataPath;
-import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode;
 import org.jetbrains.kotlin.idea.base.test.TestRoot;
 import org.jetbrains.kotlin.idea.test.JUnit3RunnerWithInners;
 import org.jetbrains.kotlin.idea.test.KotlinTestUtils;
@@ -25,12 +24,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../idea/tests/testData/findUsages/kotlin/companionObject")
     public static class CompanionObject extends AbstractFindUsagesFirTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -92,12 +85,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../idea/tests/testData/findUsages/kotlin/conventions/components")
         public static class Components extends AbstractFindUsagesFirTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             @java.lang.Override
             public KMPTestPlatform getTestPlatform() {
                 return KMPTestPlatform.Js;
@@ -182,9 +169,29 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
                 runTest("../../idea/tests/testData/findUsages/kotlin/conventions/components/memberComponentFun.0.kt");
             }
 
+            @TestMetadata("nameBasedDestructuringFull.0.kt")
+            public void testNameBasedDestructuringFull() throws Exception {
+                runTest("../../idea/tests/testData/findUsages/kotlin/conventions/components/nameBasedDestructuringFull.0.kt");
+            }
+
+            @TestMetadata("nameBasedDestructuringShort.0.kt")
+            public void testNameBasedDestructuringShort() throws Exception {
+                runTest("../../idea/tests/testData/findUsages/kotlin/conventions/components/nameBasedDestructuringShort.0.kt");
+            }
+
             @TestMetadata("operators.0.kt")
             public void testOperators() throws Exception {
                 runTest("../../idea/tests/testData/findUsages/kotlin/conventions/components/operators.0.kt");
+            }
+
+            @TestMetadata("positionBasedDestructuring.0.kt")
+            public void testPositionBasedDestructuring() throws Exception {
+                runTest("../../idea/tests/testData/findUsages/kotlin/conventions/components/positionBasedDestructuring.0.kt");
+            }
+
+            @TestMetadata("positionBasedDestructuringNew.0.kt")
+            public void testPositionBasedDestructuringNew() throws Exception {
+                runTest("../../idea/tests/testData/findUsages/kotlin/conventions/components/positionBasedDestructuringNew.0.kt");
             }
 
             @TestMetadata("propertyDelegate.0.kt")
@@ -216,12 +223,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../idea/tests/testData/findUsages/kotlin/conventions/invoke")
         public static class Invoke extends AbstractFindUsagesFirTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             @java.lang.Override
             public KMPTestPlatform getTestPlatform() {
                 return KMPTestPlatform.Js;
@@ -255,12 +256,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../idea/tests/testData/findUsages/kotlin/conventions")
         public static class Uncategorized extends AbstractFindUsagesFirTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             @java.lang.Override
             public KMPTestPlatform getTestPlatform() {
                 return KMPTestPlatform.Js;
@@ -405,12 +400,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../idea/tests/testData/findUsages/kotlin/findClassUsages")
     public static class FindClassUsages extends AbstractFindUsagesFirTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -720,12 +709,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
     @TestMetadata("../../idea/tests/testData/findUsages/kotlin/findEnumEntryUsages")
     public static class FindEnumEntryUsages extends AbstractFindUsagesFirTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -743,12 +726,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../idea/tests/testData/findUsages/kotlin/findFunctionUsages")
     public static class FindFunctionUsages extends AbstractFindUsagesFirTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -1073,12 +1050,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
     @TestMetadata("../../idea/tests/testData/findUsages/kotlin/findJavaPropertyUsages")
     public static class FindJavaPropertyUsages extends AbstractFindUsagesFirTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -1106,12 +1077,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../idea/tests/testData/findUsages/kotlin/findObjectUsages")
     public static class FindObjectUsages extends AbstractFindUsagesFirTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -1161,12 +1126,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
     @TestMetadata("../../idea/tests/testData/findUsages/kotlin/findPackageUsages")
     public static class FindPackageUsages extends AbstractFindUsagesFirTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -1184,12 +1143,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../idea/tests/testData/findUsages/kotlin/findParameterUsages")
     public static class FindParameterUsages extends AbstractFindUsagesFirTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -1274,12 +1227,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
     @TestMetadata("../../idea/tests/testData/findUsages/kotlin/findPrimaryConstructorUsages")
     public static class FindPrimaryConstructorUsages extends AbstractFindUsagesFirTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -1347,12 +1294,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../idea/tests/testData/findUsages/kotlin/findPropertyUsages")
     public static class FindPropertyUsages extends AbstractFindUsagesFirTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -1547,12 +1488,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
     @TestMetadata("../../idea/tests/testData/findUsages/kotlin/findSecondaryConstructorUsages")
     public static class FindSecondaryConstructorUsages extends AbstractFindUsagesFirTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -1596,12 +1531,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
     @TestMetadata("../../idea/tests/testData/findUsages/kotlin/findTypeAliasUsages")
     public static class FindTypeAliasUsages extends AbstractFindUsagesFirTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -1624,12 +1553,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../idea/tests/testData/findUsages/kotlin/findTypeParameterUsages")
     public static class FindTypeParameterUsages extends AbstractFindUsagesFirTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -1664,12 +1587,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
     @TestMetadata("../../idea/tests/testData/findUsages/kotlin/findWithFilteringImports")
     public static class FindWithFilteringImports extends AbstractFindUsagesFirTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -1687,12 +1604,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../idea/tests/testData/findUsages/kotlin/findWithStructuralGrouping")
     public static class FindWithStructuralGrouping extends AbstractFindUsagesFirTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -1724,12 +1635,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../idea/tests/testData/findUsages/kotlin/internal/findFunctionUsages")
         public static class FindFunctionUsages extends AbstractFindUsagesFirTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             @java.lang.Override
             public KMPTestPlatform getTestPlatform() {
                 return KMPTestPlatform.Js;
@@ -1779,12 +1684,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
         @TestMetadata("../../idea/tests/testData/findUsages/kotlin/internal/findPrimaryConstructorUsages")
         public static class FindPrimaryConstructorUsages extends AbstractFindUsagesFirTest {
             @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
-            @java.lang.Override
             public KMPTestPlatform getTestPlatform() {
                 return KMPTestPlatform.Js;
             }
@@ -1807,12 +1706,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
         @RunWith(JUnit3RunnerWithInners.class)
         @TestMetadata("../../idea/tests/testData/findUsages/kotlin/internal/findPropertyUsages")
         public static class FindPropertyUsages extends AbstractFindUsagesFirTest {
-            @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
             @java.lang.Override
             public KMPTestPlatform getTestPlatform() {
                 return KMPTestPlatform.Js;
@@ -1847,12 +1740,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
         @TestMetadata("../../idea/tests/testData/findUsages/kotlin/internal/findSecondaryConstructorUsages")
         public static class FindSecondaryConstructorUsages extends AbstractFindUsagesFirTest {
             @java.lang.Override
-            @org.jetbrains.annotations.NotNull
-            public final KotlinPluginMode getPluginMode() {
-                return KotlinPluginMode.K2;
-            }
-
-            @java.lang.Override
             public KMPTestPlatform getTestPlatform() {
                 return KMPTestPlatform.Js;
             }
@@ -1882,12 +1769,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
     @TestMetadata("../../idea/tests/testData/findUsages/kotlin/propertyFiles")
     public static class PropertyFiles extends AbstractFindUsagesFirTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -1911,12 +1792,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
     @TestMetadata("../../idea/tests/testData/findUsages/kotlin/unresolvedAnnotation")
     public static class UnresolvedAnnotation extends AbstractFindUsagesFirTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -1934,12 +1809,6 @@ public abstract class JsFindUsagesFirTestGenerated extends AbstractFindUsagesFir
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../idea/tests/testData/findUsages/kotlin/variable")
     public static class Variable extends AbstractFindUsagesFirTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;

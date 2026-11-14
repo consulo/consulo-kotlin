@@ -155,8 +155,8 @@ class KotlinChangeSignatureConflictSearcher(
         return result
     }
 
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     private fun filterCandidates(function: KtCallableDeclaration, candidateSymbol: KaDeclarationSymbol): Boolean {
         if (candidateSymbol !is KaFunctionSymbol) return false
 
@@ -251,6 +251,7 @@ class KotlinChangeSignatureConflictSearcher(
 
         loop@ for (usageInfo in usages) {
             if (!(usageInfo is KotlinFunctionCallUsage || usageInfo is KotlinPropertyCallUsage || usageInfo is KotlinByConventionCallUsage)) continue
+            if (usageInfo is KotlinFunctionCallUsage && usageInfo.canPreserveExplicitDispatchReceiver(originalInfo)) continue
 
             val callElement = usageInfo.element as? KtElement ?: continue
 

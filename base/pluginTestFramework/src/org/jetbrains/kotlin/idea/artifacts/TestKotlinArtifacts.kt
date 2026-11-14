@@ -13,7 +13,7 @@ import com.intellij.util.io.DigestUtil
 import com.intellij.util.io.createParentDirectories
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import com.intellij.util.bazelEnvironment.BazelLabel
+import com.intellij.platform.bazel.runfiles.BazelLabel
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesCommunityRoot
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesDownloader
 import org.jetbrains.intellij.build.dependencies.BuildDependenciesDownloader.extractFile
@@ -21,6 +21,7 @@ import org.jetbrains.jps.model.serialization.JpsMavenSettings
 import org.jetbrains.kotlin.idea.base.plugin.artifacts.KotlinArtifactConstants
 import org.jetbrains.kotlin.konan.target.HostManager
 import org.jetbrains.kotlin.konan.target.TargetSupportException
+import org.jetbrains.tools.model.updater.BazelKotlinDependencyFacade
 import org.jetbrains.tools.model.updater.KotlinTestsDependenciesUtil
 import java.net.URI
 import java.nio.file.Files
@@ -41,7 +42,6 @@ import kotlin.io.path.moveTo
 import kotlin.io.path.name
 import kotlin.io.path.nameWithoutExtension
 import kotlin.io.path.outputStream
-import kotlin.io.path.pathString
 import kotlin.io.path.readBytes
 import kotlin.io.path.relativeTo
 import kotlin.io.path.walk
@@ -97,11 +97,15 @@ object TestKotlinArtifacts {
         listOf(getKotlinDepsByLabel("@kotlin_test_deps//:kotlin-jps-plugin-classpath.jar"))
     }
 
-    private fun findDownloadFile(label: BazelLabel): KotlinTestsDependenciesUtil.DownloadFile {
+    private val kotlinDependencyFacade by lazy {
+        BazelKotlinDependencyFacade(communityRoot.communityRoot)
+    }
+
+    private fun findDownloadFile(label: BazelLabel): BazelKotlinDependencyFacade.Dependency {
         if (label.repo != KOTLIN_DEPS_REPO) {
             error("Only $KOTLIN_DEPS_REPO repo is supported, but got '${label.repo}' from: ${label.asLabel}")
         }
-        return KotlinTestsDependenciesUtil.kotlinTestDependenciesHttpFiles.find { it.fileName == label.target }
+        return kotlinDependencyFacade.dependencies.find { it.name == label.target }
             ?: error("Unable to find URL for '${label.asLabel}'")
     }
 
@@ -309,6 +313,10 @@ object TestKotlinArtifacts {
 
     @JvmStatic
     val kotlinJvmDebuggerTestData: Path by lazy { getKotlinDepsByLabel("@community//plugins/kotlin/jvm-debugger/test:testData") }
+    @JvmStatic
+    val debuggerJvmAdvancedKotlinTestData: Path by lazy {
+        getKotlinDepsByLabel("//plugins/debugger/jvm-advanced/jvm.advanced.kotlin/intellij.debugger.jvm.advanced.kotlin.tests:testData")
+    }
     @JvmStatic
     val kotlinIdeaTestData: Path by lazy { getKotlinDepsByLabel("@community//plugins/kotlin/idea/tests:testData") }
 

@@ -46,7 +46,7 @@ import org.jetbrains.kotlin.idea.completion.handlers.isCharAt
 import org.jetbrains.kotlin.idea.completion.impl.k2.contributors.toMatchingVariadicCallableOrNull
 import org.jetbrains.kotlin.idea.completion.impl.k2.contributors.helpers.insertString
 import org.jetbrains.kotlin.idea.completion.impl.k2.contributors.helpers.insertStringAndInvokeCompletion
-import org.jetbrains.kotlin.idea.completion.impl.k2.handlers.TrailingLambdaInsertionHandler
+import org.jetbrains.kotlin.idea.completion.impl.k2.handlers.TrailingLambdaInsertionHandlerFactory
 import org.jetbrains.kotlin.idea.completion.impl.k2.lookups.CallableInsertionOptions
 import org.jetbrains.kotlin.idea.completion.impl.k2.lookups.CallableInsertionStrategy
 import org.jetbrains.kotlin.idea.completion.impl.k2.lookups.CompletionShortNamesRenderer
@@ -150,8 +150,8 @@ internal object FunctionLookupElementFactory {
     }
 
     @OptIn(KaExperimentalApi::class)
-    context(_: KaSession)
     @ApiStatus.Experimental
+    context(_: KaSession)
     fun createLookupWithTrailingLambda(
         shortName: Name,
         signature: KaFunctionSignature<*>,
@@ -175,7 +175,7 @@ internal object FunctionLookupElementFactory {
         createLookupElement(signature, lookupObject, useFqNameInTailText = aliasName != null).apply {
             hasTrailingLambda = true
             if (trailingFunctionType.parameters.size > 1) {
-                TrailingLambdaInsertionHandler.create(trailingFunctionType)?.let {
+                TrailingLambdaInsertionHandlerFactory.getInstance().create(trailingFunctionType)?.let {
                     return withInsertHandler(it)
                 }
             }
@@ -248,8 +248,8 @@ internal data class WithCallArgsInsertionHandler(
 }
 
 object FunctionInsertionHelper {
-    context(_: KaSession)
     @OptIn(KaExperimentalApi::class)
+    context(_: KaSession)
     fun functionCanBeCalledWithoutExplicitTypeArguments(
         symbol: KaFunctionSymbol,
         expectedType: KaType?

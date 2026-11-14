@@ -20,7 +20,6 @@
     <orderEntry type="module" module-name="intellij.platform.projectModel" />
     <orderEntry type="module" module-name="intellij.platform.workspace.storage" />
     <orderEntry type="module" module-name="intellij.xml.psi" />
-    <orderEntry type="module" module-name="kotlin.base.frontend-agnostic" />
     <orderEntry type="module" module-name="intellij.platform.ide.observable" />
     <orderEntry type="module" module-name="intellij.kotlin.base.util" />
     <orderEntry type="module" module-name="intellij.platform.ide.impl" />
@@ -53,5 +52,7 @@
     <orderEntry type="module" module-name="intellij.platform.util.progress" />
     <orderEntry type="module" module-name="intellij.platform.vcs.core" />
     <orderEntry type="module" module-name="intellij.platform.statistics" />
+    <orderEntry type="library" name="kotlinc.allopen-compiler-plugin" level="project" />
+    <orderEntry type="module" module-name="intellij.kotlin.references" />
   </component>
 </module>

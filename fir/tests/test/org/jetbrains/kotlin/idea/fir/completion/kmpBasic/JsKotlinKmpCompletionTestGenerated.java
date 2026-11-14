@@ -3,7 +3,6 @@
 package org.jetbrains.kotlin.idea.fir.completion.kmpBasic;
 
 import com.intellij.testFramework.TestDataPath;
-import org.jetbrains.kotlin.idea.base.plugin.KotlinPluginMode;
 import org.jetbrains.kotlin.idea.base.test.TestRoot;
 import org.jetbrains.kotlin.idea.test.JUnit3RunnerWithInners;
 import org.jetbrains.kotlin.idea.test.KotlinTestUtils;
@@ -24,12 +23,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/annotations")
     public static class Annotations extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -264,12 +257,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/autoPopup")
     public static class AutoPopup extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -373,12 +360,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/backticked")
     public static class Backticked extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -406,12 +387,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/boldOrGrayed")
     public static class BoldOrGrayed extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -551,12 +526,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/bracketOperators")
     public static class BracketOperators extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -604,12 +573,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/callableReference")
     public static class CallableReference extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -736,14 +699,116 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     }
 
     @RunWith(JUnit3RunnerWithInners.class)
-    @TestMetadata("../../completion/testData/basic/common/companionObject")
-    public static class CompanionObject extends AbstractKotlinKmpCompletionTest {
+    @TestMetadata("../../completion/testData/basic/common/companionBlock")
+    public static class CompanionBlock extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
+        public KMPTestPlatform getTestPlatform() {
+            return KMPTestPlatform.Js;
         }
 
+        private void runTest(String testDataFilePath) throws Exception {
+            KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+        }
+
+        @TestMetadata("BlockMembers.kt")
+        public void testBlockMembers() throws Exception {
+            runTest("../../completion/testData/basic/common/companionBlock/BlockMembers.kt");
+        }
+
+        @TestMetadata("BlockMembersWithCompanionObject.kt")
+        public void testBlockMembersWithCompanionObject() throws Exception {
+            runTest("../../completion/testData/basic/common/companionBlock/BlockMembersWithCompanionObject.kt");
+        }
+
+        @TestMetadata("Extensions.kt")
+        public void testExtensions() throws Exception {
+            runTest("../../completion/testData/basic/common/companionBlock/Extensions.kt");
+        }
+
+        @TestMetadata("ExtensionsWithCompanionObject.kt")
+        public void testExtensionsWithCompanionObject() throws Exception {
+            runTest("../../completion/testData/basic/common/companionBlock/ExtensionsWithCompanionObject.kt");
+        }
+
+        @TestMetadata("GenericClassExtensions.kt")
+        public void testGenericClassExtensions() throws Exception {
+            runTest("../../completion/testData/basic/common/companionBlock/GenericClassExtensions.kt");
+        }
+
+        @TestMetadata("GenericClassExtensionsWithCompanionObject.kt")
+        public void testGenericClassExtensionsWithCompanionObject() throws Exception {
+            runTest("../../completion/testData/basic/common/companionBlock/GenericClassExtensionsWithCompanionObject.kt");
+        }
+
+        @TestMetadata("GenericClassMembers.kt")
+        public void testGenericClassMembers() throws Exception {
+            runTest("../../completion/testData/basic/common/companionBlock/GenericClassMembers.kt");
+        }
+
+        @TestMetadata("GenericClassMembersWithCompanionObject.kt")
+        public void testGenericClassMembersWithCompanionObject() throws Exception {
+            runTest("../../completion/testData/basic/common/companionBlock/GenericClassMembersWithCompanionObject.kt");
+        }
+
+        @TestMetadata("InstanceNotBroken.kt")
+        public void testInstanceNotBroken() throws Exception {
+            runTest("../../completion/testData/basic/common/companionBlock/InstanceNotBroken.kt");
+        }
+
+        @TestMetadata("InstanceNotBrokenWithCompanionObject.kt")
+        public void testInstanceNotBrokenWithCompanionObject() throws Exception {
+            runTest("../../completion/testData/basic/common/companionBlock/InstanceNotBrokenWithCompanionObject.kt");
+        }
+
+        @TestMetadata("NestedClassExtensions.kt")
+        public void testNestedClassExtensions() throws Exception {
+            runTest("../../completion/testData/basic/common/companionBlock/NestedClassExtensions.kt");
+        }
+
+        @TestMetadata("NestedClassExtensionsWithCompanionObject.kt")
+        public void testNestedClassExtensionsWithCompanionObject() throws Exception {
+            runTest("../../completion/testData/basic/common/companionBlock/NestedClassExtensionsWithCompanionObject.kt");
+        }
+
+        @TestMetadata("NestedClassMembers.kt")
+        public void testNestedClassMembers() throws Exception {
+            runTest("../../completion/testData/basic/common/companionBlock/NestedClassMembers.kt");
+        }
+
+        @TestMetadata("NestedClassMembersWithCompanionObject.kt")
+        public void testNestedClassMembersWithCompanionObject() throws Exception {
+            runTest("../../completion/testData/basic/common/companionBlock/NestedClassMembersWithCompanionObject.kt");
+        }
+
+        @TestMetadata("ObjectReceiverDoesNotBreak.kt")
+        public void testObjectReceiverDoesNotBreak() throws Exception {
+            runTest("../../completion/testData/basic/common/companionBlock/ObjectReceiverDoesNotBreak.kt");
+        }
+
+        @TestMetadata("Sorting.kt")
+        public void testSorting() throws Exception {
+            runTest("../../completion/testData/basic/common/companionBlock/Sorting.kt");
+        }
+
+        @TestMetadata("ThisReceiverDoesNotBreak.kt")
+        public void testThisReceiverDoesNotBreak() throws Exception {
+            runTest("../../completion/testData/basic/common/companionBlock/ThisReceiverDoesNotBreak.kt");
+        }
+
+        @TestMetadata("ValueReceiverDoesNotBreak.kt")
+        public void testValueReceiverDoesNotBreak() throws Exception {
+            runTest("../../completion/testData/basic/common/companionBlock/ValueReceiverDoesNotBreak.kt");
+        }
+
+        @TestMetadata("ValueReceiverWithCompanionObjectDoesNotBreak.kt")
+        public void testValueReceiverWithCompanionObjectDoesNotBreak() throws Exception {
+            runTest("../../completion/testData/basic/common/companionBlock/ValueReceiverWithCompanionObjectDoesNotBreak.kt");
+        }
+    }
+
+    @RunWith(JUnit3RunnerWithInners.class)
+    @TestMetadata("../../completion/testData/basic/common/companionObject")
+    public static class CompanionObject extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -893,12 +958,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/constructor")
     public static class Constructor extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -972,12 +1031,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/contextSensitiveResolution")
     public static class ContextSensitiveResolution extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -1010,12 +1063,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/dslMarker")
     public static class DslMarker extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -1070,18 +1117,22 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/enums")
     public static class Enums extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
 
         private void runTest(String testDataFilePath) throws Exception {
             KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
+        }
+
+        @TestMetadata("AnnotationLiteralArrayFirst.kt")
+        public void testAnnotationLiteralArrayFirst() throws Exception {
+            runTest("../../completion/testData/basic/common/enums/AnnotationLiteralArrayFirst.kt");
+        }
+
+        @TestMetadata("AnnotationLiteralArraySecond.kt")
+        public void testAnnotationLiteralArraySecond() throws Exception {
+            runTest("../../completion/testData/basic/common/enums/AnnotationLiteralArraySecond.kt");
         }
 
         @TestMetadata("AnnotationLiteralFirst.kt")
@@ -1168,12 +1219,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/extensionDeclarations")
     public static class ExtensionDeclarations extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -1278,12 +1323,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/extensionFunctionTypeValues")
     public static class ExtensionFunctionTypeValues extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -1326,12 +1365,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/extensionMethodInObject")
     public static class ExtensionMethodInObject extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -1430,12 +1463,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/extensions")
     public static class Extensions extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -1620,12 +1647,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/fromSmart")
     public static class FromSmart extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -1693,12 +1714,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/fromUnresolvedNames")
     public static class FromUnresolvedNames extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -1783,12 +1798,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/highOrderFunctions")
     public static class HighOrderFunctions extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -1852,12 +1861,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/inInitBlock")
     public static class InInitBlock extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -1880,12 +1883,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/inStringLiterals")
     public static class InStringLiterals extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -1930,12 +1927,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/inSuperTypes")
     public static class InSuperTypes extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -1974,12 +1965,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/inTypeAlias")
     public static class InTypeAlias extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -2002,12 +1987,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/lambdaAndTypeParams")
     public static class LambdaAndTypeParams extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -2046,12 +2025,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/lambdaSignature")
     public static class LambdaSignature extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -2121,12 +2094,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/namedArguments")
     public static class NamedArguments extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -2183,6 +2150,36 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
         @TestMetadata("CompanionObjectInvoke.kt")
         public void testCompanionObjectInvoke() throws Exception {
             runTest("../../completion/testData/basic/common/namedArguments/CompanionObjectInvoke.kt");
+        }
+
+        @TestMetadata("ContextParameterNameAfterValueParam.kt")
+        public void testContextParameterNameAfterValueParam() throws Exception {
+            runTest("../../completion/testData/basic/common/namedArguments/ContextParameterNameAfterValueParam.kt");
+        }
+
+        @TestMetadata("ContextParameterNameAlreadyPassed.kt")
+        public void testContextParameterNameAlreadyPassed() throws Exception {
+            runTest("../../completion/testData/basic/common/namedArguments/ContextParameterNameAlreadyPassed.kt");
+        }
+
+        @TestMetadata("ContextParameterNameCompletion.kt")
+        public void testContextParameterNameCompletion() throws Exception {
+            runTest("../../completion/testData/basic/common/namedArguments/ContextParameterNameCompletion.kt");
+        }
+
+        @TestMetadata("ContextParameterNameMultiple.kt")
+        public void testContextParameterNameMultiple() throws Exception {
+            runTest("../../completion/testData/basic/common/namedArguments/ContextParameterNameMultiple.kt");
+        }
+
+        @TestMetadata("ContextParameterNameOrder.kt")
+        public void testContextParameterNameOrder() throws Exception {
+            runTest("../../completion/testData/basic/common/namedArguments/ContextParameterNameOrder.kt");
+        }
+
+        @TestMetadata("ContextParameterNameWithoutFlag.kt")
+        public void testContextParameterNameWithoutFlag() throws Exception {
+            runTest("../../completion/testData/basic/common/namedArguments/ContextParameterNameWithoutFlag.kt");
         }
 
         @TestMetadata("ForEmptyParametersFunction.kt")
@@ -2270,6 +2267,56 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
             runTest("../../completion/testData/basic/common/namedArguments/ParamsFromSingleUnapplicableOverload.kt");
         }
 
+        @TestMetadata("PrefillExplicitContextArgument.kt")
+        public void testPrefillExplicitContextArgument() throws Exception {
+            runTest("../../completion/testData/basic/common/namedArguments/PrefillExplicitContextArgument.kt");
+        }
+
+        @TestMetadata("PrefillPreferParameterOverContextArgument.kt")
+        public void testPrefillPreferParameterOverContextArgument() throws Exception {
+            runTest("../../completion/testData/basic/common/namedArguments/PrefillPreferParameterOverContextArgument.kt");
+        }
+
+        @TestMetadata("PrefillSameNameParameter.kt")
+        public void testPrefillSameNameParameter() throws Exception {
+            runTest("../../completion/testData/basic/common/namedArguments/PrefillSameNameParameter.kt");
+        }
+
+        @TestMetadata("PrefillSameNameVariable.kt")
+        public void testPrefillSameNameVariable() throws Exception {
+            runTest("../../completion/testData/basic/common/namedArguments/PrefillSameNameVariable.kt");
+        }
+
+        @TestMetadata("PrefillSameNameVariableAlreadyPassed.kt")
+        public void testPrefillSameNameVariableAlreadyPassed() throws Exception {
+            runTest("../../completion/testData/basic/common/namedArguments/PrefillSameNameVariableAlreadyPassed.kt");
+        }
+
+        @TestMetadata("PrefillSameNameVariableFromClass.kt")
+        public void testPrefillSameNameVariableFromClass() throws Exception {
+            runTest("../../completion/testData/basic/common/namedArguments/PrefillSameNameVariableFromClass.kt");
+        }
+
+        @TestMetadata("PrefillSameNameVariableSmart.kt")
+        public void testPrefillSameNameVariableSmart() throws Exception {
+            runTest("../../completion/testData/basic/common/namedArguments/PrefillSameNameVariableSmart.kt");
+        }
+
+        @TestMetadata("PrefillSameNameVariableTypeMismatch.kt")
+        public void testPrefillSameNameVariableTypeMismatch() throws Exception {
+            runTest("../../completion/testData/basic/common/namedArguments/PrefillSameNameVariableTypeMismatch.kt");
+        }
+
+        @TestMetadata("PrefillTopLevelValue.kt")
+        public void testPrefillTopLevelValue() throws Exception {
+            runTest("../../completion/testData/basic/common/namedArguments/PrefillTopLevelValue.kt");
+        }
+
+        @TestMetadata("PrefillWrongOrder.kt")
+        public void testPrefillWrongOrder() throws Exception {
+            runTest("../../completion/testData/basic/common/namedArguments/PrefillWrongOrder.kt");
+        }
+
         @TestMetadata("PrivateFunction.kt")
         public void testPrivateFunction() throws Exception {
             runTest("../../completion/testData/basic/common/namedArguments/PrivateFunction.kt");
@@ -2294,12 +2341,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/noCompletion")
     public static class NoCompletion extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -2359,12 +2400,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/objects")
     public static class Objects extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -2408,12 +2443,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/operatorNames")
     public static class OperatorNames extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -2441,12 +2470,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/override")
     public static class Override extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -2545,12 +2568,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/parameterNameAndType")
     public static class ParameterNameAndType extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -2745,12 +2762,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/primaryConstructor")
     public static class PrimaryConstructor extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -2823,12 +2834,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/primitiveCompletion")
     public static class PrimitiveCompletion extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -3038,12 +3043,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/sealedHierarchy")
     public static class SealedHierarchy extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -3081,12 +3080,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/shadowing")
     public static class Shadowing extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -3241,12 +3234,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/smartCast")
     public static class SmartCast extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -3305,12 +3292,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/staticMembers")
     public static class StaticMembers extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -3353,12 +3334,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/substitutedSignature")
     public static class SubstitutedSignature extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -3407,12 +3382,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/super")
     public static class Super extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -3477,12 +3446,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/typeAliasTypes")
     public static class TypeAliasTypes extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -3515,12 +3478,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/typeArgsOrNot")
     public static class TypeArgsOrNot extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -3580,12 +3537,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common")
     public static class Uncategorized extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -3614,9 +3565,14 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
             runTest("../../completion/testData/basic/common/AfterIntSeparatedWithComments.kt");
         }
 
-        @TestMetadata("AlwaysCompleteNonSubPackages.kt")
-        public void testAlwaysCompleteNonSubPackages() throws Exception {
-            runTest("../../completion/testData/basic/common/AlwaysCompleteNonSubPackages.kt");
+        @TestMetadata("AlwaysCompleteNonSubPackagesInExpression.kt")
+        public void testAlwaysCompleteNonSubPackagesInExpression() throws Exception {
+            runTest("../../completion/testData/basic/common/AlwaysCompleteNonSubPackagesInExpression.kt");
+        }
+
+        @TestMetadata("AlwaysCompleteNonSubPackagesInType.kt")
+        public void testAlwaysCompleteNonSubPackagesInType() throws Exception {
+            runTest("../../completion/testData/basic/common/AlwaysCompleteNonSubPackagesInType.kt");
         }
 
         @TestMetadata("AlwaysCompleteTopLevelPackagesInImport.kt")
@@ -4359,9 +4315,14 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
             runTest("../../completion/testData/basic/common/NoTopLevelCompletionInQualifiedUserTypes.kt");
         }
 
-        @TestMetadata("NoTopLevelPackagesIfDisabled.kt")
-        public void testNoTopLevelPackagesIfDisabled() throws Exception {
-            runTest("../../completion/testData/basic/common/NoTopLevelPackagesIfDisabled.kt");
+        @TestMetadata("NoTopLevelPackagesInExpressionIfDisabled.kt")
+        public void testNoTopLevelPackagesInExpressionIfDisabled() throws Exception {
+            runTest("../../completion/testData/basic/common/NoTopLevelPackagesInExpressionIfDisabled.kt");
+        }
+
+        @TestMetadata("NoTopLevelPackagesInTypeIfDisabled.kt")
+        public void testNoTopLevelPackagesInTypeIfDisabled() throws Exception {
+            runTest("../../completion/testData/basic/common/NoTopLevelPackagesInTypeIfDisabled.kt");
         }
 
         @TestMetadata("ObjectInTypePosition.kt")
@@ -4584,12 +4545,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @TestMetadata("../../completion/testData/basic/common/variableNameAndType")
     public static class VariableNameAndType extends AbstractKotlinKmpCompletionTest {
         @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
-        @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
         }
@@ -4632,12 +4587,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/visibility")
     public static class Visibility extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -4736,12 +4685,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/when")
     public static class When extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;
@@ -4870,12 +4813,6 @@ public abstract class JsKotlinKmpCompletionTestGenerated extends AbstractKotlinK
     @RunWith(JUnit3RunnerWithInners.class)
     @TestMetadata("../../completion/testData/basic/common/where")
     public static class Where extends AbstractKotlinKmpCompletionTest {
-        @java.lang.Override
-        @org.jetbrains.annotations.NotNull
-        public final KotlinPluginMode getPluginMode() {
-            return KotlinPluginMode.K2;
-        }
-
         @java.lang.Override
         public KMPTestPlatform getTestPlatform() {
             return KMPTestPlatform.Js;

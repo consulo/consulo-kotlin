@@ -19,7 +19,6 @@
     <orderEntry type="module" module-name="intellij.platform.ide.impl" />
     <orderEntry type="library" name="Gradle" level="project" />
     <orderEntry type="module" module-name="intellij.platform.jps.model" />
-    <orderEntry type="module" module-name="kotlin.base.frontend-agnostic" />
     <orderEntry type="module" module-name="intellij.platform.ide.observable" />
     <orderEntry type="module" module-name="intellij.platform.ide.core" />
     <orderEntry type="module" module-name="intellij.kotlin.base.util" />
@@ -47,7 +46,6 @@
     <orderEntry type="module" module-name="intellij.kotlin.base.statistics" />
     <orderEntry type="module" module-name="intellij.platform.vcs.core" />
     <orderEntry type="module" module-name="intellij.platform.core.ui" />
-    <orderEntry type="module" module-name="kotlin.code-insight.inspections.shared" />
     <orderEntry type="module" module-name="intellij.platform.execution" />
     <orderEntry type="module" module-name="intellij.platform.lang" />
     <orderEntry type="module" module-name="intellij.platform.backend.observation" />

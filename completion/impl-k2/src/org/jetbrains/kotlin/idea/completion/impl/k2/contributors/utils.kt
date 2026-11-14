@@ -1,6 +1,7 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.kotlin.idea.completion.impl.k2.contributors
 
+import com.intellij.codeInsight.completion.CompletionType
 import com.intellij.codeInsight.completion.PrefixMatcher
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
@@ -193,7 +194,6 @@ internal fun KtExpression.evaluateRuntimeKaType(): KaType? {
 }
 
 // See KTIJ-35541
-@OptIn(KaExperimentalApi::class)
 context(_: KaSession)
 internal fun KaType.replaceTypeParametersWithStarProjections(): KaType? =
     abbreviationOrSelf.symbol?.let { buildClassTypeWithStarProjections(it) }
@@ -246,4 +246,12 @@ internal fun isRepresentativeOrNonVariadicCallable(signature: KaCallableSignatur
     val functionSymbol = signature.symbol as? KaNamedFunctionSymbol ?: return true
 
     return variadicCallableId.representativeNumberOfValueArguments == functionSymbol.valueParameters.size
+}
+
+context(context: K2CompletionSectionContext<*>)
+internal fun shouldShowElementsFromIndex(): Boolean {
+    val prefix = context.prefixMatcher.prefix
+    val completionType = context.completionContext.parameters.completionType
+
+    return prefix.isNotEmpty() || completionType == CompletionType.SMART
 }
