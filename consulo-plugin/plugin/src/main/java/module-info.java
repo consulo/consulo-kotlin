@@ -10,6 +10,7 @@ open module consulo.kotlin {
     requires consulo.kotlin.remapped;
     requires consulo.virtual.file.system.api;
     requires consulo.language.api;
+    requires consulo.java.language.api;
     requires consulo.ui.api;
     requires consulo.base.icon.library;
 }

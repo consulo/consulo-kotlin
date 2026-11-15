@@ -153,6 +153,12 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>consulo.plugin</groupId>
+            <artifactId>consulo.java-java.language.api</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>consulo</groupId>
             <artifactId>consulo-base-icon-library</artifactId>
             <version>${project.version}</version>
