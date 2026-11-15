@@ -2,6 +2,11 @@
 <!-- Plugin-specific rules, applied on top of the compiler port's remap.xml (consulo.kotlin.remapped:mapping).
      The <module> sections are merged; this file's name wins. -->
 <remap>
+    <classes>
+        <!-- the plugin's only QuoteHandler is per language; Consulo registers those as LanguageQuoteHandler extensions -->
+        <rule from="com.intellij.codeInsight.editorActions.QuoteHandler" to="consulo.language.editor.action.LanguageQuoteHandler"/>
+    </classes>
+
     <redirects>
         <!-- inherited static SyntaxHighlighterBase.merge, compiled as a call on the subclass -->
         <method owner="org.jetbrains.kotlin.idea.highlighter.KotlinHighlighter" name="merge"
@@ -21,6 +26,15 @@
             </addMethod>
         </class>
         <class name="org.jetbrains.kotlin.idea.KotlinCommenter">
+            <addAnnotation type="consulo.annotation.component.ExtensionImpl"/>
+            <addMethod name="getLanguage" returnType="consulo.language.Language">
+                <getstatic owner="org.jetbrains.kotlin.idea.KotlinLanguage"
+                           name="INSTANCE"
+                           type="org.jetbrains.kotlin.idea.KotlinLanguage"/>
+                <areturn/>
+            </addMethod>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.editor.KotlinQuoteHandler">
             <addAnnotation type="consulo.annotation.component.ExtensionImpl"/>
             <addMethod name="getLanguage" returnType="consulo.language.Language">
                 <getstatic owner="org.jetbrains.kotlin.idea.KotlinLanguage"
@@ -58,6 +72,9 @@
                      scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.KotlinPairedBraceMatcher"
                      api="consulo.language.editor.highlight.LanguageBraceMatcher"
+                     scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.editor.KotlinQuoteHandler"
+                     api="consulo.language.editor.action.LanguageQuoteHandler"
                      scope="APPLICATION"/>
         </provides>
     </module>

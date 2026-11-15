@@ -15,7 +15,7 @@
 
     <build>
         <plugins>
-            <!-- Only commenter and brace matching for now; the rest of the module needs more of the IntelliJ API -->
+            <!-- Only commenter, brace matching and quote handling for now; the rest of the module needs more of the IntelliJ API -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
@@ -34,6 +34,7 @@
                                     <includes>
                                         <include>org/jetbrains/kotlin/idea/KotlinCommenter.java</include>
                                         <include>org/jetbrains/kotlin/idea/KotlinPairMatcher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/editor/KotlinQuoteHandler.kt</include>
                                     </includes>
                                 </resource>
                             </resources>
