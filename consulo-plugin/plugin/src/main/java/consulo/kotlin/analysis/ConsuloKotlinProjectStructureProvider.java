@@ -43,8 +43,12 @@ public class ConsuloKotlinProjectStructureProvider extends KotlinProjectStructur
     private final Map<Object, ConsuloKaLibraryModule> myLibraryModules = new ConcurrentHashMap<>();
     private volatile long myRootsModificationCount = -1;
 
+    /**
+     * Analysis always asks for the project structure first, so taking the modification service here starts its
+     * listeners before any analysis cache exists.
+     */
     @Inject
-    public ConsuloKotlinProjectStructureProvider(Project project) {
+    public ConsuloKotlinProjectStructureProvider(Project project, ConsuloKotlinModificationService modificationService) {
         myProject = project;
     }
 
