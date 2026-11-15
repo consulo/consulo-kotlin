@@ -5,10 +5,12 @@
     <classes>
         <!-- upstream classes in packages of the compiler jar (split packages), by consulo-plugin/tools/genservices.py -->
         <!-- genservices:splitpackages:begin -->
+        <rule from="org.jetbrains.kotlin.util.AbstractKotlinBundle" to="org.jetbrains.kotlin.util.plugin.AbstractKotlinBundle"/>
         <rule from="org.jetbrains.kotlin.util.CollectionUtilsKt$cycle$1" to="org.jetbrains.kotlin.util.plugin.CollectionUtilsKt$cycle$1"/>
         <rule from="org.jetbrains.kotlin.util.CollectionUtilsKt$takeWhileInclusive$1" to="org.jetbrains.kotlin.util.plugin.CollectionUtilsKt$takeWhileInclusive$1"/>
         <rule from="org.jetbrains.kotlin.util.CollectionUtilsKt$takeWhileIsInstance$1" to="org.jetbrains.kotlin.util.plugin.CollectionUtilsKt$takeWhileIsInstance$1"/>
         <rule from="org.jetbrains.kotlin.util.CollectionUtilsKt" to="org.jetbrains.kotlin.util.plugin.CollectionUtilsKt"/>
+        <rule from="org.jetbrains.kotlin.util.LightClassUtilsKt" to="org.jetbrains.kotlin.util.plugin.LightClassUtilsKt"/>
         <!-- genservices:splitpackages:end -->
         <!-- the plugin's only QuoteHandler is per language; Consulo registers those as LanguageQuoteHandler extensions -->
         <rule from="com.intellij.codeInsight.editorActions.QuoteHandler" to="consulo.language.editor.action.LanguageQuoteHandler"/>
@@ -59,7 +61,18 @@
                 <areturn/>
             </addMethod>
         </class>
+        <!-- IntelliJ's matcher (base/analysis RootKindMatcherImpl) is not compiled: consulo.kotlin.analysis.ConsuloRootKindMatcher -->
+        <class name="org.jetbrains.kotlin.idea.base.projectStructure.RootKindMatcher">
+            <addAnnotation type="consulo.annotation.component.ServiceAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="PROJECT"/>
+            </addAnnotation>
+        </class>
         <!-- genservices:modifications:begin -->
+        <class name="org.jetbrains.kotlin.idea.base.analysis.KotlinUastOutOfCodeBlockModificationTracker">
+            <addAnnotation type="consulo.annotation.component.ServiceAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="PROJECT"/>
+            </addAnnotation>
+        </class>
         <class name="org.jetbrains.kotlin.idea.base.analysisApiPlatform.KotlinModulePackageNamesProvider">
             <addAnnotation type="consulo.annotation.component.ServiceAPI">
                 <enum name="value" type="consulo.annotation.component.ComponentScope" value="PROJECT"/>
@@ -70,10 +83,31 @@
                 <enum name="value" type="consulo.annotation.component.ComponentScope" value="PROJECT"/>
             </addAnnotation>
         </class>
+        <class name="org.jetbrains.kotlin.idea.completion.api.CompletionDummyIdentifierProviderService">
+            <addAnnotation type="consulo.annotation.component.ServiceAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="APPLICATION"/>
+            </addAnnotation>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.completion.handlers.SmartCompletionTailOffsetProvider">
+            <addAnnotation type="consulo.annotation.component.ServiceAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="APPLICATION"/>
+            </addAnnotation>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.completion.impl.k2.handlers.TrailingLambdaInsertionHandlerFactory">
+            <addAnnotation type="consulo.annotation.component.ServiceAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="APPLICATION"/>
+            </addAnnotation>
+        </class>
         <class name="org.jetbrains.kotlin.idea.references.ReadWriteAccessChecker">
             <addAnnotation type="consulo.annotation.component.ServiceAPI">
                 <enum name="value" type="consulo.annotation.component.ComponentScope" value="PROJECT"/>
             </addAnnotation>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.completion.impl.k2.KotlinFirCompletionContributor">
+            <addMethod name="getLanguage" returnType="consulo.language.Language">
+                <getstatic owner="org.jetbrains.kotlin.idea.KotlinLanguage" name="INSTANCE" type="org.jetbrains.kotlin.idea.KotlinLanguage"/>
+                <areturn/>
+            </addMethod>
         </class>
         <!-- genservices:modifications:end -->
         <!-- getLanguage() comes from the compat brace matcher base -->
@@ -108,15 +142,25 @@
         <requires>consulo.logging.api</requires>
         <requires>consulo.annotation</requires>
         <requires>kotlinx.collections.immutable</requires>
+        <requires>kotlinx.serialization.core</requires>
+        <!-- completion reports its sessions as JFR events -->
+        <requires>jdk.jfr</requires>
         <requires>com.github.benmanes.caffeine</requires>
         <requires>com.google.common</requires>
         <requires>javax.inject</requires>
+        <!-- completion and what it reaches: XML/HTML PSI (KDoc from Javadoc), file templates, platform completion internals -->
+        <requires>com.intellij.xml.api</requires>
+        <requires>com.intellij.xml.html.api</requires>
+        <requires>consulo.file.template.api</requires>
+        <requires>consulo.ide.impl</requires>
+        <requires>consulo.java</requires>
 
         <exports>org/jetbrains/kotlin/idea/highlighter</exports>
         <exports>org/jetbrains/kotlin/idea/base/highlighting</exports>
 
         <provides interface="consulo.component.bind.InjectingBinding">
             <!-- genservices:bindings:begin -->
+            <binding impl="org.jetbrains.kotlin.idea.base.analysis.KotlinUastOutOfCodeBlockModificationTracker" api="org.jetbrains.kotlin.idea.base.analysis.KotlinUastOutOfCodeBlockModificationTracker" scope="PROJECT" type="service"/>
             <binding impl="org.jetbrains.kotlin.idea.base.analysisApiPlatform.IdeKotlinAnnotationsResolverFactory" api="org.jetbrains.kotlin.analysis.api.platform.declarations.KotlinAnnotationsResolverFactory" scope="PROJECT" type="service"/>
             <binding impl="org.jetbrains.kotlin.idea.base.analysisApiPlatform.IdeKotlinDeclarationProviderFactory" api="org.jetbrains.kotlin.analysis.api.platform.declarations.KotlinDeclarationProviderFactory" scope="PROJECT" type="service"/>
             <binding impl="org.jetbrains.kotlin.idea.base.analysisApiPlatform.IdeKotlinDeclarationProviderMerger" api="org.jetbrains.kotlin.analysis.api.platform.declarations.KotlinDeclarationProviderMerger" scope="PROJECT" type="service"/>
@@ -126,12 +170,18 @@
             <binding impl="org.jetbrains.kotlin.idea.base.analysisApiPlatform.IdeKotlinPackageProviderMerger" api="org.jetbrains.kotlin.analysis.api.platform.packages.KotlinPackageProviderMerger" scope="PROJECT" type="service"/>
             <binding impl="org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.FirIdeKotlinModificationTrackerFactory" api="org.jetbrains.kotlin.analysis.api.platform.modification.KotlinModificationTrackerFactory" scope="PROJECT" type="service"/>
             <binding impl="org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.FirIdeOutOfBlockModificationService" api="org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.FirIdeOutOfBlockModificationService" scope="PROJECT" type="service"/>
+            <binding impl="org.jetbrains.kotlin.idea.base.psi.KtPsiMutationServiceImpl" api="org.jetbrains.kotlin.psi.KtPsiMutationService" scope="APPLICATION" type="service"/>
+            <binding impl="org.jetbrains.kotlin.idea.completion.impl.k2.FirCompletionDummyIdentifierProviderService" api="org.jetbrains.kotlin.idea.completion.api.CompletionDummyIdentifierProviderService" scope="APPLICATION" type="service"/>
+            <binding impl="org.jetbrains.kotlin.idea.completion.impl.k2.handlers.K2SmartCompletionTailOffsetProviderImpl" api="org.jetbrains.kotlin.idea.completion.handlers.SmartCompletionTailOffsetProvider" scope="APPLICATION" type="service"/>
+            <binding impl="org.jetbrains.kotlin.idea.completion.impl.k2.handlers.TrailingLambdaInsertionHandlerFactory$Default" api="org.jetbrains.kotlin.idea.completion.impl.k2.handlers.TrailingLambdaInsertionHandlerFactory" scope="APPLICATION" type="service"/>
             <binding impl="org.jetbrains.kotlin.idea.references.impl.ReadWriteAccessCheckerBaseImpl" api="org.jetbrains.kotlin.idea.references.ReadWriteAccessChecker" scope="PROJECT" type="service"/>
             <binding impl="org.jetbrains.kotlin.idea.stubindex.IdeStubIndexService" api="org.jetbrains.kotlin.psi.stubs.elements.StubIndexService" scope="APPLICATION" type="service"/>
             <binding impl="org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.FirIdeOutOfBlockModificationService$OutOfBlockTreeChangePreprocessor" api="consulo.kotlin.compat.psi.PsiTreeChangePreprocessor" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.base.indices.names.KotlinBinaryRootToPackageIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.base.indices.names.KotlinTopLevelCallableByPackageShortNameIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.base.indices.names.KotlinTopLevelClassLikeDeclarationByPackageShortNameIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.completion.impl.k2.K2CompletionCharFilter" api="consulo.language.editor.completion.lookup.CharFilter" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.completion.impl.k2.KotlinFirCompletionContributor" api="consulo.language.editor.completion.CompletionContributor" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseArrayAccessReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseCollectionLiteralReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseConstructorDelegationReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
@@ -142,6 +192,8 @@
             <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseKDocReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBasePropertyDelegationMethodsReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseSimpleNameReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.searching.inheritors.DirectKotlinOverridingMethodDelegatedSearcher" api="consulo.kotlin.compat.search.Searcher" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.searching.inheritors.DirectKotlinOverridingMethodSearcher" api="consulo.kotlin.compat.search.Searcher" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinAnnotationsIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinClassShortNameIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinExactPackagesIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>

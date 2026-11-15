@@ -4,6 +4,7 @@
     <version>SNAPSHOT</version>
     <vendor>JetBrains and others</vendor>
     <depends>consulo.java</depends>
+    <depends>com.intellij.xml</depends>
 
     <tags>
         <tag>custom.language</tag>

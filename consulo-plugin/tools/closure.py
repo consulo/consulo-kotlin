@@ -1,20 +1,27 @@
 """File closure of upstream plugin classes across the modules of this repository, for filter-src include lists.
 
-Usage: python3 consulo-plugin/tools/closure.py [--pom <pom.xml>] [--stop <module dir>]... <seed>... [@<file>]...
+Usage: python3 consulo-plugin/tools/closure.py [--pom <pom.xml>] [--stop <module dir>]... [--replace <file>]... <seed>... [@<file>]...
   seed: a fq class name or a src-relative file; @file: more arguments, one per line (# comments)
-  --pom: write the include lists into the pom, between the closure:begin/end markers
+  --pom: write the include lists into the pom, between the closure:begin/end markers, and the message bundles and
+         icons of the modules between the closure:resources:begin/end markers
+  --replace: a src-relative file that consulo-plugin/upstream/src/main/kotlin replaces (neither included nor followed)
 Prints, per module (a directory with a non-test .iml and a src root), the files the seeds reach. A file is reached when
 a reached file names one of its top-level declarations and can see it (same package, explicit import or star import).
 Over-approximates (simple names, no scopes), which is fine for compiling. --stop modules are reported, not followed.
+CLOSURE=-v lists the files; CLOSURE=why:<file name>[,<file name>...] prints the chain of files (and names) that reaches a file.
 """
 import glob, os, re, sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 TOP_LEVEL = re.compile(
-    r'^(?:@\S+\s+)*(?:(?:public|internal|private|protected|open|abstract|sealed|data|enum|annotation|value|inline|'
+    r'^ ?(?:@\S+\s+)*(?:(?:public|internal|private|protected|open|abstract|sealed|data|enum|annotation|value|inline|'
     r'fun|external|expect|actual|const|final|static|operator|infix|tailrec|suspend|lateinit)\s+)*'
     r'(?:class|interface|object|typealias|fun|val|var|@interface|record)\s+(?:<[^>]*>\s*)?(?:[\w.<>?, ]+\.)?(\w+)',
     re.M)
+
+
+# resources of the reached modules that the compiled classes load: message bundles and icons
+RESOURCES = ['messages/**/*.properties', '**/*.svg', '**/*.png']
 
 
 def modules():
@@ -34,7 +41,8 @@ def scan(path):
     text = re.sub(r'/\*.*?\*/', '', text, flags=re.S)
     text = re.sub(r'//[^\n]*', '', text)
     pkg = re.search(r'^package\s+([\w.]+)', text, re.M)
-    names = set(TOP_LEVEL.findall(text))
+    # file-private declarations are not visible to other files
+    names = {m.group(1) for m in TOP_LEVEL.finditer(text) if not re.match(r'^ ?(?:@\S+\s+)*private\s', m.group(0))}
     if path.endswith('.java'):
         names.add(os.path.basename(path)[:-5])
     imports = re.findall(r'^import\s+(?:static\s+)?([\w.]+)(\.\*)?', text, re.M)
@@ -62,7 +70,8 @@ def main():
         i = args.index('--pom')
         args = args[:i] + args[i + 2:]
     stops = {args[i + 1] for i, a in enumerate(args) if a == '--stop'}
-    seeds = [a for i, a in enumerate(args) if a != '--stop' and (i == 0 or args[i - 1] != '--stop')]
+    replaced = {args[i + 1] for i, a in enumerate(args) if a == '--replace'}
+    seeds = [a for i, a in enumerate(args) if a not in ('--stop', '--replace') and (i == 0 or args[i - 1] not in ('--stop', '--replace'))]
     files, owner = {}, {}
     for module, src in modules().items():
         for d, _, fs in os.walk(src):
@@ -86,12 +95,13 @@ def main():
             pkg, name = s.rsplit('.', 1)
             todo += [p for p in declared.get(name.split('$')[0], []) if files[p]['pkg'] == pkg]
     done = set()
+    parent = {}  # reached file -> the file that reached it, for CLOSURE=why:<file name>
     while todo:
         p = todo.pop()
         if p in done:
             continue
         done.add(p)
-        if owner[p] in stops and p not in explicit:
+        if owner[p] in stops and p not in explicit or any(p.endswith('/' + r) for r in replaced):
             continue
         me = files[p]
         for ident in me['idents']:
@@ -99,9 +109,12 @@ def main():
                 info = files[o]
                 if info['pkg'] == me['pkg'] or f"{info['pkg']}.{ident}" in me['imports'] or info['pkg'] in me['stars']:
                     if o not in done:
+                        parent.setdefault(o, (p, ident))
                         todo.append(o)
     by_module = {}
     for p in done:
+        if any(p.endswith('/' + r) for r in replaced):
+            continue
         by_module.setdefault(owner[p], []).append(os.path.relpath(p, modules()[owner[p]]))
     if pom:
         body = ''
@@ -113,11 +126,29 @@ def main():
             body += f'                                <resource>\n                                    <directory>${{plugin.root}}/{m}/src</directory>\n                                    <includes>\n'
             body += ''.join(f'                                        <include>{f}</include>\n' for f in sorted(by_module[m]))
             body += '                                    </includes>\n                                </resource>\n'
+        # message bundles and icons of the modules
+        resources = ''
+        for m in sorted(by_module):
+            if m not in stops and os.path.isdir(f'{ROOT}/{m}/resources'):
+                resources += f'            <resource>\n                <directory>${{plugin.root}}/{m}/resources</directory>\n                <includes>\n'
+                resources += ''.join(f'                    <include>{i}</include>\n' for i in RESOURCES)
+                resources += '                </includes>\n            </resource>\n'
         text = open(pom).read()
-        begin, end = '<!-- closure:begin -->', '<!-- closure:end -->'
-        m = re.search(rf'([ \t]*){re.escape(begin)}.*?{re.escape(end)}', text, re.S)
-        text = text[:m.start()] + f'{m.group(1)}{begin}\n{body}{m.group(1)}{end}' + text[m.end():]
+        for tag, content in (('closure', body), ('closure:resources', resources)):
+            begin, end = f'<!-- {tag}:begin -->', f'<!-- {tag}:end -->'
+            m = re.search(rf'([ \t]*){re.escape(begin)}.*?{re.escape(end)}', text, re.S)
+            text = text[:m.start()] + f'{m.group(1)}{begin}\n{content}{m.group(1)}{end}' + text[m.end():]
         open(pom, 'w').write(text)
+    why = re.search(r'why:(\S+)', os.environ.get('CLOSURE', ''))
+    if why:
+        for target in why.group(1).split(','):
+            print(f'## {target}')
+            for p in done:
+                if p.endswith('/' + target):
+                    while p in parent:
+                        p, ident = parent[p]
+                        print(f'  <- {os.path.relpath(p, ROOT)} ({ident})')
+        return
     for m in sorted(by_module):
         print(f'== {m} ({len(by_module[m])}){" [stop]" if m in stops else ""}')
         if '-v' in os.environ.get('CLOSURE', ''):

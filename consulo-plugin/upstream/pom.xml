@@ -20,6 +20,170 @@
     </properties>
 
     <build>
+        <resources>
+            <!-- closure:resources:begin -->
+            <resource>
+                <directory>${plugin.root}/base/analysis/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${plugin.root}/base/analysis-api-platform/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${plugin.root}/base/analysis-api/analysis-api-utils/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${plugin.root}/base/code-insight/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${plugin.root}/base/fir/analysis-api-platform/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${plugin.root}/base/indices/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${plugin.root}/base/kdoc/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${plugin.root}/base/kotlin.base.serialization/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${plugin.root}/base/psi/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${plugin.root}/base/resources/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${plugin.root}/base/util/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${plugin.root}/code-insight/api/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${plugin.root}/code-insight/impl-base/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${plugin.root}/code-insight/override-implement-k2/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${plugin.root}/code-insight/utils/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${plugin.root}/completion/api/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${plugin.root}/completion/impl-k2/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${plugin.root}/formatter/minimal/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${plugin.root}/kotlin.searching/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${plugin.root}/references/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <!-- closure:resources:end -->
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -38,7 +202,30 @@
                                 <resource>
                                     <directory>${plugin.root}/base/analysis/src</directory>
                                     <includes>
+                                        <include>org/jetbrains/kotlin/base/analysis/AutoImportUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/analysis/KotlinBaseAnalysisBundle.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/analysis/KotlinK2CodeFragmentUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/analysis/RootPrefixUtils.kt</include>
                                         <include>org/jetbrains/kotlin/idea/caches/resolve/IDEPackagePartProvider.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/search/ExpectActualSupport.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/search/ExpectActualUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/search/KotlinIndexers.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/search/KotlinSearchUsagesSupport.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/search/ReceiverTypeSearcherInfo.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/search/ideaExtensions/KotlinDirectInheritorsSearcher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/search/ideaExtensions/KotlinReferencesSearcher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/search/ideaExtensions/KotlinRequestResultProcessor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/search/searchUtil.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/search/usagesSearch/ExpressionsOfTypeProcessor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/search/usagesSearch/operators/BinaryOperatorReferenceSearcher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/search/usagesSearch/operators/ContainsOperatorReferenceSearcher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/search/usagesSearch/operators/DestructuringDeclarationReferenceSearcher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/search/usagesSearch/operators/IndexingOperatorReferenceSearcher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/search/usagesSearch/operators/InvokeOperatorReferenceSearcher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/search/usagesSearch/operators/IteratorOperatorReferenceSearcher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/search/usagesSearch/operators/OperatorReferenceSearcher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/search/usagesSearch/operators/PropertyDelegationOperatorReferenceSearcher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/search/usagesSearch/operators/UnaryOperatorReferenceSearcher.kt</include>
                                         <include>org/jetbrains/kotlin/idea/stubindex/IdeStubIndexService.java</include>
                                         <include>org/jetbrains/kotlin/idea/stubindex/IndexUtils.kt</include>
                                         <include>org/jetbrains/kotlin/idea/util/resolveCalls.kt</include>
@@ -66,6 +253,40 @@
                                         <include>org/jetbrains/kotlin/idea/references/impl/KaBaseSimpleNameReference.kt</include>
                                         <include>org/jetbrains/kotlin/idea/references/impl/KaSimpleNameReferenceBase.kt</include>
                                         <include>org/jetbrains/kotlin/idea/references/impl/ReadWriteAccessCheckerBaseImpl.kt</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${plugin.root}/base/analysis-api/analysis-api-utils/src</directory>
+                                    <includes>
+                                        <include>org/jetbrains/kotlin/idea/base/analysis/api/utils/CallParameterInfoProvider.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/analysis/api/utils/KtSymbolFromIndexProvider.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/analysis/api/utils/ShortenCommandForIde.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/analysis/api/utils/analyzeUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/analysis/api/utils/importUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/analysis/api/utils/memberUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/analysis/api/utils/resolveUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/analysis/api/utils/shortenRedundantCompanionReferenceUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/analysis/api/utils/shortenUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/analysis/api/utils/symbolUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/analysis/api/utils/typeUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/psi/imports/ImportInsertion.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/psi/imports/KotlinImportPathComparator.kt</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${plugin.root}/base/code-insight/src</directory>
+                                    <includes>
+                                        <include>org/jetbrains/kotlin/idea/base/codeInsight/EnumValuesSoftDeprecate.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/codeInsight/KotlinCallProcessor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/codeInsight/KotlinIconProvider.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/codeInsight/KotlinNameSuggester.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/codeInsight/LookupElementContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/codeInsight/ShortenOptionsForIde.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/codeInsight/ShortenReferencesFacility.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/core/NotPropertiesService.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/util/AnalysisUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/util/ClassImportFilter.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/util/CommentSaver.kt</include>
                                     </includes>
                                 </resource>
                                 <resource>
@@ -123,29 +344,297 @@
                                     </includes>
                                 </resource>
                                 <resource>
+                                    <directory>${plugin.root}/base/kdoc/src</directory>
+                                    <includes>
+                                        <include>org/jetbrains/kotlin/idea/kdoc/KDocElementFactory.kt</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${plugin.root}/base/kotlin.base.serialization/src</directory>
+                                    <includes>
+                                        <include>org/jetbrains/kotlin/idea/base/serialization/names/KotlinClassIdSerializer.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/serialization/names/KotlinFqNameSerializer.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/serialization/names/KotlinNameSerializer.kt</include>
+                                    </includes>
+                                </resource>
+                                <resource>
                                     <directory>${plugin.root}/base/project-structure/src</directory>
                                     <includes>
+                                        <include>org/jetbrains/kotlin/idea/base/projectStructure/RootKindFilter.kt</include>
                                         <include>org/jetbrains/kotlin/idea/base/projectStructure/modules/KaSourceModuleForOutsider.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/projectStructure/scope/KotlinSourceFilterScope.kt</include>
                                         <include>org/jetbrains/kotlin/idea/vfilefinder/IdeVirtualFileFinder.kt</include>
                                     </includes>
                                 </resource>
                                 <resource>
                                     <directory>${plugin.root}/base/psi/src</directory>
                                     <includes>
+                                        <include>org/jetbrains/kotlin/idea/base/psi/EditCommaSeparatedListHelper.kt</include>
                                         <include>org/jetbrains/kotlin/idea/base/psi/JavaPsiUtils.kt</include>
                                         <include>org/jetbrains/kotlin/idea/base/psi/KotlinPsiHeuristics.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/psi/KotlinPsiModificationUtils.kt</include>
                                         <include>org/jetbrains/kotlin/idea/base/psi/KotlinPsiUtils.kt</include>
                                         <include>org/jetbrains/kotlin/idea/base/psi/KotlinUserDataUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/psi/KtPsiMutationServiceImpl.kt</include>
                                         <include>org/jetbrains/kotlin/idea/base/psi/PsiLinesUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/psi/TextRangeUtils.kt</include>
                                         <include>org/jetbrains/kotlin/idea/base/psi/extensions/ImplementationDetailClassNameCheckerProvider.kt</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${plugin.root}/base/resources/src</directory>
+                                    <includes>
+                                        <include>icons/KotlinBaseResourcesIcons.java</include>
+                                        <include>org/jetbrains/kotlin/idea/KotlinIcons.java</include>
+                                        <include>org/jetbrains/kotlin/idea/base/resources/KotlinBundle.kt</include>
                                     </includes>
                                 </resource>
                                 <resource>
                                     <directory>${plugin.root}/base/util/src</directory>
                                     <includes>
                                         <include>org/jetbrains/kotlin/caches/project/CacheUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/KotlinIconProvider.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/util/FqNameUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/util/GenericPsiUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/util/ImportableFqNameClassifier.kt</include>
                                         <include>org/jetbrains/kotlin/idea/base/util/KotlinScopeUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/util/KotlinSingleClassFileAnalyzer.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/util/MiscUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/util/names/FqNames.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/util/FileUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/util/application/ApplicationUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/util/AbstractKotlinBundle.kt</include>
                                         <include>org/jetbrains/kotlin/util/CollectionUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/util/lightClassUtils.kt</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${plugin.root}/code-insight/api/src</directory>
+                                    <includes>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/api/applicators/fixes/KotlinQuickFixFactory.kt</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${plugin.root}/code-insight/impl-base/src</directory>
+                                    <includes>
+                                        <include>org/jetbrains/kotlin/idea/core/generateUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/imports/ImportMapper.kt</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${plugin.root}/code-insight/override-implement-k2/src</directory>
+                                    <includes>
+                                        <include>org/jetbrains/kotlin/idea/core/overrideImplement/AbstractGenerateMembersHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/core/overrideImplement/BodyType.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/core/overrideImplement/KtClassMember.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/core/overrideImplement/KtGenerateMembersHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/core/overrideImplement/KtImplementMembersHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/core/overrideImplement/KtMemberTextRendererHelper.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/core/overrideImplement/KtOverrideMembersHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/core/overrideImplement/MemberGenerateMode.kt</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${plugin.root}/code-insight/utils/src</directory>
+                                    <includes>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/utils/AnalysisUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/utils/ControlFlowUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/utils/ConvertToExpressionBodyUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/utils/DocumentUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/utils/EnumUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/utils/ExpressionSimplificationUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/utils/GeneralPsiUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/utils/InsertExplicitTypeArgumentsUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/utils/KotlinPsiUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/utils/StandardKotlinNames.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/utils/TypeUtils.kt</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${plugin.root}/completion/api/src</directory>
+                                    <includes>
+                                        <include>org/jetbrains/kotlin/idea/completion/api/CompletionDummyIdentifierProviderService.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/api/serialization/SerializableInsertHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/api/serialization/SerializableLookupObject.kt</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${plugin.root}/completion/impl-k2/src</directory>
+                                    <includes>
+                                        <include>org/jetbrains/kotlin/idea/completion/KDocCompletion.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/KeywordCompletion.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/KotlinCompletionCharFilter.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/NameWithTypeCompletion.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/OverridesCompletionLookupElementDecorator.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/completionInitializationUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/completionUtilsNoResolve.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/handlers/WithTailInsertHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/handlers/handlerUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/Completions.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/FirCompletionDummyIdentifierProviderService.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/ImportStrategyDetector.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/InsertionHandlerBase.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/K2CompletionCharFilter.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/K2CompletionContext.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/K2CompletionContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/K2CompletionRunner.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/K2LookupElementSink.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/KotlinCompletionImplK2Bundle.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/KotlinFirCompletionContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/KotlinFirCompletionParameters.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/checkers/ApplicableExtension.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/checkers/CompletionVisibilityChecker.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/checkers/KtCompletionExtensionCandidateChecker.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/context/FirBasicCompletionContext.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2ActualDeclarationContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2CallableCompletionContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2ChainCompletionContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2ClassReferenceCompletionContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2ClassifierCompletionContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2DeclarationFromOverridableMembersContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2DeclarationFromUnresolvedNameContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2ImportDirectivePackageMembersCompletionContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2KDocParameterNameContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2KeywordCompletionContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2MultipleArgumentContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2NamedArgumentCompletionContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2OperatorNameCompletionContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2PackageCompletionContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2SameAsFileClassifierNameCompletionContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2SuperEntryContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2SuperMemberCompletionContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2TrailingFunctionParameterNameCompletionContributorBase.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2TypeInstantiationContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2TypeParameterConstraintNameInWhereClauseCompletionContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2VariableOrParameterNameWithTypeCompletionContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/K2WhenWithSubjectConditionContributor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/helpers/CallableMetadataProvider.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/helpers/FirClassifierProvider.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/helpers/FirSuperEntriesProvider.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/helpers/ShadowedCallablesFilter.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/helpers/completionHelpers.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/helpers/symbolUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/helpers/utils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/keywords/ActualKeywordHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/keywords/OverrideKeywordHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/keywords/ReturnKeywordHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/keywords/SuperKeywordHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/keywords/ThisKeywordHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/contributors/utils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/handlers/AdaptToExplicitReceiverInsertionHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/handlers/AnonymousObjectInsertHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/handlers/BracketOperatorInsertionHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/handlers/InsertRequiredTypeArgumentsInsertHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/handlers/K2SmartCompletionTailOffsetProviderImpl.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/handlers/QualifyContextSensitiveResolutionHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/handlers/SmartCompletionTailHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/handlers/TrailingLambdaInsertionHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/handlers/TrailingLambdaInsertionHandlerFactory.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/handlers/WithImportInsertionHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/handlers/WrapSingleStringTemplateEntryWithBracesInsertHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/jfr/AbstractCompletionEvent.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/jfr/CompletionCollectResultsEvent.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/jfr/CompletionCommonSectionDataSetupEvent.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/jfr/CompletionEvent.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/jfr/CompletionSectionEvent.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/jfr/CompletionSetupEvent.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/jfr/Util.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/CallableInsertionOptions.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/CallableInsertionStrategy.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/CompletionShortNamesRenderer.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/ImportStrategy.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/KotlinCallableLookupObject.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/KotlinLookupObject.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/QuotedNamesAwareInsertionHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/TailTextProvider.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/TypeTextProvider.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/UniqueLookupObject.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/factories/ClassLookupElementFactory.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/factories/FunctionLookupElementFactory.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/factories/KotlinFirLookupElementFactory.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/factories/NamedArgumentLookupElementFactory.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/factories/OperatorNameLookupElementFactory.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/factories/PackagePartLookupElementFactory.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/factories/TypeLookupElementFactory.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/factories/TypeParameterLookupElementFactory.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/factories/VariableLookupElementFactory.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/factories/factoryUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/factories/insertionUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/lookups/utils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/smartCastUtil.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/ByNameAlphabeticalWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/CallableWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/ClassifierWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/CompletionContributorGroupWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/DeprecatedWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/DurationPreferringWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/ExpectedTypeWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/K2SoftDeprecationWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/KindWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/KotlinLookupElementWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/NotImportedWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/PreferAbstractForOverrideWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/PreferContextualCallablesWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/PreferFewerParametersWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/PreferGetSetMethodsToPropertyWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/PreferMatchingArgumentNameWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/PreferNamedArgumentCompletionWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/PreferredSubtypeWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/PriorityWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/TrailingLambdaParameterNameWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/TrailingLambdaWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/VariableOrFunctionWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/VariableOrParameterNameWithTypeWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/Weighers.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/impl/k2/weighers/WeighingContext.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/implCommon/AbstractCompletionDummyIdentifierProviderService.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/implCommon/ActualCompletionLookupElementDecorator.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/implCommon/OperatorNameCompletion.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/implCommon/handlers/CompletionCharInsertHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/implCommon/handlers/NamedArgumentInsertHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/implCommon/handlers/WithExpressionPrefixInsertHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/implCommon/keywords/BreakContinueKeywordHanlder.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/implCommon/stringTemplates/InsertStringTemplateBracesInsertHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/implCommon/stringTemplates/StringTemplateCompletion.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/implCommon/weighers/PreferKotlinClassesWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/implCommon/weighers/SoftDeprecationWeigher.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/keywords/CompletionKeywordHandler.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/keywords/CompletionKeywordHandlerProvider.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/completion/keywords/DefaultCompletionKeywordHandlerProvider.kt</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${plugin.root}/formatter/minimal/src</directory>
+                                    <includes>
+                                        <include>org/jetbrains/kotlin/idea/core/formatter/KotlinCodeStyleSettings.java</include>
+                                        <include>org/jetbrains/kotlin/idea/core/formatter/KotlinPackageEntry.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/core/formatter/KotlinPackageEntryTable.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/KotlinFormatterMinimalBundle.java</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/KotlinObsoleteStyleGuide.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/KotlinOfficialStyleGuide.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/codeStyleUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/util/FormatterUtil.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/util/ReflectionUtil.java</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${plugin.root}/frontend-independent/src</directory>
+                                    <includes>
+                                        <include>org/jetbrains/kotlin/idea/core/templates.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/core/util/KotlinIdeaCoreBundle.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/documentUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/j2k/DocCommentConverter.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/j2k/IdeaDocCommentConverter.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/util/positionContext/KotlinPositionContext.kt</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${plugin.root}/kotlin.searching/src</directory>
+                                    <includes>
+                                        <include>org/jetbrains/kotlin/idea/searching/inheritors/DirectKotlinClassInheritorsSearch.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/searching/inheritors/DirectKotlinOverridingCallableSearch.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/searching/inheritors/kotlinSearchUtil.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/searching/kmp/findAllActualForExpect.kt</include>
                                     </includes>
                                 </resource>
                                 <resource>
@@ -180,7 +669,14 @@
                 <configuration>
                     <sourceDirs>
                         <sourceDir>${project.build.directory}/filtered-sources/src</sourceDir>
+                        <!-- Consulo replacements of upstream files (seeds.txt: replace and stop) -->
+                        <sourceDir>${project.basedir}/src/main/kotlin</sourceDir>
+                        <sourceDir>${project.basedir}/src/main/java</sourceDir>
                     </sourceDirs>
+                    <!-- completion's lookup objects and insertion handlers are @Serializable -->
+                    <compilerPlugins>
+                        <plugin>kotlinx-serialization</plugin>
+                    </compilerPlugins>
                     <args combine.children="append">
                         <!-- upstream is built with positional destructuring (val (a, b) = pair) -->
                         <arg>-Xname-based-destructuring=only-syntax</arg>
@@ -198,6 +694,13 @@
                         <arg>-opt-in=org.jetbrains.kotlin.analysis.api.permissions.KaAllowProhibitedAnalyzeFromWriteAction</arg>
                     </args>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.jetbrains.kotlin</groupId>
+                        <artifactId>kotlin-maven-serialization</artifactId>
+                        <version>${kotlin.compiler.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -205,6 +708,7 @@
                 <configuration>
                     <compileSourceRoots>
                         <compileSourceRoot>${project.build.directory}/filtered-sources/src</compileSourceRoot>
+                        <compileSourceRoot>${project.basedir}/src/main/java</compileSourceRoot>
                     </compileSourceRoots>
                 </configuration>
             </plugin>
@@ -212,6 +716,13 @@
     </build>
 
     <dependencies>
+        <!-- upstream annotates types with @Nls (TYPE_USE since annotations 20) -->
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>26.0.2</version>
+            <scope>provided</scope>
+        </dependency>
         <dependency>
             <groupId>consulo.kotlin</groupId>
             <artifactId>consulo.kotlin.intellij-stubs</artifactId>
@@ -237,6 +748,26 @@
             <groupId>consulo.kotlin</groupId>
             <artifactId>consulo.kotlin.analysis.decompiled.decompiler</artifactId>
             <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- completion: serializable lookup objects (bundled by the plugin), coroutines of the parallel runner (off) -->
+        <dependency>
+            <groupId>org.jetbrains.kotlinx</groupId>
+            <artifactId>kotlinx-serialization-core-jvm</artifactId>
+            <version>1.11.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlinx</groupId>
+            <artifactId>kotlinx-coroutines-core-jvm</artifactId>
+            <version>1.8.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- JDOM of the code style settings -->
+        <dependency>
+            <groupId>org.jdom</groupId>
+            <artifactId>jdom-core</artifactId>
+            <version>3.1</version>
             <scope>provided</scope>
         </dependency>
         <!-- the Analysis API with its compiler closure -->

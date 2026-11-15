@@ -2,12 +2,23 @@
 # Regenerate the pom after changing this file:
 #   python3 consulo-plugin/tools/closure.py --pom consulo-plugin/upstream/pom.xml @consulo-plugin/upstream/seeds.txt
 
-# project structure stays Consulo's own (consulo-plugin/plugin, consulo.kotlin.analysis): IntelliJ's is workspace-model based
+# project structure stays Consulo's own (consulo-plugin/plugin, consulo.kotlin.analysis): IntelliJ's is workspace-model based;
+# the members the subset uses are in src/main/kotlin (consuloProjectStructure.kt)
 --stop base/project-structure
 --stop base/fir/project-structure
 --stop base/facet
+# Consulo versions of upstream files, in src/main/kotlin: no UAST in Consulo
+--replace org/jetbrains/kotlin/idea/base/analysis/KotlinUastOutOfCodeBlockModificationTracker.kt
+--replace org/jetbrains/kotlin/idea/base/analysis/RootKindMatcherImpl.kt
+# no remote development: lookup elements are never serialized
+--replace org/jetbrains/kotlin/idea/completion/api/serialization/lookup/LookupModelConverter.kt
+# built on private parts of IntelliJ's CommonCodeStyleSettings
+--replace org/jetbrains/kotlin/idea/formatter/KotlinCommonCodeStyleSettings.java
 # the Analysis API module of a file outside the project, an interface the declaration provider checks for
 org/jetbrains/kotlin/idea/base/projectStructure/modules/KaSourceModuleForOutsider.kt
+# file kinds of the search scopes; consulo.kotlin.analysis.ConsuloRootKindMatcher matches them (IntelliJ's needs scripting)
+org/jetbrains/kotlin/idea/base/projectStructure/RootKindFilter.kt
+org/jetbrains/kotlin/idea/base/projectStructure/scope/KotlinSourceFilterScope.kt
 # class files of libraries, through the Kotlin class file index (VirtualFileFinderFactory)
 # (IdeVirtualFileFinderFactory overrides create(project, ModuleInfo), which this compiler fork does not declare: consulo.kotlin.analysis.ConsuloVirtualFileFinderFactory creates the finder)
 org/jetbrains/kotlin/idea/vfilefinder/IdeVirtualFileFinder.kt
@@ -75,3 +86,13 @@ org.jetbrains.kotlin.idea.references.impl.KaBaseKDocReference
 org.jetbrains.kotlin.idea.references.impl.KaBasePropertyDelegationMethodsReference
 org.jetbrains.kotlin.idea.references.impl.KaBaseSimpleNameReference
 org.jetbrains.kotlin.idea.references.impl.ReadWriteAccessCheckerBaseImpl
+
+# PSI edits of the Kotlin PSI (base/psi)
+org.jetbrains.kotlin.idea.base.psi.KtPsiMutationServiceImpl
+
+# completion (completion/impl-k2)
+org.jetbrains.kotlin.idea.completion.impl.k2.KotlinFirCompletionContributor
+org.jetbrains.kotlin.idea.completion.impl.k2.K2CompletionCharFilter
+org.jetbrains.kotlin.idea.completion.impl.k2.FirCompletionDummyIdentifierProviderService
+org.jetbrains.kotlin.idea.completion.impl.k2.handlers.K2SmartCompletionTailOffsetProviderImpl
+org.jetbrains.kotlin.idea.completion.impl.k2.handlers.TrailingLambdaInsertionHandlerFactory
