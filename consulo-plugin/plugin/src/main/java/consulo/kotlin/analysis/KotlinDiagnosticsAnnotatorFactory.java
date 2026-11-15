@@ -33,7 +33,7 @@ public class KotlinDiagnosticsAnnotatorFactory implements AnnotatorFactory {
     }
 
     private static void annotate(PsiElement element, AnnotationHolder holder) {
-        if (!(element instanceof KtFile file)) {
+        if (!(element instanceof KtFile file) || !KotlinAnalysisScope.isEnabled(file)) {
             return;
         }
         try {
