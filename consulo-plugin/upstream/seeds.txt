@@ -1,0 +1,77 @@
+# Upstream plugin classes the Consulo plugin uses; consulo-plugin/tools/closure.py computes the files they reach.
+# Regenerate the pom after changing this file:
+#   python3 consulo-plugin/tools/closure.py --pom consulo-plugin/upstream/pom.xml @consulo-plugin/upstream/seeds.txt
+
+# project structure stays Consulo's own (consulo-plugin/plugin, consulo.kotlin.analysis): IntelliJ's is workspace-model based
+--stop base/project-structure
+--stop base/fir/project-structure
+--stop base/facet
+# the Analysis API module of a file outside the project, an interface the declaration provider checks for
+org/jetbrains/kotlin/idea/base/projectStructure/modules/KaSourceModuleForOutsider.kt
+# class files of libraries, through the Kotlin class file index (VirtualFileFinderFactory)
+# (IdeVirtualFileFinderFactory overrides create(project, ModuleInfo), which this compiler fork does not declare: consulo.kotlin.analysis.ConsuloVirtualFileFinderFactory creates the finder)
+org/jetbrains/kotlin/idea/vfilefinder/IdeVirtualFileFinder.kt
+
+# indexes (base/indices) and the stub index service
+org.jetbrains.kotlin.idea.stubindex.IdeStubIndexService
+org.jetbrains.kotlin.idea.stubindex.KotlinExactPackagesIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinPrimeSymbolNameIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinClassShortNameIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinFullClassNameIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinPropertyShortNameIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinFunctionShortNameIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinTypeAliasShortNameIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinSuperClassIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinTopLevelExpectFunctionFqNameIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinTopLevelExpectPropertyFqNameIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinTopLevelFunctionFqnNameIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinTopLevelPropertyFqnNameIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinFullTypeAliasNameIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinTopLevelExtensionsByReceiverTypeIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinExtensionsInObjectsByReceiverTypeIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinAnnotationsIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinJvmNameAnnotationIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinProbablyInjectedFunctionShortNameIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinFileFacadeFqNameIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinFileFacadeClassByPackageIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinFileFacadeShortNameIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinMultiFileClassPartIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinScriptFqnIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinTypeAliasByExpansionShortNameIndex
+org.jetbrains.kotlin.idea.stubindex.KotlinSubclassObjectNameIndex
+org.jetbrains.kotlin.idea.vfilefinder.KotlinPartialPackageNamesIndex
+org.jetbrains.kotlin.idea.vfilefinder.KotlinClassFileIndex
+org.jetbrains.kotlin.idea.vfilefinder.KotlinMetadataFileIndex
+org.jetbrains.kotlin.idea.vfilefinder.KotlinMetadataFilePackageIndex
+org.jetbrains.kotlin.idea.vfilefinder.KotlinModuleMappingIndex
+org.jetbrains.kotlin.idea.vfilefinder.KotlinJvmModuleAnnotationsIndex
+org.jetbrains.kotlin.idea.vfilefinder.KotlinBuiltInsMetadataIndex
+# next: KotlinStdlibIndex (needs ManifestFileType: Consulo has it in the osmorc plugin)
+org.jetbrains.kotlin.idea.base.indices.names.KotlinTopLevelCallableByPackageShortNameIndex
+org.jetbrains.kotlin.idea.base.indices.names.KotlinTopLevelClassLikeDeclarationByPackageShortNameIndex
+org.jetbrains.kotlin.idea.base.indices.names.KotlinBinaryRootToPackageIndex
+
+# Analysis API platform services (base/analysis-api-platform, base/fir/analysis-api-platform)
+org.jetbrains.kotlin.idea.base.analysisApiPlatform.IdeKotlinAnnotationsResolverFactory
+org.jetbrains.kotlin.idea.base.analysisApiPlatform.IdeKotlinDeclarationProviderFactory
+org.jetbrains.kotlin.idea.base.analysisApiPlatform.IdeKotlinDeclarationProviderMerger
+org.jetbrains.kotlin.idea.base.analysisApiPlatform.IdeKotlinPackagePartProviderFactory
+org.jetbrains.kotlin.idea.base.analysisApiPlatform.IdeKotlinPackageProviderFactory
+org.jetbrains.kotlin.idea.base.analysisApiPlatform.IdeKotlinPackageProviderMerger
+org.jetbrains.kotlin.idea.base.analysisApiPlatform.IdeKotlinModulePackageNamesProvider
+org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.FirIdeOutOfBlockModificationService
+org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.FirIdeKotlinModificationTrackerFactory
+# next step: FirIdeKotlinDirectInheritorsProvider (needs the Searcher/SearchService compat and kotlin.searching searchers)
+
+# references (references, base/analysis-api-platform)
+org.jetbrains.kotlin.idea.references.impl.KaBaseArrayAccessReference
+org.jetbrains.kotlin.idea.references.impl.KaBaseCollectionLiteralReference
+org.jetbrains.kotlin.idea.references.impl.KaBaseConstructorDelegationReference
+org.jetbrains.kotlin.idea.references.impl.KaBaseDefaultAnnotationArgumentReference
+org.jetbrains.kotlin.idea.references.impl.KaBaseDestructuringDeclarationReference
+org.jetbrains.kotlin.idea.references.impl.KaBaseForLoopInReference
+org.jetbrains.kotlin.idea.references.impl.KaBaseInvokeFunctionReference
+org.jetbrains.kotlin.idea.references.impl.KaBaseKDocReference
+org.jetbrains.kotlin.idea.references.impl.KaBasePropertyDelegationMethodsReference
+org.jetbrains.kotlin.idea.references.impl.KaBaseSimpleNameReference
+org.jetbrains.kotlin.idea.references.impl.ReadWriteAccessCheckerBaseImpl

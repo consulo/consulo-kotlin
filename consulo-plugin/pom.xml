@@ -16,6 +16,7 @@
 
     <!-- Consulo-only parts of the plugin; upstream sources stay untouched -->
     <modules>
+        <module>upstream</module>
         <module>remap</module>
         <module>plugin</module>
         <module>test</module>

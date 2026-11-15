@@ -2,26 +2,16 @@ package consulo.kotlin.analysis;
 
 import consulo.annotation.component.ServiceImpl;
 import consulo.language.psi.scope.GlobalSearchScope;
-import consulo.module.content.DirectoryIndex;
 import consulo.project.Project;
-import consulo.virtualFileSystem.VirtualFile;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jetbrains.kotlin.idea.vfilefinder.IdeVirtualFileFinder;
 import org.jetbrains.kotlin.load.kotlin.VirtualFileFinder;
 import org.jetbrains.kotlin.load.kotlin.VirtualFileFinderFactory;
-import org.jetbrains.kotlin.name.ClassId;
-import org.jetbrains.kotlin.name.FqName;
-import org.jetbrains.kotlin.serialization.deserialization.builtins.BuiltInSerializerProtocol;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Set;
 
 /**
- * Finds the class files of library classes for the binary symbol providers. IntelliJ uses Kotlin file indexes for this;
- * here the class file is looked up in the package directories ({@link DirectoryIndex}) inside the search scope, and in
- * the stdlib bundled with the plugin.
- * Kotlin metadata files (.kotlin_metadata of common code) are not looked up yet.
+ * Creates upstream's {@link IdeVirtualFileFinder} (Kotlin class file index). Upstream's own factory also overrides
+ * {@code create(Project, ModuleInfo)}, which the compiler fork's {@link VirtualFileFinderFactory} does not declare.
  */
 @Singleton
 @ServiceImpl
@@ -35,86 +25,11 @@ public class ConsuloVirtualFileFinderFactory implements VirtualFileFinderFactory
 
     @Override
     public VirtualFileFinder create(GlobalSearchScope scope) {
-        return new Finder(myProject, scope);
+        return new IdeVirtualFileFinder(scope, myProject);
     }
 
     @Override
     public VirtualFileFinder create(Project project) {
         return create(GlobalSearchScope.allScope(project));
-    }
-
-    private static final class Finder extends VirtualFileFinder {
-        private final Project myProject;
-        private final GlobalSearchScope myScope;
-
-        Finder(Project project, GlobalSearchScope scope) {
-            myProject = project;
-            myScope = scope;
-        }
-
-        @Override
-        public VirtualFile findVirtualFileWithHeader(ClassId classId) {
-            if (classId.isLocal()) {
-                return null;
-            }
-            // nested classes are separate class files: Outer$Inner.class
-            String fileName = classId.getRelativeClassName().asString().replace('.', '$') + ".class";
-            return findInPackage(classId.getPackageFqName(), fileName);
-        }
-
-        @Override
-        public VirtualFile findSourceOrBinaryVirtualFile(ClassId classId) {
-            return findVirtualFileWithHeader(classId);
-        }
-
-        @Override
-        public InputStream findMetadata(ClassId classId) {
-            return null;
-        }
-
-        @Override
-        public Set<String> findMetadataTopLevelClassesInPackage(FqName packageFqName) {
-            return null;
-        }
-
-        @Override
-        public boolean hasMetadataPackage(FqName fqName) {
-            return false;
-        }
-
-        @Override
-        public InputStream findBuiltInsData(FqName packageFqName) {
-            VirtualFile file = findInPackage(packageFqName, BuiltInSerializerProtocol.INSTANCE.getBuiltInsFileName(packageFqName));
-            try {
-                return file == null ? null : file.getInputStream();
-            }
-            catch (IOException e) {
-                return null;
-            }
-        }
-
-        private VirtualFile findInPackage(FqName packageFqName, String fileName) {
-            // the stdlib bundled with the plugin is not a project root, so the directory index does not know it
-            ConsuloKaLibraryModule bundledStdlib = ConsuloKotlinProjectStructureProvider.getInstance(myProject).getBundledStdlibModule();
-            if (bundledStdlib != null) {
-                String path = packageFqName.isRoot() ? fileName : packageFqName.asString().replace('.', '/') + "/" + fileName;
-                for (VirtualFile root : bundledStdlib.getBinaryVirtualFiles()) {
-                    VirtualFile file = root.findFileByRelativePath(path);
-                    if (file != null && myScope.contains(file)) {
-                        return file;
-                    }
-                }
-            }
-            VirtualFile[] found = {null};
-            DirectoryIndex.getInstance(myProject).getDirectoriesByPackageName(packageFqName.asString(), false).forEach(directory -> {
-                VirtualFile child = directory.findChild(fileName);
-                if (child != null && myScope.contains(child)) {
-                    found[0] = child;
-                    return false;
-                }
-                return true;
-            });
-            return found[0];
-        }
     }
 }

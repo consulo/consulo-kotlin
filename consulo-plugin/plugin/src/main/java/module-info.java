@@ -11,6 +11,7 @@ open module consulo.kotlin {
     requires consulo.localize.api;
     requires consulo.kotlin.core.helper;
     requires consulo.kotlin.remapped;
+    requires consulo.kotlin.plugin;
     requires consulo.virtual.file.system.api;
     requires consulo.language.api;
     requires consulo.java.language.api;

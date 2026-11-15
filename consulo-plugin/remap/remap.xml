@@ -3,6 +3,13 @@
      The <module> sections are merged; this file's name wins. -->
 <remap>
     <classes>
+        <!-- upstream classes in packages of the compiler jar (split packages), by consulo-plugin/tools/genservices.py -->
+        <!-- genservices:splitpackages:begin -->
+        <rule from="org.jetbrains.kotlin.util.CollectionUtilsKt$cycle$1" to="org.jetbrains.kotlin.util.plugin.CollectionUtilsKt$cycle$1"/>
+        <rule from="org.jetbrains.kotlin.util.CollectionUtilsKt$takeWhileInclusive$1" to="org.jetbrains.kotlin.util.plugin.CollectionUtilsKt$takeWhileInclusive$1"/>
+        <rule from="org.jetbrains.kotlin.util.CollectionUtilsKt$takeWhileIsInstance$1" to="org.jetbrains.kotlin.util.plugin.CollectionUtilsKt$takeWhileIsInstance$1"/>
+        <rule from="org.jetbrains.kotlin.util.CollectionUtilsKt" to="org.jetbrains.kotlin.util.plugin.CollectionUtilsKt"/>
+        <!-- genservices:splitpackages:end -->
         <!-- the plugin's only QuoteHandler is per language; Consulo registers those as LanguageQuoteHandler extensions -->
         <rule from="com.intellij.codeInsight.editorActions.QuoteHandler" to="consulo.language.editor.action.LanguageQuoteHandler"/>
     </classes>
@@ -52,6 +59,23 @@
                 <areturn/>
             </addMethod>
         </class>
+        <!-- genservices:modifications:begin -->
+        <class name="org.jetbrains.kotlin.idea.base.analysisApiPlatform.KotlinModulePackageNamesProvider">
+            <addAnnotation type="consulo.annotation.component.ServiceAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="PROJECT"/>
+            </addAnnotation>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.FirIdeOutOfBlockModificationService">
+            <addAnnotation type="consulo.annotation.component.ServiceAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="PROJECT"/>
+            </addAnnotation>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.references.ReadWriteAccessChecker">
+            <addAnnotation type="consulo.annotation.component.ServiceAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="PROJECT"/>
+            </addAnnotation>
+        </class>
+        <!-- genservices:modifications:end -->
         <!-- getLanguage() comes from the compat brace matcher base -->
         <class name="org.jetbrains.kotlin.idea.KotlinPairedBraceMatcher">
             <addAnnotation type="consulo.annotation.component.ExtensionImpl"/>
@@ -68,11 +92,92 @@
         <requires>consulo.project.api</requires>
         <requires>consulo.virtual.file.system.api</requires>
         <requires>consulo.java.analysis.impl</requires>
+        <!-- upstream modules (consulo-plugin/upstream): indexes and Analysis API platform services -->
+        <requires>consulo.java.language.api</requires>
+        <requires>consulo.java.language.impl</requires>
+        <requires>consulo.language.impl</requires>
+        <requires>consulo.component.api</requires>
+        <requires>consulo.application.api</requires>
+        <requires>consulo.document.api</requires>
+        <requires>consulo.util.dataholder</requires>
+        <requires>consulo.util.lang</requires>
+        <requires>consulo.index.io</requires>
+        <requires>consulo.module.api</requires>
+        <requires>consulo.module.content.api</requires>
+        <requires>consulo.project.content.api</requires>
+        <requires>consulo.logging.api</requires>
+        <requires>consulo.annotation</requires>
+        <requires>kotlinx.collections.immutable</requires>
+        <requires>com.github.benmanes.caffeine</requires>
+        <requires>com.google.common</requires>
+        <requires>javax.inject</requires>
 
         <exports>org/jetbrains/kotlin/idea/highlighter</exports>
         <exports>org/jetbrains/kotlin/idea/base/highlighting</exports>
 
         <provides interface="consulo.component.bind.InjectingBinding">
+            <!-- genservices:bindings:begin -->
+            <binding impl="org.jetbrains.kotlin.idea.base.analysisApiPlatform.IdeKotlinAnnotationsResolverFactory" api="org.jetbrains.kotlin.analysis.api.platform.declarations.KotlinAnnotationsResolverFactory" scope="PROJECT" type="service"/>
+            <binding impl="org.jetbrains.kotlin.idea.base.analysisApiPlatform.IdeKotlinDeclarationProviderFactory" api="org.jetbrains.kotlin.analysis.api.platform.declarations.KotlinDeclarationProviderFactory" scope="PROJECT" type="service"/>
+            <binding impl="org.jetbrains.kotlin.idea.base.analysisApiPlatform.IdeKotlinDeclarationProviderMerger" api="org.jetbrains.kotlin.analysis.api.platform.declarations.KotlinDeclarationProviderMerger" scope="PROJECT" type="service"/>
+            <binding impl="org.jetbrains.kotlin.idea.base.analysisApiPlatform.IdeKotlinModulePackageNamesProvider" api="org.jetbrains.kotlin.idea.base.analysisApiPlatform.KotlinModulePackageNamesProvider" scope="PROJECT" type="service"/>
+            <binding impl="org.jetbrains.kotlin.idea.base.analysisApiPlatform.IdeKotlinPackagePartProviderFactory" api="org.jetbrains.kotlin.analysis.api.platform.packages.KotlinPackagePartProviderFactory" scope="PROJECT" type="service"/>
+            <binding impl="org.jetbrains.kotlin.idea.base.analysisApiPlatform.IdeKotlinPackageProviderFactory" api="org.jetbrains.kotlin.analysis.api.platform.packages.KotlinPackageProviderFactory" scope="PROJECT" type="service"/>
+            <binding impl="org.jetbrains.kotlin.idea.base.analysisApiPlatform.IdeKotlinPackageProviderMerger" api="org.jetbrains.kotlin.analysis.api.platform.packages.KotlinPackageProviderMerger" scope="PROJECT" type="service"/>
+            <binding impl="org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.FirIdeKotlinModificationTrackerFactory" api="org.jetbrains.kotlin.analysis.api.platform.modification.KotlinModificationTrackerFactory" scope="PROJECT" type="service"/>
+            <binding impl="org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.FirIdeOutOfBlockModificationService" api="org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.FirIdeOutOfBlockModificationService" scope="PROJECT" type="service"/>
+            <binding impl="org.jetbrains.kotlin.idea.references.impl.ReadWriteAccessCheckerBaseImpl" api="org.jetbrains.kotlin.idea.references.ReadWriteAccessChecker" scope="PROJECT" type="service"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.IdeStubIndexService" api="org.jetbrains.kotlin.psi.stubs.elements.StubIndexService" scope="APPLICATION" type="service"/>
+            <binding impl="org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.FirIdeOutOfBlockModificationService$OutOfBlockTreeChangePreprocessor" api="consulo.kotlin.compat.psi.PsiTreeChangePreprocessor" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.base.indices.names.KotlinBinaryRootToPackageIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.base.indices.names.KotlinTopLevelCallableByPackageShortNameIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.base.indices.names.KotlinTopLevelClassLikeDeclarationByPackageShortNameIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseArrayAccessReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseCollectionLiteralReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseConstructorDelegationReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseDefaultAnnotationArgumentReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseDestructuringDeclarationReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseForLoopInReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseInvokeFunctionReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseKDocReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBasePropertyDelegationMethodsReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseSimpleNameReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinAnnotationsIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinClassShortNameIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinExactPackagesIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinExtensionsInObjectsByReceiverTypeIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinFileFacadeClassByPackageIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinFileFacadeFqNameIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinFileFacadeShortNameIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinFullClassNameIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinFullTypeAliasNameIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinFunctionShortNameIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinJvmNameAnnotationIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinMultiFileClassPartIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinPrimeSymbolNameIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinProbablyInjectedFunctionShortNameIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinPropertyShortNameIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinScriptFqnIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinSubclassObjectNameIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinSuperClassIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinTopLevelExpectFunctionFqNameIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinTopLevelExpectPropertyFqNameIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinTopLevelExtensionsByReceiverTypeIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinTopLevelFunctionFqnNameIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinTopLevelPropertyFqnNameIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinTypeAliasByExpansionShortNameIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinTypeAliasShortNameIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.vfilefinder.KotlinBuiltInsMetadataIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.vfilefinder.KotlinClassFileIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.vfilefinder.KotlinJvmModuleAnnotationsIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.vfilefinder.KotlinMetadataFileIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.vfilefinder.KotlinMetadataFilePackageIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.vfilefinder.KotlinModuleMappingIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.vfilefinder.KotlinPartialPackageNamesIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.vfilefinder.KotlinStdlibIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.base.analysisApiPlatform.IdeKotlinModulePackageNamesProvider$ModificationEventListener" api="org.jetbrains.kotlin.analysis.api.platform.modification.KotlinModificationEventListener" scope="PROJECT" type="topic"/>
+            <binding impl="org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.FirIdeOutOfBlockModificationService$StateResetAnalysisInWriteActionListener" api="org.jetbrains.kotlin.analysis.api.platform.KotlinAnalysisInWriteActionListener" scope="PROJECT" type="topic"/>
+            <!-- genservices:bindings:end -->
             <binding impl="org.jetbrains.kotlin.idea.base.highlighting.KotlinSyntaxHighlighterFactory"
                      api="consulo.language.editor.highlight.SyntaxHighlighterFactory"
                      scope="APPLICATION"/>

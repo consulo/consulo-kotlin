@@ -12,6 +12,8 @@ import consulo.module.Module;
 import consulo.module.ModuleManager;
 import consulo.module.content.ModuleRootManager;
 import consulo.module.content.ProjectFileIndex;
+import consulo.module.content.layer.event.ModuleRootEvent;
+import consulo.module.content.layer.event.ModuleRootListener;
 import consulo.module.content.layer.orderEntry.LibraryOrderEntry;
 import consulo.module.content.layer.orderEntry.ModuleExtensionWithSdkOrderEntry;
 import consulo.module.content.layer.orderEntry.ModuleOrderEntry;
@@ -22,6 +24,7 @@ import consulo.virtualFileSystem.VirtualFile;
 import consulo.virtualFileSystem.util.VirtualFileUtil;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jetbrains.kotlin.analysis.api.platform.modification.UtilsKt;
 import org.jetbrains.kotlin.analysis.api.platform.projectStructure.KotlinProjectStructureProviderBase;
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaModule;
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaNotUnderContentRootModule;
@@ -48,12 +51,18 @@ public class ConsuloKotlinProjectStructureProvider extends KotlinProjectStructur
     private volatile ConsuloKaLibraryModule myBundledStdlibModule;
 
     /**
-     * Analysis always asks for the project structure first, so taking the modification service here starts its
-     * listeners before any analysis cache exists.
+     * Analysis always asks for the project structure first, so the root listener exists before any analysis cache: a root
+     * change is a global module state modification (IntelliJ publishes it from its workspace model listeners).
      */
     @Inject
-    public ConsuloKotlinProjectStructureProvider(Project project, ConsuloKotlinModificationService modificationService) {
+    public ConsuloKotlinProjectStructureProvider(Project project) {
         myProject = project;
+        project.getMessageBus().connect(project).subscribe(ModuleRootListener.class, new ModuleRootListener() {
+            @Override
+            public void rootsChanged(ModuleRootEvent event) {
+                UtilsKt.publishGlobalModuleStateModificationEvent(myProject);
+            }
+        });
     }
 
     public static ConsuloKotlinProjectStructureProvider getInstance(Project project) {

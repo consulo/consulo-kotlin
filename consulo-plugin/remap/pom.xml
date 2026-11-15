@@ -27,6 +27,31 @@
             <artifactId>consulo.kotlin.plugin.code-insight.minimal</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>consulo.kotlin.plugin.upstream</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- the platform, for the kinds of remap targets (an IntelliJ class can be a Consulo interface) -->
+        <dependency>
+            <groupId>consulo</groupId>
+            <artifactId>consulo-ide-impl</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>consulo.plugin</groupId>
+            <artifactId>consulo.java-java.language.impl</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- the remapped compiler, for the kinds of its classes -->
+        <dependency>
+            <groupId>consulo.kotlin</groupId>
+            <artifactId>consulo.kotlin.remapped</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>
