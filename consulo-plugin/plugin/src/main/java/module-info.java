@@ -4,6 +4,7 @@
  */
 open module consulo.kotlin {
     exports consulo.kotlin.icon;
+    exports consulo.kotlin.module.extension;
 
     requires consulo.annotation;
     requires consulo.application.api;
@@ -14,4 +15,7 @@ open module consulo.kotlin {
     requires consulo.language.api;
     requires consulo.java.language.api;
     requires consulo.ui.api;
+    requires consulo.module.api;
+    requires consulo.module.content.api;
+    requires consulo.disposer.api;
 }
