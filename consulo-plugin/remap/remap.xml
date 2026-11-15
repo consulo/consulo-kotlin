@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Plugin-specific rules, applied on top of the compiler port's remap.xml (consulo.kotlin.remapped:mapping) -->
+<remap>
+    <redirects>
+        <!-- inherited static SyntaxHighlighterBase.merge, compiled as a call on the subclass -->
+        <method owner="org.jetbrains.kotlin.idea.highlighter.KotlinHighlighter" name="merge"
+                desc="(Ljava/util/Map;Ljava/util/Map;)Ljava/util/Map;"
+                target="consulo.kotlin.compat.editor.HighlighterCompat"/>
+    </redirects>
+
+    <modifications>
+        <!-- Consulo registers syntax highlighters as language extensions -->
+        <class name="org.jetbrains.kotlin.idea.base.highlighting.KotlinSyntaxHighlighterFactory">
+            <addAnnotation type="consulo.annotation.component.ExtensionImpl"/>
+            <addMethod name="getLanguage" returnType="consulo.language.Language">
+                <getstatic owner="org.jetbrains.kotlin.idea.KotlinLanguage"
+                           name="INSTANCE"
+                           type="org.jetbrains.kotlin.idea.KotlinLanguage"/>
+                <areturn/>
+            </addMethod>
+        </class>
+    </modifications>
+
+    <module name="consulo.kotlin.plugin">
+        <requires>consulo.kotlin.remapped</requires>
+        <requires>consulo.language.api</requires>
+        <requires>consulo.language.editor.api</requires>
+        <requires>consulo.color.scheme.api</requires>
+        <requires>consulo.code.editor.api</requires>
+        <requires>consulo.project.api</requires>
+        <requires>consulo.virtualFileSystem.api</requires>
+        <requires>consulo.java.analysis.impl</requires>
+
+        <exports>org/jetbrains/kotlin/idea/highlighter</exports>
+        <exports>org/jetbrains/kotlin/idea/base/highlighting</exports>
+
+        <provides interface="consulo.component.bind.InjectingBinding">
+            <binding impl="org.jetbrains.kotlin.idea.base.highlighting.KotlinSyntaxHighlighterFactory"
+                     api="consulo.language.editor.highlight.SyntaxHighlighterFactory"
+                     scope="APPLICATION"/>
+        </provides>
+    </module>
+</remap>

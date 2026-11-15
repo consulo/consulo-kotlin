@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>consulo.kotlin.plugin</groupId>
+        <artifactId>consulo.kotlin.plugin.internal</artifactId>
+        <version>3-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>consulo.kotlin.plugin.remapped</artifactId>
+
+    <description>Plugin modules shaded into one jar and remapped onto the Consulo API with the compiler's
+        remap.xml (consulo.kotlin.remapped:mapping) plus the plugin's own remap.xml.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>consulo.kotlin.plugin.highlighting.minimal</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Shade replaces this module's jar in place; recreate it so the next build shades fresh classes -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <forceCreation>true</forceCreation>
+                </configuration>
+            </plugin>
+            <!-- Shared IntelliJ -> Consulo rules from the compiler port -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-mapping</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>consulo.kotlin</groupId>
+                                    <artifactId>consulo.kotlin.remapped</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>xml</type>
+                                    <classifier>mapping</classifier>
+                                    <outputDirectory>${project.build.directory}/mapping</outputDirectory>
+                                    <destFileName>remap.xml</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <id>shade</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <artifactSet>
+                                <includes>
+                                    <include>consulo.kotlin.plugin:*</include>
+                                </includes>
+                            </artifactSet>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>consulo.maven</groupId>
+                <artifactId>maven-java-bytecode-remap-plugin</artifactId>
+                <version>1.0-SNAPSHOT</version>
+                <executions>
+                    <execution>
+                        <id>remap</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>remap-jar</goal>
+                        </goals>
+                        <configuration>
+                            <mappingFile>${project.build.directory}/mapping/remap.xml</mappingFile>
+                            <extraMappingFiles>
+                                <extraMappingFile>${project.basedir}/remap.xml</extraMappingFile>
+                            </extraMappingFiles>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
