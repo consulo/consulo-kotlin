@@ -126,18 +126,6 @@
             <version>1</version>
             <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>org.jetbrains.intellij.deps</groupId>
-            <artifactId>asm-all</artifactId>
-            <version>9.6.1</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains</groupId>
-            <artifactId>syntax-api-jvm</artifactId>
-            <version>0.3.376</version>
-            <scope>compile</scope>
-        </dependency>
 
         <!-- platform -->
         <dependency>

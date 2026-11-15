@@ -17,14 +17,14 @@
 
     <dependencies>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>consulo.kotlin.plugin.remapped</artifactId>
+            <groupId>consulo.kotlin</groupId>
+            <artifactId>consulo.kotlin.remapped</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>consulo.kotlin</groupId>
-            <artifactId>consulo.kotlin.remapped</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>consulo.kotlin.plugin.remapped</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

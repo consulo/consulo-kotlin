@@ -18,6 +18,7 @@
 
     <modules>
         <module>highlighting/highlighting-minimal</module>
+        <module>base/code-insight/minimal</module>
         <module>consulo-plugin</module>
     </modules>
 </project>

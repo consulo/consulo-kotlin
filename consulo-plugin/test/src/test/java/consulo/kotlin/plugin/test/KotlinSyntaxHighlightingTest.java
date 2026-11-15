@@ -5,7 +5,7 @@ import consulo.language.editor.highlight.SyntaxHighlighter;
 import consulo.language.file.LanguageFileType;
 import consulo.language.lexer.Lexer;
 import consulo.test.junit.impl.language.SimpleParsingTest;
-import org.jetbrains.kotlin.idea.KotlinFileType;
+import consulo.kotlin.compiler.idea.KotlinFileType;
 import org.jetbrains.kotlin.idea.highlighter.KotlinHighlighter;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;

@@ -22,6 +22,11 @@
             <artifactId>consulo.kotlin.plugin.highlighting.minimal</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>consulo.kotlin.plugin.code-insight.minimal</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

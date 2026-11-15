@@ -3,7 +3,7 @@ package consulo.kotlin.impl;
 import consulo.annotation.component.ExtensionImpl;
 import consulo.virtualFileSystem.fileType.FileTypeConsumer;
 import consulo.virtualFileSystem.fileType.FileTypeFactory;
-import org.jetbrains.kotlin.idea.KotlinFileType;
+import consulo.kotlin.compiler.idea.KotlinFileType;
 
 /**
  * Registers KotlinFileType (from the remapped compiler) for .kt and .kts files.

@@ -4,7 +4,7 @@ import consulo.annotation.component.ServiceImpl;
 import consulo.platform.base.icon.PlatformIconGroup;
 import consulo.ui.image.Image;
 import jakarta.inject.Singleton;
-import org.jetbrains.kotlin.idea.KotlinIconProviderService;
+import consulo.kotlin.compiler.idea.KotlinIconProviderService;
 
 /**
  * Consulo counterpart of upstream's KotlinIdeFileIconProviderService (registered in plugin.xml there).

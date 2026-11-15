@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Plugin-specific rules, applied on top of the compiler port's remap.xml (consulo.kotlin.remapped:mapping) -->
+<!-- Plugin-specific rules, applied on top of the compiler port's remap.xml (consulo.kotlin.remapped:mapping).
+     The <module> sections are merged; this file's name wins. -->
 <remap>
     <redirects>
         <!-- inherited static SyntaxHighlighterBase.merge, compiled as a call on the subclass -->
@@ -19,10 +20,24 @@
                 <areturn/>
             </addMethod>
         </class>
+        <class name="org.jetbrains.kotlin.idea.KotlinCommenter">
+            <addAnnotation type="consulo.annotation.component.ExtensionImpl"/>
+            <addMethod name="getLanguage" returnType="consulo.language.Language">
+                <getstatic owner="org.jetbrains.kotlin.idea.KotlinLanguage"
+                           name="INSTANCE"
+                           type="org.jetbrains.kotlin.idea.KotlinLanguage"/>
+                <areturn/>
+            </addMethod>
+        </class>
+        <!-- getLanguage() comes from the compat brace matcher base -->
+        <class name="org.jetbrains.kotlin.idea.KotlinPairedBraceMatcher">
+            <addAnnotation type="consulo.annotation.component.ExtensionImpl"/>
+        </class>
     </modifications>
 
     <module name="consulo.kotlin.plugin" exportAll="true">
         <requires>consulo.kotlin.remapped</requires>
+        <requires>kotlin.stdlib</requires>
         <requires>consulo.language.api</requires>
         <requires>consulo.language.editor.api</requires>
         <requires>consulo.color.scheme.api</requires>
@@ -37,6 +52,12 @@
         <provides interface="consulo.component.bind.InjectingBinding">
             <binding impl="org.jetbrains.kotlin.idea.base.highlighting.KotlinSyntaxHighlighterFactory"
                      api="consulo.language.editor.highlight.SyntaxHighlighterFactory"
+                     scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.KotlinCommenter"
+                     api="consulo.language.Commenter"
+                     scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.KotlinPairedBraceMatcher"
+                     api="consulo.language.editor.highlight.LanguageBraceMatcher"
                      scope="APPLICATION"/>
         </provides>
     </module>
