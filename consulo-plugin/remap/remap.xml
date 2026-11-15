@@ -43,6 +43,15 @@
                 <areturn/>
             </addMethod>
         </class>
+        <class name="org.jetbrains.kotlin.idea.KotlinFoldingBuilder">
+            <addAnnotation type="consulo.annotation.component.ExtensionImpl"/>
+            <addMethod name="getLanguage" returnType="consulo.language.Language">
+                <getstatic owner="org.jetbrains.kotlin.idea.KotlinLanguage"
+                           name="INSTANCE"
+                           type="org.jetbrains.kotlin.idea.KotlinLanguage"/>
+                <areturn/>
+            </addMethod>
+        </class>
         <!-- getLanguage() comes from the compat brace matcher base -->
         <class name="org.jetbrains.kotlin.idea.KotlinPairedBraceMatcher">
             <addAnnotation type="consulo.annotation.component.ExtensionImpl"/>
@@ -72,6 +81,9 @@
                      scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.KotlinPairedBraceMatcher"
                      api="consulo.language.editor.highlight.LanguageBraceMatcher"
+                     scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.KotlinFoldingBuilder"
+                     api="consulo.language.editor.folding.FoldingBuilder"
                      scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.editor.KotlinQuoteHandler"
                      api="consulo.language.editor.action.LanguageQuoteHandler"
