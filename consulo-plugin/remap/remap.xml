@@ -21,14 +21,14 @@
         </class>
     </modifications>
 
-    <module name="consulo.kotlin.plugin">
+    <module name="consulo.kotlin.plugin" exportAll="true">
         <requires>consulo.kotlin.remapped</requires>
         <requires>consulo.language.api</requires>
         <requires>consulo.language.editor.api</requires>
         <requires>consulo.color.scheme.api</requires>
         <requires>consulo.code.editor.api</requires>
         <requires>consulo.project.api</requires>
-        <requires>consulo.virtualFileSystem.api</requires>
+        <requires>consulo.virtual.file.system.api</requires>
         <requires>consulo.java.analysis.impl</requires>
 
         <exports>org/jetbrains/kotlin/idea/highlighter</exports>

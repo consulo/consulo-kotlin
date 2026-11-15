@@ -7,4 +7,9 @@ open module consulo.kotlin {
     requires consulo.application.api;
     requires consulo.localize.api;
     requires consulo.kotlin.core.helper;
+    requires consulo.kotlin.remapped;
+    requires consulo.virtual.file.system.api;
+    requires consulo.language.api;
+    requires consulo.ui.api;
+    requires consulo.base.icon.library;
 }

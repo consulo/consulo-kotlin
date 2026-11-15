@@ -44,8 +44,11 @@
                 <artifactId>maven-consulo-plugin</artifactId>
                 <extensions>true</extensions>
                 <configuration>
+                    <!-- consulo.java and the plugins it requires, for the sandbox -->
                     <dependencies>
                         <dependency>consulo.java</dependency>
+                        <dependency>com.intellij.xml</dependency>
+                        <dependency>consulo.markdown</dependency>
                     </dependencies>
                     <packaging>
                         <skip>${dev.mode}</skip>
@@ -98,6 +101,44 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- runtime libraries of the Kotlin compiler, not provided by the platform -->
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib</artifactId>
+            <version>${kotlin.compiler.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlinx</groupId>
+            <artifactId>kotlinx-collections-immutable-jvm</artifactId>
+            <version>0.5.1</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.vavr</groupId>
+            <artifactId>vavr</artifactId>
+            <version>0.10.4</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.inject</groupId>
+            <artifactId>javax.inject</artifactId>
+            <version>1</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.intellij.deps</groupId>
+            <artifactId>asm-all</artifactId>
+            <version>9.6.1</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>syntax-api-jvm</artifactId>
+            <version>0.3.376</version>
+            <scope>compile</scope>
+        </dependency>
+
         <!-- platform -->
         <dependency>
             <groupId>consulo</groupId>
@@ -108,6 +149,30 @@
         <dependency>
             <groupId>consulo</groupId>
             <artifactId>consulo-application-api</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>consulo</groupId>
+            <artifactId>consulo-base-icon-library</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>consulo</groupId>
+            <artifactId>consulo-ui-api</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>consulo</groupId>
+            <artifactId>consulo-language-api</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>consulo</groupId>
+            <artifactId>consulo-virtual-file-system-api</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
