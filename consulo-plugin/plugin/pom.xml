@@ -71,6 +71,14 @@
                             <goal>patch-bind-module-info</goal>
                         </goals>
                     </execution>
+                    <!-- KotlinIconGroup from src/main/resources/ICON-LIB (icons copied from upstream base/resources) -->
+                    <execution>
+                        <id>generate-icon</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate-icon</goal>
+                        </goals>
+                    </execution>
                     <execution>
                         <id>package</id>
                         <phase>package</phase>

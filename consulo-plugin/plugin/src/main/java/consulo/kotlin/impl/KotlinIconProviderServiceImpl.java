@@ -1,25 +1,24 @@
 package consulo.kotlin.impl;
 
 import consulo.annotation.component.ServiceImpl;
-import consulo.platform.base.icon.PlatformIconGroup;
+import consulo.kotlin.icon.KotlinIconGroup;
 import consulo.ui.image.Image;
 import jakarta.inject.Singleton;
 import consulo.kotlin.compiler.idea.KotlinIconProviderService;
 
 /**
  * Consulo counterpart of upstream's KotlinIdeFileIconProviderService (registered in plugin.xml there).
- * TODO: Kotlin icon group instead of the generic text file icon.
  */
 @Singleton
 @ServiceImpl
 public class KotlinIconProviderServiceImpl extends KotlinIconProviderService {
     @Override
     public Image getFileIcon() {
-        return PlatformIconGroup.filetypesText();
+        return KotlinIconGroup.filetypesKotlin();
     }
 
     @Override
     public Image getBuiltInFileIcon() {
-        return PlatformIconGroup.filetypesText();
+        return KotlinIconGroup.filetypesKotlin();
     }
 }

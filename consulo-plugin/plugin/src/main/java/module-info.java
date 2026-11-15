@@ -3,6 +3,8 @@
  * in consulo.kotlin.remapped (compiler) and consulo.kotlin.plugin.
  */
 open module consulo.kotlin {
+    exports consulo.kotlin.icon;
+
     requires consulo.annotation;
     requires consulo.application.api;
     requires consulo.localize.api;
@@ -12,5 +14,4 @@ open module consulo.kotlin {
     requires consulo.language.api;
     requires consulo.java.language.api;
     requires consulo.ui.api;
-    requires consulo.base.icon.library;
 }
