@@ -1,0 +1,11 @@
+<consulo-plugin url="https://github.com/consulo/consulo-kotlin">
+    <id>consulo.kotlin</id>
+    <name>Kotlin</name>
+    <version>SNAPSHOT</version>
+    <vendor>JetBrains and others</vendor>
+    <depends>consulo.java</depends>
+
+    <tags>
+        <tag>custom.language</tag>
+    </tags>
+</consulo-plugin>
