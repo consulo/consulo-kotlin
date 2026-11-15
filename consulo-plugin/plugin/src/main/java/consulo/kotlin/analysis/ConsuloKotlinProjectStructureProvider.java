@@ -4,8 +4,10 @@ import consulo.annotation.component.ServiceImpl;
 import consulo.content.base.BinariesOrderRootType;
 import consulo.content.bundle.Sdk;
 import consulo.content.library.Library;
+import consulo.kotlin.module.extension.KotlinModuleExtension;
 import consulo.language.psi.PsiElement;
 import consulo.language.psi.PsiFile;
+import consulo.language.util.ModuleUtilCore;
 import consulo.module.Module;
 import consulo.module.ModuleManager;
 import consulo.module.content.ModuleRootManager;
@@ -17,6 +19,7 @@ import consulo.module.content.layer.orderEntry.OrderEntry;
 import consulo.project.Project;
 import consulo.project.content.ProjectRootModificationTracker;
 import consulo.virtualFileSystem.VirtualFile;
+import consulo.virtualFileSystem.util.VirtualFileUtil;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jetbrains.kotlin.analysis.api.platform.projectStructure.KotlinProjectStructureProviderBase;
@@ -42,6 +45,7 @@ public class ConsuloKotlinProjectStructureProvider extends KotlinProjectStructur
     private final Map<Module, ConsuloKaSourceModule> mySourceModules = new ConcurrentHashMap<>();
     private final Map<Object, ConsuloKaLibraryModule> myLibraryModules = new ConcurrentHashMap<>();
     private volatile long myRootsModificationCount = -1;
+    private volatile ConsuloKaLibraryModule myBundledStdlibModule;
 
     /**
      * Analysis always asks for the project structure first, so taking the modification service here starts its
@@ -94,13 +98,36 @@ public class ConsuloKotlinProjectStructureProvider extends KotlinProjectStructur
 
     List<KaModule> getDependencies(Module module) {
         List<KaModule> result = new ArrayList<>();
+        boolean hasStdlib = false;
         for (OrderEntry entry : ModuleRootManager.getInstance(module).getOrderEntries()) {
             KaModule dependency = toModule(entry);
             if (dependency != null) {
                 result.add(dependency);
+                hasStdlib |= dependency instanceof ConsuloKaLibraryModule library
+                    && library.getBinaryVirtualFiles().stream().anyMatch(KotlinBundledStdlib::isStdlib);
+            }
+        }
+        // a Kotlin module works without configuring the stdlib: the one bundled with the plugin is implied
+        if (!hasStdlib && ModuleUtilCore.getExtension(module, KotlinModuleExtension.class) != null) {
+            ConsuloKaLibraryModule stdlib = getBundledStdlibModule();
+            if (stdlib != null) {
+                result.add(stdlib);
             }
         }
         return result;
+    }
+
+    /** The stdlib bundled with the plugin, as a library module; null if its jar is not found. */
+    public ConsuloKaLibraryModule getBundledStdlibModule() {
+        ConsuloKaLibraryModule module = myBundledStdlibModule;
+        if (module == null) {
+            VirtualFile root = KotlinBundledStdlib.root();
+            if (root == null) {
+                return null;
+            }
+            myBundledStdlibModule = module = new ConsuloKaLibraryModule(myProject, "Kotlin stdlib (bundled)", List.of(root), false);
+        }
+        return module;
     }
 
     private KaModule toModule(OrderEntry entry) {
@@ -144,6 +171,10 @@ public class ConsuloKotlinProjectStructureProvider extends KotlinProjectStructur
         VirtualFile virtualFile = file.getOriginalFile().getVirtualFile();
         if (virtualFile == null) {
             return new ConsuloKaNotUnderContentRootModule(myProject, file);
+        }
+        ConsuloKaLibraryModule bundledStdlib = myBundledStdlibModule;
+        if (bundledStdlib != null && VirtualFileUtil.isAncestor(bundledStdlib.getBinaryVirtualFiles().iterator().next(), virtualFile, false)) {
+            return bundledStdlib;
         }
         ProjectFileIndex fileIndex = ProjectFileIndex.getInstance(myProject);
         if (fileIndex.isInLibrary(virtualFile)) {

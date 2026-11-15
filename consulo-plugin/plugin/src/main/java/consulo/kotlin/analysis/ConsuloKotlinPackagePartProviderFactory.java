@@ -43,7 +43,7 @@ public class ConsuloKotlinPackagePartProviderFactory implements KotlinPackagePar
         return new LibraryPackagePartProvider(roots);
     }
 
-    private static ModuleMapping load(VirtualFile file) {
+    static ModuleMapping load(VirtualFile file) {
         try {
             return ModuleMapping.Companion.loadModuleMapping(file.contentsToByteArray(), file.getPath(), false, true,
                 MetadataVersion.INSTANCE, version -> Unit.INSTANCE);

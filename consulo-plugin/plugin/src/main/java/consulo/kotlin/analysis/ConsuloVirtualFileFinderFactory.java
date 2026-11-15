@@ -19,7 +19,8 @@ import java.util.Set;
 
 /**
  * Finds the class files of library classes for the binary symbol providers. IntelliJ uses Kotlin file indexes for this;
- * here the class file is looked up in the package directories ({@link DirectoryIndex}) inside the search scope.
+ * here the class file is looked up in the package directories ({@link DirectoryIndex}) inside the search scope, and in
+ * the stdlib bundled with the plugin.
  * Kotlin metadata files (.kotlin_metadata of common code) are not looked up yet.
  */
 @Singleton
@@ -93,6 +94,17 @@ public class ConsuloVirtualFileFinderFactory implements VirtualFileFinderFactory
         }
 
         private VirtualFile findInPackage(FqName packageFqName, String fileName) {
+            // the stdlib bundled with the plugin is not a project root, so the directory index does not know it
+            ConsuloKaLibraryModule bundledStdlib = ConsuloKotlinProjectStructureProvider.getInstance(myProject).getBundledStdlibModule();
+            if (bundledStdlib != null) {
+                String path = packageFqName.isRoot() ? fileName : packageFqName.asString().replace('.', '/') + "/" + fileName;
+                for (VirtualFile root : bundledStdlib.getBinaryVirtualFiles()) {
+                    VirtualFile file = root.findFileByRelativePath(path);
+                    if (file != null && myScope.contains(file)) {
+                        return file;
+                    }
+                }
+            }
             VirtualFile[] found = {null};
             DirectoryIndex.getInstance(myProject).getDirectoriesByPackageName(packageFqName.asString(), false).forEach(directory -> {
                 VirtualFile child = directory.findChild(fileName);
