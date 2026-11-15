@@ -18,4 +18,12 @@ open module consulo.kotlin {
     requires consulo.module.api;
     requires consulo.module.content.api;
     requires consulo.disposer.api;
+    requires consulo.project.content.api;
+    requires consulo.application.content.api;
+    requires kotlin.stdlib;
+    requires consulo.component.api;
+    requires consulo.document.api;
+    requires consulo.logging.api;
+    requires consulo.language.editor.api;
+    requires consulo.language.impl;
 }
