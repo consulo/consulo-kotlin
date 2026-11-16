@@ -24,6 +24,35 @@
     </redirects>
 
     <modifications>
+        <!-- IntelliJ's find usages handlers process usages with a Processor, Consulo's with a predicate -->
+        <class name="org.jetbrains.kotlin.idea.base.searching.usages.handlers.KotlinFindUsagesHandler">
+            <addMethod name="processElementUsages" returnType="boolean"
+                       params="consulo.language.psi.PsiElement,java.util.function.Predicate,consulo.find.FindUsagesOptions">
+                <aload index="0"/>
+                <aload index="1"/>
+                <aload index="2"/>
+                <invokestatic owner="consulo.kotlin.compat.find.FindCompat" name="toProcessor"
+                              desc="(Ljava/util/function/Predicate;)Lconsulo/application/util/function/Processor;"/>
+                <aload index="3"/>
+                <invokevirtual owner="org.jetbrains.kotlin.idea.base.searching.usages.handlers.KotlinFindUsagesHandler" name="processElementUsages"
+                               desc="(Lconsulo/language/psi/PsiElement;Lconsulo/application/util/function/Processor;Lconsulo/find/FindUsagesOptions;)Z"/>
+                <ireturn/>
+            </addMethod>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.base.searching.usages.handlers.DelegatingFindMemberUsagesHandler">
+            <addMethod name="processElementUsages" returnType="boolean"
+                       params="consulo.language.psi.PsiElement,java.util.function.Predicate,consulo.find.FindUsagesOptions">
+                <aload index="0"/>
+                <aload index="1"/>
+                <aload index="2"/>
+                <invokestatic owner="consulo.kotlin.compat.find.FindCompat" name="toProcessor"
+                              desc="(Ljava/util/function/Predicate;)Lconsulo/application/util/function/Processor;"/>
+                <aload index="3"/>
+                <invokevirtual owner="org.jetbrains.kotlin.idea.base.searching.usages.handlers.DelegatingFindMemberUsagesHandler" name="processElementUsages"
+                               desc="(Lconsulo/language/psi/PsiElement;Lconsulo/application/util/function/Processor;Lconsulo/find/FindUsagesOptions;)Z"/>
+                <ireturn/>
+            </addMethod>
+        </class>
         <!-- IntelliJ's code style names are strings, renamed by the compiler port's remap.xml; Consulo asks for LocalizeValue -->
         <class name="org.jetbrains.kotlin.idea.formatter.KotlinLanguageCodeStyleSettingsProvider">
             <addMethod name="getConfigurableDisplayName" returnType="consulo.localize.LocalizeValue">
@@ -144,10 +173,31 @@
                 <enum name="value" type="consulo.annotation.component.ComponentScope" value="APPLICATION"/>
             </addAnnotation>
         </class>
+        <class name="org.jetbrains.kotlin.idea.findUsages.KotlinFindUsagesSupport">
+            <addAnnotation type="consulo.annotation.component.ServiceAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="PROJECT"/>
+            </addAnnotation>
+        </class>
         <class name="org.jetbrains.kotlin.idea.references.ReadWriteAccessChecker">
             <addAnnotation type="consulo.annotation.component.ServiceAPI">
                 <enum name="value" type="consulo.annotation.component.ComponentScope" value="PROJECT"/>
             </addAnnotation>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.search.ExpectActualSupport">
+            <addAnnotation type="consulo.annotation.component.ServiceAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="PROJECT"/>
+            </addAnnotation>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.search.KotlinSearchUsagesSupport">
+            <addAnnotation type="consulo.annotation.component.ServiceAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="PROJECT"/>
+            </addAnnotation>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.base.searching.usages.KotlinFindUsagesProviderBase">
+            <addMethod name="getLanguage" returnType="consulo.language.Language">
+                <getstatic owner="org.jetbrains.kotlin.idea.KotlinLanguage" name="INSTANCE" type="org.jetbrains.kotlin.idea.KotlinLanguage"/>
+                <areturn/>
+            </addMethod>
         </class>
         <class name="org.jetbrains.kotlin.idea.completion.impl.k2.KotlinFirCompletionContributor">
             <addMethod name="getLanguage" returnType="consulo.language.Language">
@@ -160,6 +210,18 @@
                 <getstatic owner="org.jetbrains.kotlin.idea.KotlinLanguage" name="INSTANCE" type="org.jetbrains.kotlin.idea.KotlinLanguage"/>
                 <areturn/>
             </addMethod>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.search.ideaExtensions.KotlinAliasedImportedElementSearcher">
+            <addInterface type="consulo.language.psi.search.ReferencesSearchQueryExecutor"/>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.search.ideaExtensions.KotlinDirectInheritorsSearcher">
+            <addInterface type="com.intellij.java.indexing.search.searches.DirectClassInheritorsSearchExecutor"/>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.search.ideaExtensions.KotlinReferencesSearcher">
+            <addInterface type="consulo.language.psi.search.ReferencesSearchQueryExecutor"/>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.searching.inheritors.KotlinFirDefinitionsSearcher">
+            <addInterface type="consulo.language.psi.search.DefinitionsScopedSearchExecutor"/>
         </class>
         <!-- genservices:modifications:end -->
         <!-- getLanguage() comes from the compat brace matcher base -->
@@ -190,6 +252,11 @@
         <requires>consulo.index.io</requires>
         <requires>consulo.module.api</requires>
         <requires>consulo.module.content.api</requires>
+        <requires>consulo.find.api</requires>
+        <requires>consulo.usage.api</requires>
+        <requires>consulo.ui.ex.awt.api</requires>
+        <requires>consulo.language.code.style.ui.api</requires>
+        <requires>consulo.language.editor.refactoring.api</requires>
         <requires>consulo.project.content.api</requires>
         <requires>consulo.logging.api</requires>
         <requires>consulo.annotation</requires>
@@ -228,11 +295,16 @@
             <binding impl="org.jetbrains.kotlin.idea.completion.impl.k2.handlers.K2SmartCompletionTailOffsetProviderImpl" api="org.jetbrains.kotlin.idea.completion.handlers.SmartCompletionTailOffsetProvider" scope="APPLICATION" type="service"/>
             <binding impl="org.jetbrains.kotlin.idea.completion.impl.k2.handlers.TrailingLambdaInsertionHandlerFactory$Default" api="org.jetbrains.kotlin.idea.completion.impl.k2.handlers.TrailingLambdaInsertionHandlerFactory" scope="APPLICATION" type="service"/>
             <binding impl="org.jetbrains.kotlin.idea.references.impl.ReadWriteAccessCheckerBaseImpl" api="org.jetbrains.kotlin.idea.references.ReadWriteAccessChecker" scope="PROJECT" type="service"/>
+            <binding impl="org.jetbrains.kotlin.idea.searching.kmp.KotlinK2ExpectActualSupport" api="org.jetbrains.kotlin.idea.search.ExpectActualSupport" scope="PROJECT" type="service"/>
+            <binding impl="org.jetbrains.kotlin.idea.searching.usages.KotlinK2FindUsagesSupport" api="org.jetbrains.kotlin.idea.findUsages.KotlinFindUsagesSupport" scope="PROJECT" type="service"/>
+            <binding impl="org.jetbrains.kotlin.idea.searching.usages.KotlinK2SearchUsagesSupport" api="org.jetbrains.kotlin.idea.search.KotlinSearchUsagesSupport" scope="PROJECT" type="service"/>
             <binding impl="org.jetbrains.kotlin.idea.stubindex.IdeStubIndexService" api="org.jetbrains.kotlin.psi.stubs.elements.StubIndexService" scope="APPLICATION" type="service"/>
             <binding impl="org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.FirIdeOutOfBlockModificationService$OutOfBlockTreeChangePreprocessor" api="consulo.kotlin.compat.psi.PsiTreeChangePreprocessor" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.base.indices.names.KotlinBinaryRootToPackageIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.base.indices.names.KotlinTopLevelCallableByPackageShortNameIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.base.indices.names.KotlinTopLevelClassLikeDeclarationByPackageShortNameIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.base.searching.usages.KotlinFindUsagesHandlerFactory" api="consulo.find.FindUsagesHandlerFactory" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.base.searching.usages.KotlinFindUsagesProviderBase" api="consulo.language.findUsage.FindUsagesProvider" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.completion.impl.k2.K2CompletionCharFilter" api="consulo.language.editor.completion.lookup.CharFilter" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.completion.impl.k2.KotlinFirCompletionContributor" api="consulo.language.editor.completion.CompletionContributor" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.formatter.FormatCommentsProcessor" api="consulo.language.codeStyle.PreFormatProcessor" scope="APPLICATION"/>
@@ -254,8 +326,17 @@
             <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseKDocReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBasePropertyDelegationMethodsReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseSimpleNameReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.search.ideaExtensions.KotlinAliasedImportedElementSearcher" api="consulo.language.psi.search.ReferencesSearchQueryExecutor" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.search.ideaExtensions.KotlinDirectInheritorsSearcher" api="com.intellij.java.indexing.search.searches.DirectClassInheritorsSearchExecutor" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.search.ideaExtensions.KotlinReadWriteAccessDetector" api="consulo.language.editor.highlight.ReadWriteAccessDetector" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.search.ideaExtensions.KotlinReferencesSearcher" api="consulo.language.psi.search.ReferencesSearchQueryExecutor" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.searching.inheritors.DirectKotlinClassDelegatedSearcher" api="consulo.kotlin.compat.search.Searcher" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.searching.inheritors.DirectKotlinClassInheritorsSearcher" api="consulo.kotlin.compat.search.Searcher" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.searching.inheritors.DirectKotlinOverridingMethodDelegatedSearcher" api="consulo.kotlin.compat.search.Searcher" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.searching.inheritors.DirectKotlinOverridingMethodSearcher" api="consulo.kotlin.compat.search.Searcher" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.searching.inheritors.KotlinFirDefinitionsSearcher" api="consulo.language.psi.search.DefinitionsScopedSearchExecutor" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.searching.usages.KotlinK2ElementDescriptionProvider" api="consulo.language.psi.ElementDescriptionProvider" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.searching.usages.KotlinK2UsageTypeProvider" api="consulo.usage.UsageTypeProvider" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinAnnotationsIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinClassShortNameIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.stubindex.KotlinExactPackagesIndex" api="consulo.language.psi.stub.StubIndexExtension" scope="APPLICATION"/>

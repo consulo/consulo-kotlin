@@ -36,7 +36,23 @@ EXTENSION_POINTS = {
     'com.intellij.lang.formatter': ('consulo.language.codeStyle.FormattingModelBuilder', 'APPLICATION'),
     'com.intellij.langCodeStyleSettingsProvider': ('consulo.language.codeStyle.setting.LanguageCodeStyleSettingsProvider', 'APPLICATION'),
     'com.intellij.preFormatProcessor': ('consulo.language.codeStyle.PreFormatProcessor', 'APPLICATION'),
+    # query executors: Consulo's extension API is a marker interface over QueryExecutor, which the implementation gets
+    # (its processQuery comes from consulo.kotlin.compat.search.QueryExecutorBase)
+    'com.intellij.referencesSearch': ('consulo.language.psi.search.ReferencesSearchQueryExecutor', 'APPLICATION'),
+    'com.intellij.directClassInheritorsSearch': ('com.intellij.java.indexing.search.searches.DirectClassInheritorsSearchExecutor', 'APPLICATION'),
+    'com.intellij.methodReferencesSearch': ('com.intellij.java.indexing.search.searches.MethodReferencesSearchExecutor', 'APPLICATION'),
+    'com.intellij.definitionsScopedSearch': ('consulo.language.psi.search.DefinitionsScopedSearchExecutor', 'APPLICATION'),
+    'com.intellij.overridingMethodsSearch': ('com.intellij.java.indexing.search.searches.OverridingMethodsSearchExecutor', 'APPLICATION'),
+    'com.intellij.annotatedElementsSearch': ('com.intellij.java.indexing.search.searches.AnnotatedElementsSearchExecutor', 'APPLICATION'),
+    # find usages
+    'com.intellij.findUsagesHandlerFactory': ('consulo.find.FindUsagesHandlerFactory', 'PROJECT'),
+    'com.intellij.lang.findUsagesProvider': ('consulo.language.findUsage.FindUsagesProvider', 'APPLICATION'),
+    'com.intellij.usageTypeProvider': ('consulo.usage.UsageTypeProvider', 'APPLICATION'),
+    'com.intellij.elementDescriptionProvider': ('consulo.language.psi.ElementDescriptionProvider', 'APPLICATION'),
+    'com.intellij.readWriteAccessDetector': ('consulo.language.editor.highlight.ReadWriteAccessDetector', 'APPLICATION'),
 }
+# extension APIs that are marker interfaces the implementation does not declare (the query executors above)
+MARKER_APIS = {api for api, scope in EXTENSION_POINTS.values() if api.endswith('Executor')}
 # Consulo extensions per language say which (LanguageExtension.getLanguage); IntelliJ's descriptor does, by language id
 LANGUAGES = {'kotlin': 'org.jetbrains.kotlin.idea.KotlinLanguage'}
 # extension points with no meaning in Consulo (or with a Consulo replacement), not reported
@@ -190,6 +206,10 @@ def main():
             </addMethod>
         </class>
 ''' for impl, language in sorted(languages.items()))
+    mods += ''.join(f'''        <class name="{impl}">
+            <addInterface type="{api}"/>
+        </class>
+''' for impl, api, scope in sorted(set(extensions)) if api in MARKER_APIS)
     binds = ''.join(f'            <binding impl="{impl}" api="{api}" scope="{scope}" type="service"/>\n' for impl, api, scope in sorted(set(services)))
     binds += ''.join(f'            <binding impl="{impl}" api="{api}" scope="{scope}"/>\n' for impl, api, scope in sorted(set(extensions)))
     binds += ''.join(f'            <binding impl="{impl}" api="{api}" scope="{scope}" type="topic"/>\n' for impl, api, scope in sorted(set(listeners)))

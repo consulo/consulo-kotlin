@@ -166,13 +166,14 @@ def main():
             body += f'                                <resource>\n                                    <directory>${{plugin.root}}/{m}/src</directory>\n                                    <includes>\n'
             body += ''.join(f'                                        <include>{f}</include>\n' for f in sorted(by_module[m]))
             body += '                                    </includes>\n                                </resource>\n'
-        # message bundles and icons of the modules
+        # message bundles and icons of the modules (IntelliJ keeps the English bundles of some modules in resources-en)
         resources = ''
         for m in sorted(by_module):
-            if m not in stops and os.path.isdir(f'{ROOT}/{m}/resources'):
-                resources += f'            <resource>\n                <directory>${{plugin.root}}/{m}/resources</directory>\n                <includes>\n'
-                resources += ''.join(f'                    <include>{i}</include>\n' for i in RESOURCES)
-                resources += '                </includes>\n            </resource>\n'
+            for directory in ('resources', 'resources-en'):
+                if m not in stops and os.path.isdir(f'{ROOT}/{m}/{directory}'):
+                    resources += f'            <resource>\n                <directory>${{plugin.root}}/{m}/{directory}</directory>\n                <includes>\n'
+                    resources += ''.join(f'                    <include>{i}</include>\n' for i in RESOURCES)
+                    resources += '                </includes>\n            </resource>\n'
         text = open(pom).read()
         for tag, content in (('closure', body), ('closure:resources', resources)):
             begin, end = f'<!-- {tag}:begin -->', f'<!-- {tag}:end -->'

@@ -110,3 +110,17 @@ org.jetbrains.kotlin.idea.formatter.KotlinLanguageCodeStyleSettingsProvider
 org.jetbrains.kotlin.idea.formatter.KotlinFormattingModelBuilder
 org.jetbrains.kotlin.idea.formatter.KotlinPreFormatProcessor
 org.jetbrains.kotlin.idea.formatter.FormatCommentsProcessor
+
+# find usages (kotlin.searching, kotlin.searching/base): K2 search services, the handler factory, usage types
+org.jetbrains.kotlin.idea.searching.usages.KotlinK2FindUsagesSupport
+org.jetbrains.kotlin.idea.searching.usages.KotlinK2SearchUsagesSupport
+org.jetbrains.kotlin.idea.searching.kmp.KotlinK2ExpectActualSupport
+org.jetbrains.kotlin.idea.searching.usages.KotlinK2UsageTypeProvider
+org.jetbrains.kotlin.idea.searching.usages.KotlinK2ElementDescriptionProvider
+org.jetbrains.kotlin.idea.searching.inheritors.KotlinFirDefinitionsSearcher
+org.jetbrains.kotlin.idea.searching.inheritors.DirectKotlinClassInheritorsSearcher
+org.jetbrains.kotlin.idea.searching.inheritors.DirectKotlinClassDelegatedSearcher
+org.jetbrains.kotlin.idea.searching.inheritors.DirectKotlinOverridingMethodSearcher
+org.jetbrains.kotlin.idea.searching.inheritors.DirectKotlinOverridingMethodDelegatedSearcher
+org.jetbrains.kotlin.idea.base.searching.usages.KotlinFindUsagesHandlerFactory
+org.jetbrains.kotlin.idea.base.searching.usages.KotlinFindUsagesProviderBase
