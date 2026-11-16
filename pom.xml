@@ -21,4 +21,16 @@
         <module>base/code-insight/minimal</module>
         <module>consulo-plugin</module>
     </modules>
+
+    <!-- where the parent comes from: the compiler port deploys consulo.kotlin.parent there -->
+    <repositories>
+        <repository>
+            <id>consulo</id>
+            <url>https://maven.consulo.dev/repository/snapshots/</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>interval:60</updatePolicy>
+            </snapshots>
+        </repository>
+    </repositories>
 </project>
