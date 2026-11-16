@@ -14,6 +14,8 @@
 --replace org/jetbrains/kotlin/idea/completion/api/serialization/lookup/LookupModelConverter.kt
 # built on private parts of IntelliJ's CommonCodeStyleSettings
 --replace org/jetbrains/kotlin/idea/formatter/KotlinCommonCodeStyleSettings.java
+# usage statistics are always off
+--replace org/jetbrains/kotlin/idea/statistics/compilationError/KotlinCompilationErrorFrequencyStatsCollector.kt
 # the Analysis API module of a file outside the project, an interface the declaration provider checks for
 org/jetbrains/kotlin/idea/base/projectStructure/modules/KaSourceModuleForOutsider.kt
 # file kinds of the search scopes; consulo.kotlin.analysis.ConsuloRootKindMatcher matches them (IntelliJ's needs scripting)
@@ -96,3 +98,9 @@ org.jetbrains.kotlin.idea.completion.impl.k2.K2CompletionCharFilter
 org.jetbrains.kotlin.idea.completion.impl.k2.FirCompletionDummyIdentifierProviderService
 org.jetbrains.kotlin.idea.completion.impl.k2.handlers.K2SmartCompletionTailOffsetProviderImpl
 org.jetbrains.kotlin.idea.completion.impl.k2.handlers.TrailingLambdaInsertionHandlerFactory
+
+# highlighting (highlighting/highlighting-k2): compiler diagnostics and semantic highlighting
+org.jetbrains.kotlin.idea.highlighting.visitor.KotlinDiagnosticHighlightVisitor
+org.jetbrains.kotlin.idea.highlighting.visitor.KotlinTypeSemanticHighlightingVisitor
+org.jetbrains.kotlin.idea.highlighting.visitor.KotlinVariableReferenceSemanticHighlightingVisitor
+org.jetbrains.kotlin.idea.highlighting.visitor.KotlinExpressionsSmartcastHighlightingVisitor

@@ -83,6 +83,11 @@
                 <enum name="value" type="consulo.annotation.component.ComponentScope" value="PROJECT"/>
             </addAnnotation>
         </class>
+        <class name="org.jetbrains.kotlin.idea.codeinsight.api.applicators.fixes.KotlinQuickFixService">
+            <addAnnotation type="consulo.annotation.component.ServiceAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="APPLICATION"/>
+            </addAnnotation>
+        </class>
         <class name="org.jetbrains.kotlin.idea.completion.api.CompletionDummyIdentifierProviderService">
             <addAnnotation type="consulo.annotation.component.ServiceAPI">
                 <enum name="value" type="consulo.annotation.component.ComponentScope" value="APPLICATION"/>
@@ -171,6 +176,7 @@
             <binding impl="org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.FirIdeKotlinModificationTrackerFactory" api="org.jetbrains.kotlin.analysis.api.platform.modification.KotlinModificationTrackerFactory" scope="PROJECT" type="service"/>
             <binding impl="org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.FirIdeOutOfBlockModificationService" api="org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.FirIdeOutOfBlockModificationService" scope="PROJECT" type="service"/>
             <binding impl="org.jetbrains.kotlin.idea.base.psi.KtPsiMutationServiceImpl" api="org.jetbrains.kotlin.psi.KtPsiMutationService" scope="APPLICATION" type="service"/>
+            <binding impl="org.jetbrains.kotlin.idea.codeinsight.api.applicators.fixes.KotlinQuickFixService" api="org.jetbrains.kotlin.idea.codeinsight.api.applicators.fixes.KotlinQuickFixService" scope="APPLICATION" type="service"/>
             <binding impl="org.jetbrains.kotlin.idea.completion.impl.k2.FirCompletionDummyIdentifierProviderService" api="org.jetbrains.kotlin.idea.completion.api.CompletionDummyIdentifierProviderService" scope="APPLICATION" type="service"/>
             <binding impl="org.jetbrains.kotlin.idea.completion.impl.k2.handlers.K2SmartCompletionTailOffsetProviderImpl" api="org.jetbrains.kotlin.idea.completion.handlers.SmartCompletionTailOffsetProvider" scope="APPLICATION" type="service"/>
             <binding impl="org.jetbrains.kotlin.idea.completion.impl.k2.handlers.TrailingLambdaInsertionHandlerFactory$Default" api="org.jetbrains.kotlin.idea.completion.impl.k2.handlers.TrailingLambdaInsertionHandlerFactory" scope="APPLICATION" type="service"/>
@@ -182,6 +188,11 @@
             <binding impl="org.jetbrains.kotlin.idea.base.indices.names.KotlinTopLevelClassLikeDeclarationByPackageShortNameIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.completion.impl.k2.K2CompletionCharFilter" api="consulo.language.editor.completion.lookup.CharFilter" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.completion.impl.k2.KotlinFirCompletionContributor" api="consulo.language.editor.completion.CompletionContributor" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.highlighting.visitor.KotlinDiagnosticHighlightVisitor" api="consulo.language.editor.HighlightRangeExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.highlighting.visitor.KotlinDiagnosticHighlightVisitor" api="consulo.language.editor.rawHighlight.HighlightVisitorFactory" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.highlighting.visitor.KotlinExpressionsSmartcastHighlightingVisitor" api="consulo.language.editor.rawHighlight.HighlightVisitorFactory" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.highlighting.visitor.KotlinTypeSemanticHighlightingVisitor" api="consulo.language.editor.rawHighlight.HighlightVisitorFactory" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.highlighting.visitor.KotlinVariableReferenceSemanticHighlightingVisitor" api="consulo.language.editor.rawHighlight.HighlightVisitorFactory" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseArrayAccessReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseCollectionLiteralReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseConstructorDelegationReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>

@@ -167,6 +167,14 @@
                 </includes>
             </resource>
             <resource>
+                <directory>${plugin.root}/highlighting/highlighting-k2/resources</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
                 <directory>${plugin.root}/kotlin.searching/resources</directory>
                 <includes>
                     <include>messages/**/*.properties</include>
@@ -204,6 +212,7 @@
                                     <includes>
                                         <include>org/jetbrains/kotlin/base/analysis/AutoImportUtils.kt</include>
                                         <include>org/jetbrains/kotlin/idea/base/analysis/KotlinBaseAnalysisBundle.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/analysis/KotlinIdeInjectedFilesAnalysisPromoter.kt</include>
                                         <include>org/jetbrains/kotlin/idea/base/analysis/KotlinK2CodeFragmentUtils.kt</include>
                                         <include>org/jetbrains/kotlin/idea/base/analysis/RootPrefixUtils.kt</include>
                                         <include>org/jetbrains/kotlin/idea/caches/resolve/IDEPackagePartProvider.kt</include>
@@ -277,6 +286,7 @@
                                     <directory>${plugin.root}/base/code-insight/src</directory>
                                     <includes>
                                         <include>org/jetbrains/kotlin/idea/base/codeInsight/EnumValuesSoftDeprecate.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/codeInsight/KotlinBaseCodeInsightBundle.kt</include>
                                         <include>org/jetbrains/kotlin/idea/base/codeInsight/KotlinCallProcessor.kt</include>
                                         <include>org/jetbrains/kotlin/idea/base/codeInsight/KotlinIconProvider.kt</include>
                                         <include>org/jetbrains/kotlin/idea/base/codeInsight/KotlinNameSuggester.kt</include>
@@ -284,7 +294,14 @@
                                         <include>org/jetbrains/kotlin/idea/base/codeInsight/ShortenOptionsForIde.kt</include>
                                         <include>org/jetbrains/kotlin/idea/base/codeInsight/ShortenReferencesFacility.kt</include>
                                         <include>org/jetbrains/kotlin/idea/core/NotPropertiesService.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighter/UnresolvedReferenceDiagnosticsUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/inspections/suppress/AnnotationHostKind.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/inspections/suppress/CompilerWarningIntentionAction.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/inspections/suppress/KotlinSuppressIntentionAction.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/inspections/suppress/KotlinSuppressableWarningProblemGroup.kt</include>
                                         <include>org/jetbrains/kotlin/idea/util/AnalysisUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/util/AnnotationModificationHelper.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/util/AnnotationModificationUtils.kt</include>
                                         <include>org/jetbrains/kotlin/idea/util/ClassImportFilter.kt</include>
                                         <include>org/jetbrains/kotlin/idea/util/CommentSaver.kt</include>
                                     </includes>
@@ -412,6 +429,13 @@
                                     <directory>${plugin.root}/code-insight/api/src</directory>
                                     <includes>
                                         <include>org/jetbrains/kotlin/idea/codeinsight/api/applicators/fixes/KotlinQuickFixFactory.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/api/applicators/fixes/KotlinQuickFixService.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/api/applicators/fixes/KotlinQuickFixesList.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/api/classic/quickfixes/KotlinImportQuickFixAction.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/api/classic/quickfixes/KotlinQuickFixAction.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/api/classic/quickfixes/PsiElementSuitabilityChecker.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/api/classic/quickfixes/QuickFixActionBase.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/api/classic/quickfixes/QuickFixesPsiBasedFactory.kt</include>
                                     </includes>
                                 </resource>
                                 <resource>
@@ -626,6 +650,33 @@
                                         <include>org/jetbrains/kotlin/idea/j2k/DocCommentConverter.kt</include>
                                         <include>org/jetbrains/kotlin/idea/j2k/IdeaDocCommentConverter.kt</include>
                                         <include>org/jetbrains/kotlin/idea/util/positionContext/KotlinPositionContext.kt</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${plugin.root}/highlighting/highlighting-k2/src</directory>
+                                    <includes>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/K2HighlightingBundle.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/KotlinCallHighlighterExtension.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/analyzers/KotlinExpressionsSmartcastSemanticAnalyzer.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/analyzers/KotlinFunctionCallSemanticAnalyzer.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/analyzers/KotlinSemanticAnalyzer.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/analyzers/KotlinTypeSemanticAnalyzer.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/analyzers/KotlinVariableReferenceSemanticAnalyzer.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/analyzers/incompleteModel.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/visitor/KotlinAbstractSemanticHighlightingVisitor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/visitor/KotlinDiagnosticHighlightVisitor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/visitor/KotlinExpressionsSmartcastHighlightingVisitor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/visitor/KotlinTypeSemanticHighlightingVisitor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/visitor/KotlinVariableReferenceSemanticHighlightingVisitor.kt</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${plugin.root}/highlighting/highlighting-minimal/src</directory>
+                                    <includes>
+                                        <include>org/jetbrains/kotlin/idea/highlighter/HighlightingFactory.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighter/KotlinHighlightInfoTypeSemanticNames.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighter/KotlinHighlightingColors.java</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighter/visitor/AbstractHighlightingVisitor.kt</include>
                                     </includes>
                                 </resource>
                                 <resource>

@@ -30,6 +30,9 @@ EXTENSION_POINTS = {
     'com.intellij.completion.contributor': ('consulo.language.editor.completion.CompletionContributor', 'APPLICATION'),
     'com.intellij.lookup.charFilter': ('consulo.language.editor.completion.lookup.CharFilter', 'APPLICATION'),
     'com.intellij.searcher': ('consulo.kotlin.compat.search.Searcher', 'APPLICATION'),
+    # an IntelliJ highlight visitor is its own Consulo factory (consulo.kotlin.compat.highlight.HighlightVisitor)
+    'com.intellij.highlightVisitor': ('consulo.language.editor.rawHighlight.HighlightVisitorFactory', 'PROJECT'),
+    'com.intellij.highlightRangeExtension': ('consulo.language.editor.HighlightRangeExtension', 'APPLICATION'),
 }
 # Consulo extensions per language say which (LanguageExtension.getLanguage); IntelliJ's descriptor does, by language id
 LANGUAGES = {'kotlin': 'org.jetbrains.kotlin.idea.KotlinLanguage'}

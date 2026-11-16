@@ -7,7 +7,8 @@ Usage: python3 consulo-plugin/tools/closure.py [--pom <pom.xml>] [--stop <module
   --replace: a src-relative file that consulo-plugin/upstream/src/main/kotlin replaces (neither included nor followed)
 Prints, per module (a directory with a non-test .iml and a src root), the files the seeds reach. A file is reached when
 a reached file names one of its top-level declarations and can see it (same package, explicit import or star import).
-Over-approximates (simple names, no scopes), which is fine for compiling. --stop modules are reported, not followed.
+Over-approximates (simple names, no scopes) within the modules a file's module can see (.iml dependencies), which is
+fine for compiling. --stop modules are reported, not followed.
 CLOSURE=-v lists the files; CLOSURE=why:<file name>[,<file name>...] prints the chain of files (and names) that reaches a file.
 """
 import glob, os, re, sys
@@ -33,6 +34,42 @@ def modules():
             continue
         if os.path.isdir(f'{d}/src'):
             result[rel] = f'{d}/src'
+    return result
+
+
+def visible_modules(module_dirs):
+    """Per module directory, the module directories its code can see: itself, its compile dependencies (.iml) and what
+    those export, transitively. IntelliJ compiles each module separately, so declarations elsewhere are not visible."""
+    name_to_dir, deps = {}, {}
+    for rel in module_dirs:
+        imls = [i for i in glob.glob(f'{ROOT}/{rel}/*.iml') if 'test' not in os.path.basename(i).lower()]
+        if not imls:
+            continue
+        name_to_dir[os.path.basename(imls[0])[:-4]] = rel
+        text = open(imls[0]).read()
+        deps[rel] = [(m.group(1), 'exported=""' in m.group(0))
+                     for m in re.finditer(r'<orderEntry type="module" module-name="([^"]+)"[^>]*>', text)
+                     if 'scope="RUNTIME"' not in m.group(0) and 'scope="TEST"' not in m.group(0)]
+
+    def exported(rel, seen):
+        result = set()
+        for name, is_exported in deps.get(rel, ()):
+            d = name_to_dir.get(name)
+            if d and is_exported and d not in seen:
+                seen.add(d)
+                result |= {d} | exported(d, seen)
+        return result
+
+    result = {}
+    for rel in module_dirs:
+        if rel not in deps:
+            continue
+        visible = {rel}
+        for name, _ in deps[rel]:
+            d = name_to_dir.get(name)
+            if d:
+                visible |= {d} | exported(d, {d})
+        result[rel] = visible
     return result
 
 
@@ -94,6 +131,7 @@ def main():
         else:
             pkg, name = s.rsplit('.', 1)
             todo += [p for p in declared.get(name.split('$')[0], []) if files[p]['pkg'] == pkg]
+    visible = visible_modules(set(owner.values()))
     done = set()
     parent = {}  # reached file -> the file that reached it, for CLOSURE=why:<file name>
     while todo:
@@ -107,6 +145,8 @@ def main():
         for ident in me['idents']:
             for o in declared.get(ident, ()):
                 info = files[o]
+                if owner[p] in visible and owner[o] not in visible[owner[p]]:
+                    continue  # another module the file's module does not depend on
                 if info['pkg'] == me['pkg'] or f"{info['pkg']}.{ident}" in me['imports'] or info['pkg'] in me['stars']:
                     if o not in done:
                         parent.setdefault(o, (p, ident))
