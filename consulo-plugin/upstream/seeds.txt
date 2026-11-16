@@ -104,3 +104,9 @@ org.jetbrains.kotlin.idea.highlighting.visitor.KotlinDiagnosticHighlightVisitor
 org.jetbrains.kotlin.idea.highlighting.visitor.KotlinTypeSemanticHighlightingVisitor
 org.jetbrains.kotlin.idea.highlighting.visitor.KotlinVariableReferenceSemanticHighlightingVisitor
 org.jetbrains.kotlin.idea.highlighting.visitor.KotlinExpressionsSmartcastHighlightingVisitor
+
+# formatter and code style (formatter/minimal): Kotlin code style settings, formatting
+org.jetbrains.kotlin.idea.formatter.KotlinLanguageCodeStyleSettingsProvider
+org.jetbrains.kotlin.idea.formatter.KotlinFormattingModelBuilder
+org.jetbrains.kotlin.idea.formatter.KotlinPreFormatProcessor
+org.jetbrains.kotlin.idea.formatter.FormatCommentsProcessor

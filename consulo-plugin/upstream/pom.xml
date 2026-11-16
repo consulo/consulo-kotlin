@@ -633,10 +633,36 @@
                                         <include>org/jetbrains/kotlin/idea/core/formatter/KotlinCodeStyleSettings.java</include>
                                         <include>org/jetbrains/kotlin/idea/core/formatter/KotlinPackageEntry.kt</include>
                                         <include>org/jetbrains/kotlin/idea/core/formatter/KotlinPackageEntryTable.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/BaseKotlinImportLayoutPanel.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/CommentFormatter.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/CommonAlignmentStrategy.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/FormatCommentsProcessor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/ImportSettingsPanel.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/KDocFormattingPanel.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/KDocFormattingParser.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/KotlinBlock.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/KotlinCodeStylePanel.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/KotlinCodeStylePropertyAccessor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/KotlinCommonBlock.kt</include>
                                         <include>org/jetbrains/kotlin/idea/formatter/KotlinFormatterMinimalBundle.java</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/KotlinFormattingModelBuilder.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/KotlinLanguageCodeStyleSettingsProvider.kt</include>
                                         <include>org/jetbrains/kotlin/idea/formatter/KotlinObsoleteStyleGuide.kt</include>
                                         <include>org/jetbrains/kotlin/idea/formatter/KotlinOfficialStyleGuide.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/KotlinOtherSettingsPanel.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/KotlinPackageEntryTableAccessor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/KotlinPreFormatProcessor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/KotlinSaveStylePanel.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/KotlinSpacingBuilder.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/NodeAlignmentStrategy.java</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/NodeIndentStrategy.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/SyntheticKotlinBlock.kt</include>
                                         <include>org/jetbrains/kotlin/idea/formatter/codeStyleUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/kotlinSpacingRules.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/trailingComma/TrailingCommaContext.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/trailingComma/TrailingCommaHelper.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/trailingComma/TrailingCommaState.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/formatter/trailingComma/util.kt</include>
                                         <include>org/jetbrains/kotlin/idea/util/FormatterUtil.kt</include>
                                         <include>org/jetbrains/kotlin/idea/util/ReflectionUtil.java</include>
                                     </includes>

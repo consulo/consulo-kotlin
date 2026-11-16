@@ -24,6 +24,47 @@
     </redirects>
 
     <modifications>
+        <!-- IntelliJ's code style names are strings, renamed by the compiler port's remap.xml; Consulo asks for LocalizeValue -->
+        <class name="org.jetbrains.kotlin.idea.formatter.KotlinLanguageCodeStyleSettingsProvider">
+            <addMethod name="getConfigurableDisplayName" returnType="consulo.localize.LocalizeValue">
+                <aload index="0"/>
+                <invokevirtual owner="org.jetbrains.kotlin.idea.formatter.KotlinLanguageCodeStyleSettingsProvider" name="getConfigurableDisplayNameText" desc="()Ljava/lang/String;"/>
+                <invokestatic owner="consulo.localize.LocalizeValue" name="of" desc="(Ljava/lang/String;)Lconsulo/localize/LocalizeValue;" itf="true"/>
+                <areturn/>
+            </addMethod>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.formatter.KotlinSaveStylePanel">
+            <addMethod name="getTabTitle" returnType="consulo.localize.LocalizeValue">
+                <aload index="0"/>
+                <invokevirtual owner="org.jetbrains.kotlin.idea.formatter.KotlinSaveStylePanel" name="getTabTitleText" desc="()Ljava/lang/String;"/>
+                <invokestatic owner="consulo.localize.LocalizeValue" name="of" desc="(Ljava/lang/String;)Lconsulo/localize/LocalizeValue;" itf="true"/>
+                <areturn/>
+            </addMethod>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.formatter.KotlinOtherSettingsPanel">
+            <addMethod name="getTabTitle" returnType="consulo.localize.LocalizeValue">
+                <aload index="0"/>
+                <invokevirtual owner="org.jetbrains.kotlin.idea.formatter.KotlinOtherSettingsPanel" name="getTabTitleText" desc="()Ljava/lang/String;"/>
+                <invokestatic owner="consulo.localize.LocalizeValue" name="of" desc="(Ljava/lang/String;)Lconsulo/localize/LocalizeValue;" itf="true"/>
+                <areturn/>
+            </addMethod>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.formatter.KDocFormattingPanel">
+            <addMethod name="getTabTitle" returnType="consulo.localize.LocalizeValue">
+                <aload index="0"/>
+                <invokevirtual owner="org.jetbrains.kotlin.idea.formatter.KDocFormattingPanel" name="getTabTitleText" desc="()Ljava/lang/String;"/>
+                <invokestatic owner="consulo.localize.LocalizeValue" name="of" desc="(Ljava/lang/String;)Lconsulo/localize/LocalizeValue;" itf="true"/>
+                <areturn/>
+            </addMethod>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.formatter.ImportSettingsPanelWrapper">
+            <addMethod name="getTabTitle" returnType="consulo.localize.LocalizeValue">
+                <aload index="0"/>
+                <invokevirtual owner="org.jetbrains.kotlin.idea.formatter.ImportSettingsPanelWrapper" name="getTabTitleText" desc="()Ljava/lang/String;"/>
+                <invokestatic owner="consulo.localize.LocalizeValue" name="of" desc="(Ljava/lang/String;)Lconsulo/localize/LocalizeValue;" itf="true"/>
+                <areturn/>
+            </addMethod>
+        </class>
         <!-- Consulo registers syntax highlighters as language extensions -->
         <class name="org.jetbrains.kotlin.idea.base.highlighting.KotlinSyntaxHighlighterFactory">
             <addAnnotation type="consulo.annotation.component.ExtensionImpl"/>
@@ -114,6 +155,12 @@
                 <areturn/>
             </addMethod>
         </class>
+        <class name="org.jetbrains.kotlin.idea.formatter.KotlinFormattingModelBuilder">
+            <addMethod name="getLanguage" returnType="consulo.language.Language">
+                <getstatic owner="org.jetbrains.kotlin.idea.KotlinLanguage" name="INSTANCE" type="org.jetbrains.kotlin.idea.KotlinLanguage"/>
+                <areturn/>
+            </addMethod>
+        </class>
         <!-- genservices:modifications:end -->
         <!-- getLanguage() comes from the compat brace matcher base -->
         <class name="org.jetbrains.kotlin.idea.KotlinPairedBraceMatcher">
@@ -188,6 +235,10 @@
             <binding impl="org.jetbrains.kotlin.idea.base.indices.names.KotlinTopLevelClassLikeDeclarationByPackageShortNameIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.completion.impl.k2.K2CompletionCharFilter" api="consulo.language.editor.completion.lookup.CharFilter" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.completion.impl.k2.KotlinFirCompletionContributor" api="consulo.language.editor.completion.CompletionContributor" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.formatter.FormatCommentsProcessor" api="consulo.language.codeStyle.PreFormatProcessor" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.formatter.KotlinFormattingModelBuilder" api="consulo.language.codeStyle.FormattingModelBuilder" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.formatter.KotlinLanguageCodeStyleSettingsProvider" api="consulo.language.codeStyle.setting.LanguageCodeStyleSettingsProvider" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.formatter.KotlinPreFormatProcessor" api="consulo.language.codeStyle.PreFormatProcessor" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.highlighting.visitor.KotlinDiagnosticHighlightVisitor" api="consulo.language.editor.HighlightRangeExtension" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.highlighting.visitor.KotlinDiagnosticHighlightVisitor" api="consulo.language.editor.rawHighlight.HighlightVisitorFactory" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.highlighting.visitor.KotlinExpressionsSmartcastHighlightingVisitor" api="consulo.language.editor.rawHighlight.HighlightVisitorFactory" scope="PROJECT"/>

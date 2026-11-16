@@ -33,11 +33,14 @@ EXTENSION_POINTS = {
     # an IntelliJ highlight visitor is its own Consulo factory (consulo.kotlin.compat.highlight.HighlightVisitor)
     'com.intellij.highlightVisitor': ('consulo.language.editor.rawHighlight.HighlightVisitorFactory', 'PROJECT'),
     'com.intellij.highlightRangeExtension': ('consulo.language.editor.HighlightRangeExtension', 'APPLICATION'),
+    'com.intellij.lang.formatter': ('consulo.language.codeStyle.FormattingModelBuilder', 'APPLICATION'),
+    'com.intellij.langCodeStyleSettingsProvider': ('consulo.language.codeStyle.setting.LanguageCodeStyleSettingsProvider', 'APPLICATION'),
+    'com.intellij.preFormatProcessor': ('consulo.language.codeStyle.PreFormatProcessor', 'APPLICATION'),
 }
 # Consulo extensions per language say which (LanguageExtension.getLanguage); IntelliJ's descriptor does, by language id
 LANGUAGES = {'kotlin': 'org.jetbrains.kotlin.idea.KotlinLanguage'}
 # extension points with no meaning in Consulo (or with a Consulo replacement), not reported
-IGNORED = {'com.intellij.registryKey', 'com.intellij.notificationGroup'}
+IGNORED = {'com.intellij.registryKey', 'com.intellij.notificationGroup', 'com.intellij.virtualFileCustomDataProvider'}
 # extensions of another language (IntelliJ registers them in the Kotlin plugin, e.g. Java completion of Kotlin members)
 OTHER_LANGUAGE = 'other language'
 # analysis statistics are always off in Consulo
