@@ -211,6 +211,41 @@
                 <areturn/>
             </addMethod>
         </class>
+        <class name="org.jetbrains.kotlin.idea.base.analysis.KotlinIdeInjectedFilesAnalysisPromoter">
+            <addAnnotation type="consulo.annotation.component.ExtensionAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="APPLICATION"/>
+            </addAnnotation>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.base.highlighting.BeforeResolveHighlightingExtension">
+            <addAnnotation type="consulo.annotation.component.ExtensionAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="APPLICATION"/>
+            </addAnnotation>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.base.psi.extensions.ImplementationDetailClassNameCheckerProvider">
+            <addAnnotation type="consulo.annotation.component.ExtensionAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="APPLICATION"/>
+            </addAnnotation>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.codeinsight.api.applicators.fixes.KotlinQuickFixRegistrar">
+            <addAnnotation type="consulo.annotation.component.ExtensionAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="APPLICATION"/>
+            </addAnnotation>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.codeinsight.utils.KotlinSupportAvailability">
+            <addAnnotation type="consulo.annotation.component.ExtensionAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="APPLICATION"/>
+            </addAnnotation>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.highlighting.KotlinCallHighlighterExtension">
+            <addAnnotation type="consulo.annotation.component.ExtensionAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="APPLICATION"/>
+            </addAnnotation>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.util.ClassImportFilter">
+            <addAnnotation type="consulo.annotation.component.ExtensionAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="APPLICATION"/>
+            </addAnnotation>
+        </class>
         <class name="org.jetbrains.kotlin.idea.search.KotlinIdIndexer">
             <addMethod name="getFileType" returnType="consulo.virtualFileSystem.fileType.FileType">
                 <getstatic owner="org.jetbrains.kotlin.idea.KotlinFileType" name="INSTANCE" type="org.jetbrains.kotlin.idea.KotlinFileType"/>
@@ -312,6 +347,7 @@
             <binding impl="org.jetbrains.kotlin.idea.searching.usages.KotlinK2SearchUsagesSupport" api="org.jetbrains.kotlin.idea.search.KotlinSearchUsagesSupport" scope="PROJECT" type="service"/>
             <binding impl="org.jetbrains.kotlin.idea.stubindex.IdeStubIndexService" api="org.jetbrains.kotlin.psi.stubs.elements.StubIndexService" scope="APPLICATION" type="service"/>
             <binding impl="org.jetbrains.kotlin.idea.base.fir.analysisApiPlatform.FirIdeOutOfBlockModificationService$OutOfBlockTreeChangePreprocessor" api="consulo.kotlin.compat.psi.PsiTreeChangePreprocessor" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.base.highlighting.KotlinBeforeResolveHighlightingVisitor" api="consulo.language.editor.rawHighlight.HighlightVisitorFactory" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.base.indices.names.KotlinBinaryRootToPackageIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.base.indices.names.KotlinTopLevelCallableByPackageShortNameIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.base.indices.names.KotlinTopLevelClassLikeDeclarationByPackageShortNameIndex" api="consulo.language.psi.stub.FileBasedIndexExtension" scope="APPLICATION"/>
@@ -323,11 +359,22 @@
             <binding impl="org.jetbrains.kotlin.idea.formatter.KotlinFormattingModelBuilder" api="consulo.language.codeStyle.FormattingModelBuilder" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.formatter.KotlinLanguageCodeStyleSettingsProvider" api="consulo.language.codeStyle.setting.LanguageCodeStyleSettingsProvider" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.formatter.KotlinPreFormatProcessor" api="consulo.language.codeStyle.PreFormatProcessor" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.highlighter.AnnotationsHighlightingExtension" api="org.jetbrains.kotlin.idea.base.highlighting.BeforeResolveHighlightingExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.highlighter.BeforeResolveHighlightingExtension" api="org.jetbrains.kotlin.idea.base.highlighting.BeforeResolveHighlightingExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.highlighter.NamedArgumentsHighlightingExtension" api="org.jetbrains.kotlin.idea.base.highlighting.BeforeResolveHighlightingExtension" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.highlighting.KotlinDefaultHighlightingSettingsProvider" api="consulo.language.editor.DefaultHighlightingSettingProvider" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.highlighting.KotlinHighlightExitPointsHandlerFactory" api="consulo.language.editor.highlight.usage.HighlightUsagesHandlerFactory" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.highlighting.KotlinProblemHighlightFilter" api="consulo.language.editor.ProblemHighlightFilter" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.highlighting.beforeResolve.DeclarationHighlightingExtension" api="org.jetbrains.kotlin.idea.base.highlighting.BeforeResolveHighlightingExtension" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.highlighting.visitor.KotlinDiagnosticHighlightVisitor" api="consulo.language.editor.HighlightRangeExtension" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.highlighting.visitor.KotlinDiagnosticHighlightVisitor" api="consulo.language.editor.rawHighlight.HighlightVisitorFactory" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.highlighting.visitor.KotlinDslSemanticHighlightingVisitor" api="consulo.language.editor.rawHighlight.HighlightVisitorFactory" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.highlighting.visitor.KotlinExpressionsSmartcastHighlightingVisitor" api="consulo.language.editor.rawHighlight.HighlightVisitorFactory" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.highlighting.visitor.KotlinHighlightInjectionErrorFilter" api="consulo.language.editor.HighlightErrorFilter" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.highlighting.visitor.KotlinTypeSemanticHighlightingVisitor" api="consulo.language.editor.rawHighlight.HighlightVisitorFactory" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.highlighting.visitor.KotlinVariableReferenceSemanticHighlightingVisitor" api="consulo.language.editor.rawHighlight.HighlightVisitorFactory" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.highlighting.visitor.ParameterNamesHighlightingExtension" api="consulo.language.editor.rawHighlight.HighlightVisitorFactory" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.highlighting.visitor.ParameterNamesHighlightingExtension" api="org.jetbrains.kotlin.idea.base.highlighting.BeforeResolveHighlightingExtension" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseArrayAccessReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseCollectionLiteralReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseConstructorDelegationReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>

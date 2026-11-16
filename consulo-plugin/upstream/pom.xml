@@ -201,6 +201,14 @@
                 </includes>
             </resource>
             <resource>
+                <directory>${plugin.root}/highlighting/highlighting-minimal/resource</directory>
+                <includes>
+                    <include>messages/**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                </includes>
+            </resource>
+            <resource>
                 <directory>${plugin.root}/kotlin.searching/resources</directory>
                 <includes>
                     <include>messages/**/*.properties</include>
@@ -460,6 +468,7 @@
                                         <include>org/jetbrains/kotlin/idea/base/util/MiscUtils.kt</include>
                                         <include>org/jetbrains/kotlin/idea/base/util/StringUtils.kt</include>
                                         <include>org/jetbrains/kotlin/idea/base/util/names/FqNames.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/core/util/PhysicalFileSystemUtils.kt</include>
                                         <include>org/jetbrains/kotlin/idea/util/FileUtils.kt</include>
                                         <include>org/jetbrains/kotlin/idea/util/application/ApplicationUtils.kt</include>
                                         <include>org/jetbrains/kotlin/util/AbstractKotlinBundle.kt</include>
@@ -510,8 +519,10 @@
                                         <include>org/jetbrains/kotlin/idea/codeinsight/utils/EnumUtils.kt</include>
                                         <include>org/jetbrains/kotlin/idea/codeinsight/utils/ExpressionSimplificationUtils.kt</include>
                                         <include>org/jetbrains/kotlin/idea/codeinsight/utils/GeneralPsiUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/utils/InlineUtils.kt</include>
                                         <include>org/jetbrains/kotlin/idea/codeinsight/utils/InsertExplicitTypeArgumentsUtils.kt</include>
                                         <include>org/jetbrains/kotlin/idea/codeinsight/utils/KotlinPsiUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/codeinsight/utils/KotlinSupportAvailability.kt</include>
                                         <include>org/jetbrains/kotlin/idea/codeinsight/utils/StandardKotlinNames.kt</include>
                                         <include>org/jetbrains/kotlin/idea/codeinsight/utils/TypeUtils.kt</include>
                                     </includes>
@@ -724,27 +735,45 @@
                                 <resource>
                                     <directory>${plugin.root}/highlighting/highlighting-k2/src</directory>
                                     <includes>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/AbstractKotlinHighlightExitPointsHandlerFactory.kt</include>
                                         <include>org/jetbrains/kotlin/idea/highlighting/K2HighlightingBundle.kt</include>
                                         <include>org/jetbrains/kotlin/idea/highlighting/KotlinCallHighlighterExtension.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/KotlinDefaultHighlightingSettingsProvider.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/KotlinHighlightExitPointsHandlerFactory.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/KotlinHighlighterAttributeUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/KotlinHighlightingUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/KotlinProblemHighlightFilter.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/analyzers/KotlinDslSemanticAnalyzer.kt</include>
                                         <include>org/jetbrains/kotlin/idea/highlighting/analyzers/KotlinExpressionsSmartcastSemanticAnalyzer.kt</include>
                                         <include>org/jetbrains/kotlin/idea/highlighting/analyzers/KotlinFunctionCallSemanticAnalyzer.kt</include>
                                         <include>org/jetbrains/kotlin/idea/highlighting/analyzers/KotlinSemanticAnalyzer.kt</include>
                                         <include>org/jetbrains/kotlin/idea/highlighting/analyzers/KotlinTypeSemanticAnalyzer.kt</include>
                                         <include>org/jetbrains/kotlin/idea/highlighting/analyzers/KotlinVariableReferenceSemanticAnalyzer.kt</include>
                                         <include>org/jetbrains/kotlin/idea/highlighting/analyzers/incompleteModel.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/beforeResolve/DeclarationHighlightingVisitor.kt</include>
                                         <include>org/jetbrains/kotlin/idea/highlighting/visitor/KotlinAbstractSemanticHighlightingVisitor.kt</include>
                                         <include>org/jetbrains/kotlin/idea/highlighting/visitor/KotlinDiagnosticHighlightVisitor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/visitor/KotlinDslSemanticHighlightingVisitor.kt</include>
                                         <include>org/jetbrains/kotlin/idea/highlighting/visitor/KotlinExpressionsSmartcastHighlightingVisitor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/visitor/KotlinHighlightInjectionErrorFilter.kt</include>
                                         <include>org/jetbrains/kotlin/idea/highlighting/visitor/KotlinTypeSemanticHighlightingVisitor.kt</include>
                                         <include>org/jetbrains/kotlin/idea/highlighting/visitor/KotlinVariableReferenceSemanticHighlightingVisitor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighting/visitor/ParameterNamesHighlightingVisitor.kt</include>
                                     </includes>
                                 </resource>
                                 <resource>
                                     <directory>${plugin.root}/highlighting/highlighting-minimal/src</directory>
                                     <includes>
+                                        <include>org/jetbrains/kotlin/idea/base/highlighting/BeforeResolveHighlightingExtension.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/highlighting/KotlinBeforeResolveHighlightingVisitor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/highlighting/NamedArgumentsHighlightingRefinement.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/base/highlighting/dsl/DslStyleUtils.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighter/AnnotationEntryHighlightingVisitor.kt</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighter/BeforeResolveHighlightingVisitor.kt</include>
                                         <include>org/jetbrains/kotlin/idea/highlighter/HighlightingFactory.kt</include>
                                         <include>org/jetbrains/kotlin/idea/highlighter/KotlinHighlightInfoTypeSemanticNames.kt</include>
                                         <include>org/jetbrains/kotlin/idea/highlighter/KotlinHighlightingColors.java</include>
+                                        <include>org/jetbrains/kotlin/idea/highlighter/NamedArgumentsHighlightingVisitor.kt</include>
                                         <include>org/jetbrains/kotlin/idea/highlighter/visitor/AbstractHighlightingVisitor.kt</include>
                                     </includes>
                                 </resource>

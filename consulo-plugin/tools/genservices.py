@@ -19,6 +19,8 @@ REMAP = f'{ROOT}/consulo-plugin/remap/remap.xml'
 COMPILER_REMAP = os.path.expanduser('~/.m2/repository/consulo/kotlin/consulo.kotlin.remapped/3-SNAPSHOT')
 UPSTREAM_CLASSES = f'{ROOT}/consulo-plugin/upstream/target/classes'
 REGISTRY_DEFAULTS = f'{ROOT}/consulo-plugin/plugin/src/main/resources/META-INF/kotlin-registry.properties'
+# the extension points the upstream modules declare: name -> extension API (for IntelliJ's ExtensionPointName.create)
+EXTENSION_POINT_NAMES = f'{ROOT}/consulo-plugin/plugin/src/main/resources/META-INF/kotlin-extension-points.properties'
 
 # IntelliJ extension point -> (Consulo extension API, its component scope)
 EXTENSION_POINTS = {
@@ -53,6 +55,11 @@ EXTENSION_POINTS = {
     # word and TODO indexes; Consulo asks the indexer for its file type (IntelliJ's descriptor says it)
     'com.intellij.idIndexer': ('consulo.language.psi.stub.IdIndexer', 'APPLICATION'),
     'com.intellij.todoIndexer': ('consulo.language.psi.stub.todo.TodoIndexer', 'APPLICATION'),
+    # highlighting
+    'com.intellij.highlightErrorFilter': ('consulo.language.editor.HighlightErrorFilter', 'PROJECT'),
+    'com.intellij.highlightUsagesHandlerFactory': ('consulo.language.editor.highlight.usage.HighlightUsagesHandlerFactory', 'APPLICATION'),
+    'com.intellij.defaultHighlightingSettingProvider': ('consulo.language.editor.DefaultHighlightingSettingProvider', 'APPLICATION'),
+    'com.intellij.problemHighlightFilter': ('consulo.language.editor.ProblemHighlightFilter', 'PROJECT'),
 }
 # extension APIs that are marker interfaces the implementation does not declare (the query executors above)
 MARKER_APIS = {api for api, scope in EXTENSION_POINTS.values() if api.endswith('Executor')}
@@ -148,8 +155,21 @@ def main():
     compiler_apis = compiler_service_apis()
     services, extensions, listeners, plugin_apis = [], [], [], {}
     skipped, unmapped, languages, file_types, registry = [], {}, {}, {}, {}
-    for module in files:
-        for descriptor in glob.glob(f'{ROOT}/{module}/resources/*.xml'):
+    # descriptors of the compiled modules (some keep them in resource/, not resources/)
+    descriptors = [d for module in files for d in glob.glob(f'{ROOT}/{module}/resources/*.xml') + glob.glob(f'{ROOT}/{module}/resource/*.xml')]
+    # extension points the upstream modules declare: Consulo extension APIs when their interface is compiled
+    points = dict(EXTENSION_POINTS)
+    plugin_extension_apis, plugin_point_names = {}, {}
+    for descriptor in descriptors:
+        for ep in ET.parse(descriptor).getroot().iter('extensionPoint'):
+            api = ep.get('interface') or ep.get('beanClass')
+            if ep.get('qualifiedName') and api in classes:
+                scope = 'PROJECT' if ep.get('area') == 'IDEA_PROJECT' else 'APPLICATION'
+                points[ep.get('qualifiedName')] = (api, scope)
+                plugin_point_names[ep.get('qualifiedName')] = api
+                plugin_extension_apis[api] = scope
+    for descriptor in descriptors:
+        if True:
             root = ET.parse(descriptor).getroot()
             for ext in root.iter('extensions'):
                 ns = ext.get('defaultExtensionNs')
@@ -176,7 +196,7 @@ def main():
                         if impl:
                             skipped.append(impl)
                         continue
-                    if point in EXTENSION_POINTS:
+                    if point in points:
                         language = e.get('language')
                         if language and language not in LANGUAGES:
                             unmapped.setdefault(f'{point} ({OTHER_LANGUAGE} {language})', []).append(impl)
@@ -186,7 +206,7 @@ def main():
                         filetype = e.get('filetype')
                         if filetype in FILE_TYPES:
                             file_types[impl] = FILE_TYPES[filetype]
-                        extensions.append((impl,) + EXTENSION_POINTS[point])
+                        extensions.append((impl,) + points[point])
                     elif point not in IGNORED:
                         unmapped.setdefault(point, []).append(impl)
             for tag, scope in (('projectListeners', 'PROJECT'), ('applicationListeners', 'APPLICATION')):
@@ -214,6 +234,12 @@ def main():
             </addMethod>
         </class>
 ''' for impl, language in sorted(languages.items()))
+    mods += ''.join(f'''        <class name="{api}">
+            <addAnnotation type="consulo.annotation.component.ExtensionAPI">
+                <enum name="value" type="consulo.annotation.component.ComponentScope" value="{scope}"/>
+            </addAnnotation>
+        </class>
+''' for api, scope in sorted(plugin_extension_apis.items()))
     mods += ''.join(f'''        <class name="{impl}">
             <addMethod name="getFileType" returnType="consulo.virtualFileSystem.fileType.FileType">
                 <getstatic owner="{file_type}" name="INSTANCE" type="{file_type}"/>
@@ -238,6 +264,9 @@ def main():
     with open(REGISTRY_DEFAULTS, 'w') as out:
         out.write('# Defaults of the upstream registry keys, written by consulo-plugin/tools/genservices.py\n')
         out.writelines(f'{key}={value}\n' for key, value in sorted(registry.items()))
+    with open(EXTENSION_POINT_NAMES, 'w') as out:
+        out.write('# Extension points of the upstream modules (name=extension API), written by consulo-plugin/tools/genservices.py\n')
+        out.writelines(f'{name}={api}\n' for name, api in sorted(plugin_point_names.items()))
     print(f'{len(set(services))} services, {len(set(extensions))} extensions, {len(set(listeners))} listeners, '
           f'{len(splits)} relocated classes (split packages), {len(registry)} registry keys; '
           f'{len(set(skipped))} registrations of classes that are not compiled')

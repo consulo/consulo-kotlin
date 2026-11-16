@@ -124,3 +124,16 @@ org.jetbrains.kotlin.idea.searching.inheritors.DirectKotlinOverridingMethodSearc
 org.jetbrains.kotlin.idea.searching.inheritors.DirectKotlinOverridingMethodDelegatedSearcher
 org.jetbrains.kotlin.idea.base.searching.usages.KotlinFindUsagesHandlerFactory
 org.jetbrains.kotlin.idea.base.searching.usages.KotlinFindUsagesProviderBase
+
+# more highlighting (highlighting/highlighting-k2, highlighting/highlighting-minimal)
+org.jetbrains.kotlin.idea.highlighting.visitor.KotlinDslSemanticHighlightingVisitor
+org.jetbrains.kotlin.idea.highlighting.visitor.ParameterNamesHighlightingExtension
+org.jetbrains.kotlin.idea.highlighting.visitor.KotlinHighlightInjectionErrorFilter
+org.jetbrains.kotlin.idea.highlighting.KotlinHighlightExitPointsHandlerFactory
+org.jetbrains.kotlin.idea.highlighting.KotlinDefaultHighlightingSettingsProvider
+org.jetbrains.kotlin.idea.highlighting.KotlinProblemHighlightFilter
+org.jetbrains.kotlin.idea.highlighting.beforeResolve.DeclarationHighlightingExtension
+org.jetbrains.kotlin.idea.base.highlighting.KotlinBeforeResolveHighlightingVisitor
+org.jetbrains.kotlin.idea.highlighter.BeforeResolveHighlightingExtension
+org.jetbrains.kotlin.idea.highlighter.AnnotationsHighlightingExtension
+org.jetbrains.kotlin.idea.highlighter.NamedArgumentsHighlightingExtension

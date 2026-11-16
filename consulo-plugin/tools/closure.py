@@ -169,7 +169,7 @@ def main():
         # message bundles and icons of the modules (IntelliJ keeps the English bundles of some modules in resources-en)
         resources = ''
         for m in sorted(by_module):
-            for directory in ('resources', 'resources-en'):
+            for directory in ('resources', 'resource', 'resources-en'):
                 if m not in stops and os.path.isdir(f'{ROOT}/{m}/{directory}'):
                     resources += f'            <resource>\n                <directory>${{plugin.root}}/{m}/{directory}</directory>\n                <includes>\n'
                     resources += ''.join(f'                    <include>{i}</include>\n' for i in RESOURCES)
