@@ -50,11 +50,16 @@ EXTENSION_POINTS = {
     'com.intellij.usageTypeProvider': ('consulo.usage.UsageTypeProvider', 'APPLICATION'),
     'com.intellij.elementDescriptionProvider': ('consulo.language.psi.ElementDescriptionProvider', 'APPLICATION'),
     'com.intellij.readWriteAccessDetector': ('consulo.language.editor.highlight.ReadWriteAccessDetector', 'APPLICATION'),
+    # word and TODO indexes; Consulo asks the indexer for its file type (IntelliJ's descriptor says it)
+    'com.intellij.idIndexer': ('consulo.language.psi.stub.IdIndexer', 'APPLICATION'),
+    'com.intellij.todoIndexer': ('consulo.language.psi.stub.todo.TodoIndexer', 'APPLICATION'),
 }
 # extension APIs that are marker interfaces the implementation does not declare (the query executors above)
 MARKER_APIS = {api for api, scope in EXTENSION_POINTS.values() if api.endswith('Executor')}
 # Consulo extensions per language say which (LanguageExtension.getLanguage); IntelliJ's descriptor does, by language id
 LANGUAGES = {'kotlin': 'org.jetbrains.kotlin.idea.KotlinLanguage'}
+# Consulo extensions per file type (getFileType); IntelliJ's descriptor says which, by file type name
+FILE_TYPES = {'Kotlin': 'org.jetbrains.kotlin.idea.KotlinFileType'}
 # extension points with no meaning in Consulo (or with a Consulo replacement), not reported
 IGNORED = {'com.intellij.registryKey', 'com.intellij.notificationGroup', 'com.intellij.virtualFileCustomDataProvider'}
 # extensions of another language (IntelliJ registers them in the Kotlin plugin, e.g. Java completion of Kotlin members)
@@ -142,7 +147,7 @@ def main():
     classes = compiled_classes(files)
     compiler_apis = compiler_service_apis()
     services, extensions, listeners, plugin_apis = [], [], [], {}
-    skipped, unmapped, languages, registry = [], {}, {}, {}
+    skipped, unmapped, languages, file_types, registry = [], {}, {}, {}, {}
     for module in files:
         for descriptor in glob.glob(f'{ROOT}/{module}/resources/*.xml'):
             root = ET.parse(descriptor).getroot()
@@ -178,6 +183,9 @@ def main():
                             continue
                         if language:
                             languages[impl] = LANGUAGES[language]
+                        filetype = e.get('filetype')
+                        if filetype in FILE_TYPES:
+                            file_types[impl] = FILE_TYPES[filetype]
                         extensions.append((impl,) + EXTENSION_POINTS[point])
                     elif point not in IGNORED:
                         unmapped.setdefault(point, []).append(impl)
@@ -206,6 +214,13 @@ def main():
             </addMethod>
         </class>
 ''' for impl, language in sorted(languages.items()))
+    mods += ''.join(f'''        <class name="{impl}">
+            <addMethod name="getFileType" returnType="consulo.virtualFileSystem.fileType.FileType">
+                <getstatic owner="{file_type}" name="INSTANCE" type="{file_type}"/>
+                <areturn/>
+            </addMethod>
+        </class>
+''' for impl, file_type in sorted(file_types.items()))
     mods += ''.join(f'''        <class name="{impl}">
             <addInterface type="{api}"/>
         </class>

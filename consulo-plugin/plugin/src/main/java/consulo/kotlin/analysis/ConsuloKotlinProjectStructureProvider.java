@@ -4,6 +4,7 @@ import consulo.annotation.component.ServiceImpl;
 import consulo.content.base.BinariesOrderRootType;
 import consulo.content.bundle.Sdk;
 import consulo.content.library.Library;
+import consulo.document.event.FileDocumentManagerListener;
 import consulo.kotlin.module.extension.KotlinModuleExtension;
 import consulo.language.psi.PsiElement;
 import consulo.language.psi.PsiFile;
@@ -61,6 +62,17 @@ public class ConsuloKotlinProjectStructureProvider extends KotlinProjectStructur
             @Override
             public void rootsChanged(ModuleRootEvent event) {
                 UtilsKt.publishGlobalModuleStateModificationEvent(myProject);
+            }
+        });
+        // as IntelliJ's FirIdeModuleStateModificationService.ProjectFileDocumentListener: a project file changed without a
+        // document (e.g. on disk) gets its PSI reloaded with no explicit PSI changes, so every analysis cache may be stale
+        project.getApplication().getMessageBus().connect(project).subscribe(FileDocumentManagerListener.class, new FileDocumentManagerListener() {
+            @Override
+            public void fileWithNoDocumentChanged(VirtualFile file) {
+                if (!myProject.isDisposed() && myProject.isInitialized() && !file.equals(myProject.getWorkspaceFile())
+                    && ProjectFileIndex.getInstance(myProject).isInContent(file)) {
+                    UtilsKt.publishGlobalModuleStateModificationEvent(myProject);
+                }
             }
         });
     }

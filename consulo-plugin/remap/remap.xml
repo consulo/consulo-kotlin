@@ -211,6 +211,18 @@
                 <areturn/>
             </addMethod>
         </class>
+        <class name="org.jetbrains.kotlin.idea.search.KotlinIdIndexer">
+            <addMethod name="getFileType" returnType="consulo.virtualFileSystem.fileType.FileType">
+                <getstatic owner="org.jetbrains.kotlin.idea.KotlinFileType" name="INSTANCE" type="org.jetbrains.kotlin.idea.KotlinFileType"/>
+                <areturn/>
+            </addMethod>
+        </class>
+        <class name="org.jetbrains.kotlin.idea.search.KotlinTodoIndexer">
+            <addMethod name="getFileType" returnType="consulo.virtualFileSystem.fileType.FileType">
+                <getstatic owner="org.jetbrains.kotlin.idea.KotlinFileType" name="INSTANCE" type="org.jetbrains.kotlin.idea.KotlinFileType"/>
+                <areturn/>
+            </addMethod>
+        </class>
         <class name="org.jetbrains.kotlin.idea.search.ideaExtensions.KotlinAliasedImportedElementSearcher">
             <addInterface type="consulo.language.psi.search.ReferencesSearchQueryExecutor"/>
         </class>
@@ -326,6 +338,8 @@
             <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseKDocReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBasePropertyDelegationMethodsReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
             <binding impl="org.jetbrains.kotlin.idea.references.impl.KaBaseSimpleNameReference$Provider" api="org.jetbrains.kotlin.references.KotlinPsiReferenceProviderContributor" scope="PROJECT"/>
+            <binding impl="org.jetbrains.kotlin.idea.search.KotlinIdIndexer" api="consulo.language.psi.stub.IdIndexer" scope="APPLICATION"/>
+            <binding impl="org.jetbrains.kotlin.idea.search.KotlinTodoIndexer" api="consulo.language.psi.stub.todo.TodoIndexer" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.search.ideaExtensions.KotlinAliasedImportedElementSearcher" api="consulo.language.psi.search.ReferencesSearchQueryExecutor" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.search.ideaExtensions.KotlinDirectInheritorsSearcher" api="com.intellij.java.indexing.search.searches.DirectClassInheritorsSearchExecutor" scope="APPLICATION"/>
             <binding impl="org.jetbrains.kotlin.idea.search.ideaExtensions.KotlinReadWriteAccessDetector" api="consulo.language.editor.highlight.ReadWriteAccessDetector" scope="APPLICATION"/>
